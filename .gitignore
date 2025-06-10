@@ -74,4 +74,15 @@ data/uploads/
 uploads/
 
 # Embeddings
-data/embeddings/ 
+data/embeddings/
+
+# Cache and vectors
+data/cache/
+data/vectors/
+data/splitter_cache/
+data/results/
+data/exports/
+
+# Backend data
+backend/data/
+backend/output/
