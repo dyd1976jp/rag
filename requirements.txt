@@ -1,0 +1,50 @@
+# Web框架
+fastapi==0.95.2
+uvicorn==0.22.0
+pydantic==1.10.8
+python-multipart==0.0.6
+python-dotenv==1.0.0
+starlette==0.27.0
+
+# 数据库
+motor==3.1.2
+pymongo==4.3.3
+pymilvus==2.3.1
+redis==5.0.0
+
+# 认证
+pyjwt==2.8.0
+passlib==1.7.4
+bcrypt==4.0.1
+python-jose==3.3.0
+
+# RAG相关
+openai==0.28.1
+PyPDF2==3.0.1
+tiktoken==0.5.1
+jieba==0.42.1
+langchain>=0.1.0
+langchain-community>=0.0.28
+unstructured==0.12.4
+unstructured-inference==0.7.24
+pillow-heif==0.15.0
+pdf2image==1.17.0
+pytesseract==0.3.10
+python-magic==0.4.27
+pdfminer.six==20231228
+nltk==3.8.1
+numpy>=1.24.0
+pypdf==3.16.0
+pypdfium2==4.25.0
+
+# 工具
+tenacity==8.2.3
+anyio==3.7.1
+httpx==0.25.1
+aiofiles==23.2.1
+async-timeout==4.0.3
+loguru==0.7.0 
+faiss-cpu==1.7.4
+sentence-transformers>=2.2.2
+torch>=2.0.0
+transformers>=4.36.0 

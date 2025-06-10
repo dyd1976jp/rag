@@ -1,0 +1,14 @@
+/* 确保Tailwind基础组件被导入 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 用于表单元素的基础样式 */
+@layer components {
+  input[type='text'],
+  input[type='password'],
+  input[type='email'],
+  textarea {
+    @apply border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm;
+  }
+} 
