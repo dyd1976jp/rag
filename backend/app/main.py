@@ -20,16 +20,14 @@ from .api.endpoints import auth, llm as llm_old
 from .api.v1.api import api_v1_router
 from .admin.router import router as admin_router
 from .db.mongodb import mongodb
-
-# 创建日志目录
-os.makedirs("logs", exist_ok=True)
+from .core.paths import LOGS_DIR, APP_LOGS_DIR
 
 # 配置日志
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler("logs/app.log"),
+        logging.FileHandler(str(APP_LOGS_DIR / "app.log")),
         logging.StreamHandler()
     ]
 )
