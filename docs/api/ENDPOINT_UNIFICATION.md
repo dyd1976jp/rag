@@ -78,3 +78,4 @@ async def register_model():
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=data)
         return response.json() 
+``` 

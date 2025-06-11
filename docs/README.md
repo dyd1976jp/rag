@@ -4,8 +4,20 @@
 
 ## 文档目录结构
 
+- [api/](api/) - API相关文档和端点说明
 - [development/](development/) - 开发文档和工作流程指南
+- [testing/](testing/) - 测试相关文档和指南
 - [github_templates/](github_templates/) - GitHub Issue 和 PR 模板
+
+## API文档
+
+API目录包含以下文档：
+
+- API参考文档
+- 端点统一说明
+- API设计原则
+
+更多信息请参考 [api/README.md](api/README.md)。
 
 ## 开发文档
 
@@ -18,6 +30,10 @@
 - 任务模板 (TASK_TEMPLATE.md)
 
 更多信息请参考 [development/README.md](development/README.md)。
+
+## 测试文档
+
+测试目录包含测试相关的文档和指南。
 
 ## GitHub 模板
 

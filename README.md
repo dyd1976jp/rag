@@ -2,6 +2,12 @@
 
 RAG-Chat是一个基于检索增强生成（Retrieval-Augmented Generation, RAG）技术的聊天系统，能够利用用户上传的知识库文档进行智能回答。
 
+## 文档导航
+
+- [主文档](README.md) - 系统概述、安装和使用说明
+- [项目文档](docs/README.md) - 开发文档和工作流程指南
+- [测试文档](docs/testing/README.md) - 测试相关说明和指南
+
 ## 系统要求
 
 ### 后端依赖
@@ -25,7 +31,11 @@ cd RAG-chat
 ### 2. 安装后端依赖
 ```bash
 cd backend
+# 安装基础依赖
 pip install -r requirements.txt
+
+# 如果需要运行测试，还需要安装测试依赖
+pip install -r requirements/test.txt
 ```
 
 ### 3. 安装前端依赖

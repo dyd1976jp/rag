@@ -1,3 +1,9 @@
+# 引入基础依赖
+-r requirements/base.txt
+
+# 引入测试依赖（可选，仅在开发环境需要）
+# -r requirements/test.txt
+
 fastapi==0.104.1
 uvicorn==0.24.0
 motor==3.3.1

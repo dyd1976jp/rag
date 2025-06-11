@@ -1,58 +1,47 @@
 import logging
+from logging.handlers import RotatingFileHandler
 import sys
-from pathlib import Path
-from loguru import logger
+from .paths import (
+    API_LOGS_DIR,
+    WORKER_LOGS_DIR,
+    DEBUG_LOGS_DIR,
+    TEST_LOGS_DIR
+)
 
-def setup_logging():
-    # 创建日志目录
-    log_path = Path("logs")
-    log_path.mkdir(exist_ok=True)
-    
-    # 配置日志格式
-    log_format = (
-        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
-        "<level>{level: <8}</level> | "
-        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> | "
-        "<level>{message}</level>"
+def setup_logger(name: str, log_dir, level=logging.INFO):
+    """设置日志记录器"""
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+
+    # 创建格式化器
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
-    
-    # 移除默认的处理器
-    logger.remove()
-    
-    # 添加控制台输出
-    logger.add(
-        sys.stdout,
-        format=log_format,
-        level="INFO",
-        colorize=True
+
+    # 控制台处理器
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    # 文件处理器
+    file_handler = RotatingFileHandler(
+        log_dir / f"{name}.log",
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5
     )
-    
-    # 添加文件输出
-    logger.add(
-        "logs/app.log",
-        rotation="500 MB",
-        retention="10 days",
-        format=log_format,
-        level="DEBUG",
-        encoding="utf-8"
-    )
-    
-    # 配置 uvicorn 的日志
-    logging.getLogger("uvicorn").handlers = [InterceptHandler()]
-    logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
-class InterceptHandler(logging.Handler):
-    def emit(self, record):
-        try:
-            level = logger.level(record.levelname).name
-        except ValueError:
-            level = record.levelno
+    return logger
 
-        frame, depth = logging.currentframe(), 2
-        while frame.f_code.co_filename == logging.__file__:
-            frame = frame.f_back
-            depth += 1
+# API日志
+api_logger = setup_logger('api', API_LOGS_DIR)
 
-        logger.opt(depth=depth, exception=record.exc_info).log(
-            level, record.getMessage()
-        ) 
+# 后台任务日志
+worker_logger = setup_logger('worker', WORKER_LOGS_DIR)
+
+# 调试日志
+debug_logger = setup_logger('debug', DEBUG_LOGS_DIR, level=logging.DEBUG)
+
+# 测试日志
+test_logger = setup_logger('test', TEST_LOGS_DIR) 

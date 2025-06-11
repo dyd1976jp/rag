@@ -16,13 +16,22 @@ from app.rag import (
 from app.rag.document_processor import Document
 from app.db.mongodb import mongodb
 from datetime import datetime, timezone
+from ..core.paths import (
+    UPLOADS_DIR,
+    VECTORS_DIR,
+    CACHE_DIR,
+    RESULTS_DIR
+)
 
 logger = logging.getLogger(__name__)
 
 class RAGService:
     def __init__(self):
         self.collection_name = os.environ.get("RAG_COLLECTION_NAME", "documents")
-        self.upload_dir = os.environ.get("RAG_UPLOAD_DIR", "data/uploads")
+        self.upload_dir = str(UPLOADS_DIR)
+        self.vectors_dir = str(VECTORS_DIR)
+        self.cache_dir = str(CACHE_DIR)
+        self.results_dir = str(RESULTS_DIR)
         # 批处理大小
         self.batch_size = int(os.environ.get("RAG_BATCH_SIZE", "50"))
         

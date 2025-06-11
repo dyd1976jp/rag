@@ -3,6 +3,10 @@ RAG 系统常量定义
 """
 
 from enum import Enum
+from ..core.paths import (
+    CACHE_DIR,
+    SPLITTER_CACHE_DIR
+)
 
 # 默认集合名称
 DEFAULT_COLLECTION_NAME = "rag_documents"
@@ -66,13 +70,19 @@ DOCUMENT_PROCESSOR_CONFIG = {
 }
 
 # 文档分割配置
-DOCUMENT_SPLITTER_CONFIG = {
-    "chunk_size": 512,            # 分块大小
-    "chunk_overlap": 50,          # 分块重叠
-    "split_by_paragraph": True,   # 是否按段落分割
-    "split_by_sentence": True,    # 是否按句子分割
-    "cache_enabled": True,        # 是否启用缓存
-    "cache_dir": "data/splitter_cache"  # 缓存目录
+SPLITTER_CONFIG = {
+    "paragraph": {
+        "min_length": 100,
+        "max_length": 1000,
+        "overlap": 50,
+        "cache_dir": str(CACHE_DIR)      # 缓存目录
+    },
+    "qa": {
+        "min_length": 50,
+        "max_length": 500,
+        "overlap": 20,
+        "cache_dir": str(SPLITTER_CACHE_DIR)  # 缓存目录
+    }
 }
 
 # 缓存配置

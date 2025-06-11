@@ -48,8 +48,10 @@ frontend/build/
 *.sqlite3
 
 # Logs
-logs/
-*.log
+logs/app/**/*.log
+logs/tests/**/*.log
+logs/services/**/*.log
+!logs/**/.gitkeep
 
 # Test
 .coverage
@@ -64,25 +66,39 @@ coverage/
 .env.production.local
 
 # MongoDB
-data/mongodb/
+data/db/mongodb/*
 
 # Milvus
-data/milvus/
+data/db/milvus/*
 
 # Uploaded files
-data/uploads/
+data/uploads/*
 uploads/
 
 # Embeddings
-data/embeddings/
+data/embeddings/*
 
 # Cache and vectors
-data/cache/
-data/vectors/
+data/cache/*
+data/vectors/*
 data/splitter_cache/
-data/results/
-data/exports/
+data/results/*
+data/exports/*
 
 # Backend data
 backend/data/
 backend/output/
+
+# Data directories
+data/raw/*
+data/processed/*
+data/uploads/*
+data/temp/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/uploads/.gitkeep
+!data/temp/.gitkeep
+
+# Backend resources
+backend/resources/data/*
+!backend/resources/data/.gitkeep

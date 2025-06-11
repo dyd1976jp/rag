@@ -7,6 +7,10 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import json
 import hashlib
+from ..core.paths import (
+    CACHE_DIR,
+    RAW_DATA_DIR
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +37,8 @@ class DocumentProcessor:
         
         # 缓存配置
         self.use_cache = os.environ.get("DOC_USE_CACHE", "true").lower() == "true"
-        self.cache_dir = os.environ.get("DOC_CACHE_DIR", "data/cache")
+        self.cache_dir = str(CACHE_DIR)
+        self.stop_words_file = str(RAW_DATA_DIR / "stop_words.txt")
         
         # 确保缓存目录存在
         if self.use_cache:
@@ -48,13 +53,12 @@ class DocumentProcessor:
     def _load_stop_words(self):
         """加载停用词"""
         try:
-            stop_words_file = os.environ.get("STOP_WORDS_FILE", "data/stop_words.txt")
-            if os.path.exists(stop_words_file):
-                with open(stop_words_file, 'r', encoding='utf-8') as f:
+            if os.path.exists(self.stop_words_file):
+                with open(self.stop_words_file, 'r', encoding='utf-8') as f:
                     self.stop_words = set(line.strip() for line in f if line.strip())
                 logger.info(f"加载了 {len(self.stop_words)} 个停用词")
             else:
-                logger.info(f"停用词文件 {stop_words_file} 不存在，跳过加载")
+                logger.info(f"停用词文件 {self.stop_words_file} 不存在，跳过加载")
         except Exception as e:
             logger.error(f"加载停用词失败: {str(e)}")
     

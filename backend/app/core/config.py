@@ -18,6 +18,10 @@ from pydantic_settings import BaseSettings
 from pydantic import AnyHttpUrl, field_validator, ConfigDict
 from dotenv import load_dotenv
 import os
+from .paths import (
+    UPLOADS_DIR, CHROMA_DIR, APP_LOGS_DIR,
+    get_env_path
+)
 
 # 加载.env文件中的环境变量
 load_dotenv()
@@ -57,7 +61,7 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
     
     # 文件存储配置
-    UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "data/uploads")
+    UPLOAD_DIR: str = str(get_env_path("UPLOAD_DIR", UPLOADS_DIR))
     MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
     
     # 文档处理配置
@@ -70,7 +74,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: list = ["http://localhost:3000"]
     
     # 向量数据库配置
-    CHROMA_PERSIST_DIRECTORY: str = "./data/chroma"
+    CHROMA_PERSIST_DIRECTORY: str = str(get_env_path("CHROMA_PERSIST_DIR", CHROMA_DIR))
     
     # JWT配置
     ALGORITHM: str = "HS256"
@@ -79,6 +83,14 @@ class Settings(BaseSettings):
     DESCRIPTION: str = "基于 RAG 技术的智能聊天应用"
     
     MILVUS_DIM: int = int(os.getenv("MILVUS_DIM", "1536"))  # OpenAI text-embedding-ada-002 的维度
+    
+    # 日志文件路径
+    LOG_FILE: str = str(APP_LOGS_DIR / "app.log")
+
+    # Unstructured API配置
+    ETL_TYPE: str = os.getenv("ETL_TYPE", "Unstructured")
+    UNSTRUCTURED_API_URL: str = os.getenv("UNSTRUCTURED_API_URL", "your_api_url")
+    UNSTRUCTURED_API_KEY: str = os.getenv("UNSTRUCTURED_API_KEY", "your_api_key")
     
     @field_validator("BACKEND_CORS_ORIGINS", mode='before')
     def assemble_cors_origins(cls, v: str | List[str]) -> List[str] | str:
@@ -104,7 +116,8 @@ class Settings(BaseSettings):
 
     model_config = ConfigDict(
         case_sensitive = True,
-        env_file = ".env"
+        env_file = ".env",
+        extra = "allow"  # 允许额外的字段
     )
 
 # 实例化配置对象，供应用程序其他部分使用

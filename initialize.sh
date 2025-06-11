@@ -7,9 +7,17 @@ echo "正在激活Conda环境(rag-chat)..."
 source /opt/anaconda3/bin/activate rag-chat
 
 # 创建必要的目录
-echo "创建必要的数据目录..."
-mkdir -p data/uploads
-mkdir -p data/chroma
+echo "创建必要的目录..."
+mkdir -p data/{raw,processed,uploads,vectors,embeddings,cache/splitter,exports,db/{mongodb,milvus,chroma}}
+mkdir -p logs/{app/{api,worker,debug},tests,services/{mongodb,milvus}}
+
+# 添加 .gitkeep 文件
+echo "添加 .gitkeep 文件..."
+find data logs -type d -exec touch {}/.gitkeep \;
+
+# 设置权限
+echo "设置目录权限..."
+chmod -R 755 data logs
 
 # 安装后端依赖
 echo "安装后端依赖包..."
