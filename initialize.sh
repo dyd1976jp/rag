@@ -29,8 +29,14 @@ pip install PyPDF2 langchain langchain-community sentence-transformers psutil ch
 
 # 安装前端依赖
 echo "安装前端依赖包..."
-cd frontend/admin
+echo "安装主应用前端依赖..."
+cd frontend-app
 npm install
-cd ../..
+cd ..
+
+echo "安装管理后台前端依赖..."
+cd frontend-admin
+npm install
+cd ..
 
 echo "初始化完成，现在可以运行 ./start.sh 启动系统。" 
