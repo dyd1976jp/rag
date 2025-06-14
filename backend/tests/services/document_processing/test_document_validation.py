@@ -5,6 +5,7 @@ import logging
 from typing import Dict, Any, List
 from pathlib import Path
 from datetime import datetime
+import unittest
 
 # 添加项目根目录到Python路径
 sys.path.append(str(Path(__file__).parent.parent))
@@ -225,6 +226,21 @@ def main():
     except Exception as e:
         logger.error(f"验证过程失败: {str(e)}")
         raise
+
+class TestDocumentValidation(unittest.TestCase):
+    def setUp(self):
+        """测试准备"""
+        # 使用项目根目录下的data目录
+        project_root = Path(__file__).parent.parent.parent.parent.parent
+        self.test_dir = project_root / "data" / "test_data"
+        self.output_dir = project_root / "data" / "results"
+        
+        # 创建必要的目录
+        self.test_dir.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 设置输出路径
+        self.split_output_path = self.output_dir / "split_results.json"
 
 if __name__ == "__main__":
     main() 

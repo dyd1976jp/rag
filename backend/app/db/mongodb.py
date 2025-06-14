@@ -31,7 +31,7 @@ class MongoDB:
         try:
             # 从环境变量获取连接信息
             mongo_uri = os.environ.get("MONGODB_URI", "mongodb://localhost:27017")
-            db_name = os.environ.get("MONGODB_DB", "rag_chat")
+            db_name = os.environ.get("MONGODB_DB", "ragchat")
             
             # 创建异步客户端
             self.client = AsyncIOMotorClient(mongo_uri)

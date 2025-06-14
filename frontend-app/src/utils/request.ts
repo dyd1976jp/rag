@@ -14,6 +14,13 @@ request.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
+    // 添加详细日志
+    console.log('Request config:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      data: config.data
+    });
     return config;
   },
   (error) => {
@@ -28,8 +35,22 @@ request.interceptors.response.use(
     console.log('Response interceptor:', {
       url: response.config.url,
       status: response.status,
-      data: response.data
+      data: response.data,
+      headers: response.headers
     });
+    
+    // 检查是否是重定向响应
+    if (response.status === 307 || response.status === 308) {
+      console.log('处理重定向响应:', response.headers.location);
+      // 创建新的请求配置
+      const redirectConfig = {
+        ...response.config,
+        url: response.headers.location
+      };
+      // 重新发送请求
+      return request(redirectConfig);
+    }
+    
     return response;
   },
   (error) => {
@@ -37,11 +58,13 @@ request.interceptors.response.use(
       url: error.config?.url,
       status: error.response?.status,
       data: error.response?.data,
-      message: error.message
+      message: error.message,
+      headers: error.response?.headers
     });
     
     // 处理401未授权错误
     if (error.response && error.response.status === 401) {
+      console.log('检测到未授权错误，清除token并重定向到登录页面');
       localStorage.removeItem('token');
       window.location.href = '/auth';
       return Promise.reject(new Error('未授权，请重新登录'));

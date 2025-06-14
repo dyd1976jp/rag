@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # MongoDB配置
 MONGODB_HOST = os.environ.get("MONGODB_HOST", "localhost")
 MONGODB_PORT = int(os.environ.get("MONGODB_PORT", "27017"))
-MONGODB_DB = os.environ.get("MONGODB_DB", "rag_db")
+MONGODB_DB = os.environ.get("MONGODB_DB", "ragchat")
 
 _mongodb_client: Optional[MongoClient] = None
 _mongodb_db: Optional[Database] = None

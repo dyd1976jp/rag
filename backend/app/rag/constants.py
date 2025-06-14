@@ -63,7 +63,6 @@ EMBEDDING_CONFIG = {
 
 # 文档处理配置
 DOCUMENT_PROCESSOR_CONFIG = {
-    "min_content_length": 10,      # 最小内容长度
     "max_content_length": 100000,  # 最大内容长度
     "cache_enabled": True,         # 是否启用缓存
     "cache_dir": "data/cache"      # 缓存目录

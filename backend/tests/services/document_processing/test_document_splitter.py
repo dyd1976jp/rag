@@ -5,35 +5,137 @@
 import os
 import sys
 import logging
+import unittest
 from pathlib import Path
+from typing import List
+from datetime import datetime
+import json
 
 # 添加项目根目录到Python路径
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent.parent))
 
-from app.rag.document_splitter import DocumentSplitter, HierarchicalDocumentSplitter
-from app.rag.document_processor import Document
+# 创建专用目录"split_results"用于存放分割结果文件
+split_results_dir = Path(__file__).parent / "split_results"
+os.makedirs(split_results_dir, exist_ok=True)
+
+# 创建日志目录
+log_dir = Path(__file__).parent / "logs"
+os.makedirs(log_dir, exist_ok=True)
+
+# 配置日志
+log_file = log_dir / "test_document_splitter.log"
+if log_file.exists():
+    log_file.unlink()  # 删除已存在的日志文件
+
+# 创建日志处理器
+file_handler = logging.FileHandler(log_file, encoding='utf-8', mode='w')
+file_handler.setLevel(logging.DEBUG)
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+# 配置根日志记录器
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.DEBUG)
+root_logger.addHandler(file_handler)
+root_logger.addHandler(console_handler)
+
+# 获取模块日志记录器
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+from app.rag.document_splitter import DocumentSplitter, ParentChildDocumentSplitter, Rule, SplitMode
+from app.rag.models import Document
 from app.rag.models import DocumentSegment, ChildChunk
 from app.rag.database import MongoDBManager
 from app.rag.vector_store import MilvusVectorStore
 from app.rag.embedding_model import EmbeddingModel
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-def test_text_splitting():
-    """测试文本分割功能"""
-    # 设置环境变量
-    os.environ["CHUNK_SIZE"] = "100"  # 设置较小的分块大小以便于观察
-    os.environ["CHUNK_OVERLAP"] = "20"  # 设置重叠大小
-    os.environ["SPLIT_BY_PARAGRAPH"] = "true"  # 启用段落分割
-    os.environ["SPLIT_BY_SENTENCE"] = "true"  # 启用句子分割
+def save_segments_to_json(segments: List[DocumentSegment], source_file: str, split_mode: str) -> Path:
+    """保存分割结果到JSON文件"""
+    # 创建输出文件名
+    output_filename = f"{Path(source_file).stem}_{split_mode}_segments.json"
+    output_path = split_results_dir / output_filename
     
-    # 创建示例文本
-    test_text = """
+    # 准备结果数据
+    results = {
+        "source_file": source_file,
+        "split_mode": split_mode,
+        "metadata": {
+            "total_segments": len(segments),
+            "processed_at": datetime.now().isoformat()
+        }
+    }
+    
+    # 如果是父子分割模式，使用嵌套结构
+    if split_mode == "parent_child":
+        # 只保存父文档，子文档会通过父文档的 children 字段包含
+        parent_segments = [s for s in segments if s.metadata["type"] == "parent"]
+        results["segments"] = [segment.to_dict() for segment in parent_segments]
+        
+        # 添加统计信息
+        parent_lengths = [len(s.page_content) for s in parent_segments]
+        child_lengths = [
+            len(c.page_content) 
+            for p in parent_segments 
+            for c in (p.children or [])
+        ]
+        
+        results["metadata"]["stats"] = {
+            "parent_stats": {
+                "min_length": min(parent_lengths) if parent_lengths else 0,
+                "max_length": max(parent_lengths) if parent_lengths else 0,
+                "avg_length": sum(parent_lengths) / len(parent_lengths) if parent_lengths else 0,
+                "total_parents": len(parent_lengths)
+            },
+            "child_stats": {
+                "min_length": min(child_lengths) if child_lengths else 0,
+                "max_length": max(child_lengths) if child_lengths else 0,
+                "avg_length": sum(child_lengths) / len(child_lengths) if child_lengths else 0,
+                "total_children": len(child_lengths)
+            }
+        }
+    else:
+        # 对于其他分割模式，使用普通的平铺结构
+        results["segments"] = [segment.to_dict() for segment in segments]
+        
+        # 添加统计信息
+        segment_lengths = [len(s.page_content) for s in segments]
+        results["metadata"]["stats"] = {
+            "min_length": min(segment_lengths) if segment_lengths else 0,
+            "max_length": max(segment_lengths) if segment_lengths else 0,
+            "avg_length": sum(segment_lengths) / len(segment_lengths) if segment_lengths else 0,
+            "total_segments": len(segment_lengths)
+        }
+    
+    # 写入JSON文件
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+        
+    print(f"{split_mode} 分割结果已保存到: {output_path}")
+    return output_path
+
+class TestDocumentSplitter(unittest.TestCase):
+    """测试文档分割器"""
+    
+    def setUp(self):
+        """测试前的准备工作"""
+        self.test_dir = Path(__file__).parent
+        self.split_results_dir = self.test_dir / "split_results"
+        os.makedirs(self.split_results_dir, exist_ok=True)
+        
+    def test_text_splitting(self):
+        """测试文本分割功能"""
+        # 设置环境变量
+        os.environ["CHUNK_SIZE"] = "100"  # 设置较小的分块大小以便于观察
+        os.environ["CHUNK_OVERLAP"] = "20"  # 设置重叠大小
+        os.environ["SPLIT_BY_PARAGRAPH"] = "true"  # 启用段落分割
+        os.environ["SPLIT_BY_SENTENCE"] = "true"  # 启用句子分割
+        
+        # 创建示例文本
+        test_text = """
 第一段落：这是第一段文字。这里包含了一些基本信息。这是第一段的最后一句。
 
 第二段落：这是第二段的开始。这里有一些技术细节的描述。
@@ -41,53 +143,65 @@ def test_text_splitting():
 
 第三段落：这是最后一段。这段包含总结信息。
 这是最后一段的第二行。这里是文档的结束。
-    """
-    
-    # 创建文档对象
-    doc = Document(
-        page_content=test_text,
-        metadata={
-            "source": "test_document",
-            "created_at": "2024-03-19"
-        }
-    )
-    
-    # 创建分割器实例
-    splitter = DocumentSplitter()
-    
-    logger.info("开始测试文档分割...")
-    logger.info(f"分割配置: chunk_size={splitter.chunk_size}, chunk_overlap={splitter.chunk_overlap}")
-    logger.info(f"原始文本长度: {len(test_text)} 字符")
-    
-    # 执行分割
-    try:
-        segments = splitter.split_document(doc)
+        """
         
-        # 打印分割结果
-        logger.info(f"\n分割结果: 共生成 {len(segments)} 个片段")
-        for i, segment in enumerate(segments, 1):
-            logger.info(f"\n片段 {i}:")
-            logger.info(f"内容: {segment.page_content}")
-            logger.info(f"长度: {len(segment.page_content)} 字符")
-            logger.info(f"元数据: {segment.metadata}")
+        # 创建文档对象
+        doc = Document(
+            page_content=test_text,
+            source="test_document",
+            doc_id="test_doc_id_1",
+            metadata={
+                "created_at": "2024-03-19"
+            }
+        )
+        
+        # 创建分割器实例
+        splitter = DocumentSplitter()
+        
+        logger.info("开始测试文档分割...")
+        logger.info(f"分割配置: chunk_size={splitter.chunk_size}, chunk_overlap={splitter.chunk_overlap}")
+        logger.info(f"原始文本长度: {len(test_text)} 字符")
+        
+        # 执行分割
+        try:
+            segments = splitter.split_documents([doc])
+            # 保存分割结果
+            output_path = save_segments_to_json(segments, "test_document", "text")
+            self.assertTrue(output_path.exists())
             
-        # 验证分割结果
-        total_chars = sum(len(seg.page_content) for seg in segments)
-        avg_length = total_chars / len(segments) if segments else 0
-        
-        logger.info(f"\n统计信息:")
-        logger.info(f"总字符数: {total_chars}")
-        logger.info(f"平均片段长度: {avg_length:.2f} 字符")
-        logger.info(f"最短片段长度: {min(len(seg.page_content) for seg in segments)} 字符")
-        logger.info(f"最长片段长度: {max(len(seg.page_content) for seg in segments)} 字符")
-        
-    except Exception as e:
-        logger.error(f"分割过程中出错: {str(e)}")
-        raise
-
-def test_different_configurations():
-    """测试不同的分割配置"""
-    test_text = """
+            # 打印分割结果
+            logger.info(f"\n分割结果: 共生成 {len(segments)} 个片段")
+            for i, segment in enumerate(segments, 1):
+                logger.info(f"\n片段 {i}:")
+                logger.info(f"内容: {segment.page_content}")
+                logger.info(f"长度: {len(segment.page_content)} 字符")
+                logger.info(f"元数据: {segment.metadata}")
+                
+            # 验证分割结果
+            self.assertGreater(len(segments), 0, "应该生成至少一个片段")
+            total_chars = sum(len(seg.page_content) for seg in segments)
+            avg_length = total_chars / len(segments) if segments else 0
+            
+            logger.info(f"\n统计信息:")
+            logger.info(f"总字符数: {total_chars}")
+            logger.info(f"平均片段长度: {avg_length:.2f} 字符")
+            logger.info(f"最短片段长度: {min(len(seg.page_content) for seg in segments)} 字符")
+            logger.info(f"最长片段长度: {max(len(seg.page_content) for seg in segments)} 字符")
+            
+            # 验证每个片段
+            for segment in segments:
+                self.assertIsNotNone(segment.page_content)
+                self.assertGreater(len(segment.page_content), 0)
+                self.assertIn("source", segment.metadata)
+                self.assertIn("type", segment.metadata)
+            
+        except Exception as e:
+            logger.error(f"分割过程中出错: {str(e)}")
+            raise
+            
+    def test_different_configurations(self):
+        """测试不同的分割配置"""
+        test_text = """
 这是一个测试文档。它包含多个句子和段落。
 这是第一段的第二句话。这是第三句话。
 
@@ -96,54 +210,67 @@ def test_different_configurations():
 
 这是最后一段。
 它很短。
-    """
-    
-    doc = Document(page_content=test_text, metadata={"source": "test_config"})
-    
-    # 测试不同的配置
-    configs = [
-        {
-            "CHUNK_SIZE": "50",
-            "CHUNK_OVERLAP": "10",
-            "SPLIT_BY_PARAGRAPH": "true",
-            "SPLIT_BY_SENTENCE": "true"
-        },
-        {
-            "CHUNK_SIZE": "100",
-            "CHUNK_OVERLAP": "20",
-            "SPLIT_BY_PARAGRAPH": "true",
-            "SPLIT_BY_SENTENCE": "false"
-        },
-        {
-            "CHUNK_SIZE": "200",
-            "CHUNK_OVERLAP": "30",
-            "SPLIT_BY_PARAGRAPH": "false",
-            "SPLIT_BY_SENTENCE": "true"
-        }
-    ]
-    
-    for config in configs:
-        logger.info(f"\n测试配置: {config}")
+        """
         
-        # 设置环境变量
-        for key, value in config.items():
-            os.environ[key] = value
-            
-        splitter = DocumentSplitter()
+        doc = Document(page_content=test_text, source="test_config", doc_id="test_doc_id_2", metadata={})
         
-        try:
-            segments = splitter.split_document(doc)
-            logger.info(f"生成片段数: {len(segments)}")
-            for i, segment in enumerate(segments, 1):
-                logger.info(f"片段 {i} 长度: {len(segment.page_content)} 字符")
-                logger.info(f"内容: {segment.page_content}\n")
-        except Exception as e:
-            logger.error(f"使用配置 {config} 分割时出错: {str(e)}")
-
-def test_hierarchical_splitting():
-    """测试父子分割功能"""
-    # 创建示例文本
-    test_text = """
+        # 测试不同的配置
+        configs = [
+            {
+                "CHUNK_SIZE": "50",
+                "CHUNK_OVERLAP": "10",
+                "SPLIT_BY_PARAGRAPH": "true",
+                "SPLIT_BY_SENTENCE": "true"
+            },
+            {
+                "CHUNK_SIZE": "100",
+                "CHUNK_OVERLAP": "20",
+                "SPLIT_BY_PARAGRAPH": "true",
+                "SPLIT_BY_SENTENCE": "false"
+            },
+            {
+                "CHUNK_SIZE": "200",
+                "CHUNK_OVERLAP": "30",
+                "SPLIT_BY_PARAGRAPH": "false",
+                "SPLIT_BY_SENTENCE": "true"
+            }
+        ]
+        
+        for idx, config in enumerate(configs):
+            logger.info(f"\n测试配置: {config}")
+            # 设置环境变量
+            for key, value in config.items():
+                os.environ[key] = value
+            splitter = DocumentSplitter()
+            try:
+                segments = splitter.split_documents([doc])
+                # 保存分割结果
+                output_path = save_segments_to_json(segments, f"test_config_{idx+1}", "config")
+                self.assertTrue(output_path.exists())
+                
+                logger.info(f"生成片段数: {len(segments)}")
+                for i, segment in enumerate(segments, 1):
+                    logger.info(f"片段 {i} 长度: {len(segment.page_content)} 字符")
+                    logger.info(f"内容: {segment.page_content}\n")
+                    
+                # 验证分割结果
+                self.assertGreater(len(segments), 0, f"配置 {config} 应该生成至少一个片段")
+                for segment in segments:
+                    self.assertIsNotNone(segment.page_content)
+                    self.assertGreater(len(segment.page_content), 0)
+                    self.assertIn("source", segment.metadata)
+                    self.assertIn("type", segment.metadata)
+                    
+            except Exception as e:
+                logger.error(f"使用配置 {config} 分割时出错: {str(e)}")
+                raise
+                
+    def test_hierarchical_splitting(self):
+        """测试父子分割功能"""
+        logger.debug("开始测试父子分割功能")
+        
+        # 创建示例文本
+        test_text = """
 第一章：引言
 这是一个较长的文档示例。它包含多个章节和段落。
 这个文档将用于测试父子分割功能。每个章节都可能被分成父块。
@@ -164,213 +291,98 @@ def test_hierarchical_splitting():
 父子分割方法提供了更灵活的文档处理方式。
 它可以同时保持文档的整体结构和局部细节。
 这对于后续的文档分析和处理非常有帮助。
-    """
-    
-    # 创建文档对象
-    doc = Document(
-        page_content=test_text,
-        metadata={
-            "source": "test_hierarchical",
-            "created_at": "2024-03-19",
-            "document_type": "technical"
-        }
-    )
-    
-    # 创建层级分割器实例
-    splitter = HierarchicalDocumentSplitter(
-        parent_chunk_size=1024,
-        parent_chunk_overlap=200,
-        parent_separator="\n\n",
-        child_chunk_size=512,
-        child_chunk_overlap=50,
-        child_separator="\n"
-    )
-    
-    logger.info("\n=== 开始测试父子分割 ===")
-    logger.info(f"父块配置: chunk_size=1024, chunk_overlap=200, separator=\\n\\n")
-    logger.info(f"子块配置: chunk_size=512, chunk_overlap=50, separator=\\n")
-    logger.info(f"原始文本长度: {len(test_text)} 字符")
-    
-    try:
-        # 执行文档分割
-        parent_docs = splitter.split_document(doc)
+        """
         
-        logger.info(f"\n生成父文档数量: {len(parent_docs)}")
+        logger.debug(f"测试文本长度: {len(test_text)} 字符")
         
-        # 显示父文档信息
-        for i, parent in enumerate(parent_docs, 1):
-            logger.info(f"\n父文档 {i}:")
-            logger.info(f"ID: {parent.metadata.get('doc_id', 'N/A')}")
-            logger.info(f"哈希: {parent.metadata.get('doc_hash', 'N/A')}")
-            logger.info(f"内容长度: {len(parent.page_content)} 字符")
-            logger.info(f"内容预览: {parent.page_content[:100]}...")
+        # 创建文档对象
+        doc = Document(
+            page_content=test_text,
+            source="test_hierarchical",
+            doc_id="test_doc_id_3",
+            metadata={
+                "created_at": "2024-03-19",
+                "document_type": "technical"
+            }
+        )
+        
+        # 创建分割规则
+        rule = Rule(
+            mode=SplitMode.PARENT_CHILD,
+            max_tokens=1024,  # 父块最大长度
+            chunk_overlap=200,  # 父块重叠
+            fixed_separator="\n\n",  # 父块分隔符
+            subchunk_max_tokens=512,  # 子块最大长度
+            subchunk_overlap=50,  # 子块重叠
+            subchunk_separator="\n"  # 子块分隔符
+        )
+        
+        logger.debug(f"分割规则: {rule.__dict__}")
+        
+        # 创建层级分割器实例
+        splitter = ParentChildDocumentSplitter()
+        
+        logger.debug("开始执行文档分割")
+        try:
+            # 执行分割
+            segments = splitter.split_documents([doc], rule)
             
-            # 显示子文档信息
-            if hasattr(parent, 'children') and parent.children:
-                logger.info(f"\n  子文档数量: {len(parent.children)}")
-                
-                for j, child in enumerate(parent.children, 1):
-                    logger.info(f"\n  子文档 {j}:")
-                    logger.info(f"  ID: {child.metadata.get('doc_id', 'N/A')}")
-                    logger.info(f"  哈希: {child.metadata.get('doc_hash', 'N/A')}")
-                    logger.info(f"  内容长度: {len(child.page_content)} 字符")
-                    logger.info(f"  内容: {child.page_content}")
-        
-        # 计算统计信息
-        total_parent_chars = sum(len(p.page_content) for p in parent_docs)
-        total_children = sum(len(p.children) if hasattr(p, 'children') and p.children else 0 for p in parent_docs)
-        avg_parent_size = total_parent_chars / len(parent_docs) if parent_docs else 0
-        
-        logger.info(f"\n统计信息:")
-        logger.info(f"总父文档数: {len(parent_docs)}")
-        logger.info(f"总子文档数: {total_children}")
-        logger.info(f"平均父文档大小: {avg_parent_size:.2f} 字符")
-        logger.info(f"父文档覆盖率: {total_parent_chars/len(test_text)*100:.2f}%")
-        
-    except Exception as e:
-        logger.error(f"父子分割测试失败: {str(e)}")
-        raise
-
-def test_document_storage():
-    """测试文档分割结果的数据库存储"""
-    logger.info("\n=== 测试数据库存储 ===")
-    
-    # 初始化数据库管理器
-    try:
-        db_manager = MongoDBManager()
-        logger.info("MongoDB连接成功")
-        
-        # 初始化向量存储
-        vector_store = MilvusVectorStore()
-        logger.info("Milvus连接成功")
-        
-        # 初始化嵌入模型
-        embedding_model = EmbeddingModel()
-        logger.info("嵌入模型初始化成功")
-        
-    except Exception as e:
-        logger.error(f"初始化失败: {str(e)}")
-        return
-    
-    # 创建测试文档
-    test_text = """
-这是一个测试文档，用于验证存储功能。这里包含多个句子。每个句子都可能成为一个子块。
-    """
-    
-    doc = Document(
-        page_content=test_text,
-        metadata={
-            "source": "test_storage",
-            "created_at": "2024-03-19"
-        }
-    )
-    
-    # 创建分割器
-    splitter = HierarchicalDocumentSplitter()
-    
-    try:
-        # 执行分割
-        parent_docs = splitter.split_document(doc)
-        logger.info(f"生成了 {len(parent_docs)} 个父文档")
-        
-        # 存储父文档和子文档
-        for parent in parent_docs:
-            # 存储父文档到MongoDB
-            result = db_manager.save_document(parent)
-            logger.info(f"存储父文档到MongoDB {parent.metadata['doc_id']}: {result}")
+            # 打印分割结果统计
+            parent_segments = [s for s in segments if s.metadata["type"] == "parent"]
+            child_segments = [s for s in segments if s.metadata["type"] == "child"]
             
-            # 获取父文档的嵌入向量
-            parent_embedding = embedding_model.embed_documents([parent.page_content])[0]
+            logger.debug(f"分割结果统计:")
+            logger.debug(f"父文档数量: {len(parent_segments)}")
+            logger.debug(f"子文档数量: {len(child_segments)}")
             
-            # 存储父文档到Milvus
-            result = vector_store.add_documents([{
-                "id": parent.metadata["doc_id"],
-                "content": parent.page_content,
-                "embedding": parent_embedding,
-                "metadata": parent.metadata
-            }])
-            logger.info(f"存储父文档到Milvus {parent.metadata['doc_id']}: {result}")
+            # 打印每个父文档的信息
+            for i, parent in enumerate(parent_segments, 1):
+                logger.debug(f"\n父文档 {i}:")
+                logger.debug(f"ID: {parent.id}")
+                logger.debug(f"内容长度: {len(parent.page_content)} 字符")
+                logger.debug(f"子文档数量: {len(parent.children) if parent.children else 0}")
+                if parent.children:
+                    for j, child in enumerate(parent.children, 1):
+                        logger.debug(f"  子文档 {j}:")
+                        logger.debug(f"    ID: {child.id}")
+                        logger.debug(f"    内容长度: {len(child.page_content)} 字符")
+                        logger.debug(f"    内容: {child.page_content[:100]}...")
+                else:
+                    logger.debug("  没有子文档")
             
-            # 存储子文档
-            if parent.children:
-                for child in parent.children:
-                    # 存储子文档到MongoDB
-                    result = db_manager.save_document(child)
-                    logger.info(f"存储子文档到MongoDB {child.metadata['doc_id']}: {result}")
-                    
-                    # 获取子文档的嵌入向量
-                    child_embedding = embedding_model.embed_documents([child.page_content])[0]
-                    
-                    # 存储子文档到Milvus
-                    result = vector_store.add_documents([{
-                        "id": child.metadata["doc_id"],
-                        "content": child.page_content,
-                        "embedding": child_embedding,
-                        "metadata": child.metadata
-                    }])
-                    logger.info(f"存储子文档到Milvus {child.metadata['doc_id']}: {result}")
-        
-        # 验证存储结果
-        for parent in parent_docs:
-            # 检查MongoDB中的父文档
-            stored_parent = db_manager.get_document(parent.metadata["doc_id"])
-            if stored_parent:
-                logger.info(f"成功从MongoDB检索到父文档: {parent.metadata['doc_id']}")
+            # 保存分割结果
+            output_path = save_segments_to_json(segments, "test_hierarchical", "parent_child")
+            logger.debug(f"分割结果已保存到: {output_path}")
+            
+            # 验证分割结果
+            self.assertGreater(len(parent_segments), 0, "应该生成至少一个父文档")
+            self.assertGreater(len(child_segments), 0, "应该生成至少一个子文档")
+            
+            # 验证父文档
+            for parent in parent_segments:
+                self.assertIsNotNone(parent.page_content)
+                self.assertGreater(len(parent.page_content), 0)
+                self.assertEqual(parent.metadata["type"], "parent")
+                self.assertIsNotNone(parent.children, "父文档应该有children属性")
                 
-                # 检查MongoDB中的子文档
-                child_docs = db_manager.get_documents(parent.metadata["doc_id"])
-                logger.info(f"从MongoDB检索到 {len(child_docs)} 个子文档")
+            # 验证子文档
+            for child in child_segments:
+                self.assertIsNotNone(child.page_content)
+                self.assertGreater(len(child.page_content), 0)
+                self.assertEqual(child.metadata["type"], "child")
+                self.assertIn("parent_id", child.metadata)
                 
-                # 检查Milvus中的父文档
-                similar_parents = vector_store.similarity_search(
-                    parent.page_content,
-                    k=1,
-                    filter={"id": parent.metadata["doc_id"]}
-                )
-                if similar_parents:
-                    logger.info(f"成功从Milvus检索到父文档: {parent.metadata['doc_id']}")
+            # 验证父子关系
+            for parent in parent_segments:
+                child_count = len([c for c in child_segments if c.metadata["parent_id"] == parent.id])
+                self.assertEqual(len(parent.children), child_count, 
+                               f"父文档 {parent.id} 的子文档数量不匹配")
                 
-                # 检查每个子文档在Milvus中的存储
-                for child in child_docs:
-                    similar_children = vector_store.similarity_search(
-                        child.page_content,
-                        k=1,
-                        filter={"metadata.doc_id": child.metadata["doc_id"]}
-                    )
-                    if similar_children:
-                        logger.info(f"成功从Milvus检索到子文档: {child.metadata['doc_id']}")
-            else:
-                logger.error(f"未找到父文档: {parent.metadata['doc_id']}")
-        
-    except Exception as e:
-        logger.error(f"测试过程中出错: {str(e)}")
-        raise
-    finally:
-        # 关闭数据库连接
-        db_manager.close()
-        # Milvus不需要显式关闭连接
-
-def main():
-    """主函数"""
-    logger.info("开始文档分割测试")
-    
-    # 测试基本文本分割
-    logger.info("\n=== 测试基本文本分割 ===")
-    test_text_splitting()
-    
-    # 测试不同配置
-    logger.info("\n=== 测试不同配置 ===")
-    test_different_configurations()
-    
-    # 测试父子分割
-    logger.info("\n=== 测试父子分割 ===")
-    test_hierarchical_splitting()
-    
-    # 测试数据库存储
-    logger.info("\n=== 测试数据库存储 ===")
-    test_document_storage()
-    
-    logger.info("\n测试完成")
+        except Exception as e:
+            logger.error(f"父子分割过程中出错: {str(e)}", exc_info=True)
+            raise
+            
+        logger.debug("测试完成")
 
 if __name__ == "__main__":
-    main() 
+    unittest.main() 

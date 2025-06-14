@@ -5,7 +5,7 @@ import numpy as np
 import uuid
 
 # 添加项目根目录到 Python 路径
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from app.rag.constants import Field, DEFAULT_COLLECTION_NAME
 

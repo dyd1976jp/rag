@@ -35,7 +35,6 @@ class Rule:
         subchunk_max_tokens: int = 512,  # 默认子块最大长度
         subchunk_overlap: int = 50,  # 默认子块重叠
         subchunk_separator: str = "\n",  # 默认子块分隔符
-        min_content_length: int = 50,  # 默认最小内容长度
         clean_text: bool = True,
         keep_separator: bool = False,
         remove_empty_lines: bool = True,
@@ -48,7 +47,6 @@ class Rule:
         self.subchunk_max_tokens = subchunk_max_tokens
         self.subchunk_overlap = subchunk_overlap
         self.subchunk_separator = subchunk_separator
-        self.min_content_length = min_content_length
         self.clean_text = clean_text
         self.keep_separator = keep_separator
         self.remove_empty_lines = remove_empty_lines
@@ -360,9 +358,10 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                     child_nodes = child_splitter.split_text(parent_content)
                     
                     # 7. 处理每个子节点
+                    parent_segment.children = []
                     for j, child_content in enumerate(child_nodes):
                         child_content = child_content.strip()
-                        if not child_content or len(child_content) < rule.min_content_length:
+                        if not child_content:  # 只检查内容是否为空
                             continue
                             
                         # 创建子文档
@@ -381,6 +380,7 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                                 "doc_hash": child_hash
                             }
                         )
+                        parent_segment.children.append(child_segment)
                         all_segments.append(child_segment)
                 
                 # 添加父文档

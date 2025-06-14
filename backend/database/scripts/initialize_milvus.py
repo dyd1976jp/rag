@@ -9,6 +9,9 @@ import os
 import sys
 import logging
 
+# 添加父目录到 Python 路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

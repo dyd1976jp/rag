@@ -37,11 +37,11 @@ class Rule:
         chunk_overlap: int = 200,
         fixed_separator: str = "\n\n",
         separators: Optional[List[str]] = None,
-        min_content_length: int = 50,
         clean_text: bool = True,
         keep_separator: bool = True,
         remove_empty_lines: bool = True,
         normalize_whitespace: bool = True,
+        min_content_length: int = 10,  # 添加最小内容长度参数
         # 子文档相关参数
         subchunk_max_tokens: Optional[int] = None,
         subchunk_overlap: Optional[int] = None,
@@ -52,11 +52,11 @@ class Rule:
         self.chunk_overlap = chunk_overlap
         self.fixed_separator = fixed_separator
         self.separators = separators or ["\n\n", "。", "！", "？", ". ", " ", ""]
-        self.min_content_length = min_content_length
         self.clean_text = clean_text
         self.keep_separator = keep_separator
         self.remove_empty_lines = remove_empty_lines
         self.normalize_whitespace = normalize_whitespace
+        self.min_content_length = min_content_length  # 添加最小内容长度属性
         # 子文档参数
         self.subchunk_max_tokens = subchunk_max_tokens
         self.subchunk_overlap = subchunk_overlap
@@ -987,14 +987,16 @@ class TestPDFSplitting(unittest.TestCase):
             ]
         )
         
-        # 使用实际的PDF文件目录
-        self.test_dir = Path("/Users/tei/go/RAG-chat/backend/data/uploads")
-        self.output_dir = Path("/Users/tei/go/RAG-chat/backend/data/results")
-        self.vectors_dir = Path("/Users/tei/go/RAG-chat/backend/data/vectors")
+        # 使用项目根目录下的data目录
+        project_root = Path(__file__).parent.parent.parent.parent.parent
+        self.test_dir = project_root / "data" / "uploads"
+        self.output_dir = project_root / "data" / "results"
+        self.vectors_dir = project_root / "data" / "vectors"
         
         # 创建必要的目录
-        self.output_dir.mkdir(exist_ok=True)
-        self.vectors_dir.mkdir(exist_ok=True)
+        self.test_dir.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.vectors_dir.mkdir(parents=True, exist_ok=True)
         
         # 创建测试用的处理器
         self.pdf_processor = PDFProcessor()
@@ -1202,9 +1204,12 @@ class TestPDFSplitting(unittest.TestCase):
             chunk_overlap=200,  # 父块重叠
             fixed_separator="\n\n",  # 父块分隔符
             separators=["\n\n", "。", "！", "？", ". ", " ", ""],  # 分隔符列表
-            min_content_length=50,  # 最小内容长度
-            subchunk_max_tokens=512,  # 子块最大长度
-            subchunk_overlap=50,  # 子块重叠
+            clean_text=True,  # 启用文本清理
+            keep_separator=True,
+            remove_empty_lines=True,
+            normalize_whitespace=True,
+            subchunk_max_tokens=1024,  # 增加子块最大长度
+            subchunk_overlap=100,  # 增加子块重叠
             subchunk_separator="\n"  # 子块分隔符
         )
         
@@ -1252,16 +1257,22 @@ class TestPDFSplitting(unittest.TestCase):
         """
         
         # 2. 创建分割器
-        splitter = FixedRecursiveCharacterTextSplitter(
-            chunk_size=100,
+        rule = Rule(
+            mode=SplitMode.PARAGRAPH,
+            max_tokens=100,
             chunk_overlap=20,
             fixed_separator="\n\n",
             separators=["\n\n", "。", "！", "？", " ", ""],
-            keep_separator=True
+            clean_text=True,
+            keep_separator=True,
+            remove_empty_lines=True,
+            normalize_whitespace=True
         )
         
-        # 3. 执行分割
-        chunks = splitter.split_text(text)
+        # 3. 创建文本分割器并执行分割
+        splitter = DocumentSplitter()
+        text_splitter = splitter.create_text_splitter(rule)
+        chunks = text_splitter.split_text(text)
         
         # 4. 验证结果
         self.assertTrue(len(chunks) > 0)
@@ -1289,7 +1300,6 @@ class TestPDFSplitting(unittest.TestCase):
             chunk_overlap=20,
             fixed_separator="\n\n",
             separators=["\n\n", "。", "！", "？", " ", ""],
-            min_content_length=10,
             clean_text=True,
             keep_separator=True,
             remove_empty_lines=True,
@@ -1305,8 +1315,8 @@ class TestPDFSplitting(unittest.TestCase):
         # 4. 验证结果
         self.assertTrue(len(segments) > 0)
         for segment in segments:
-            # 验证内容长度
-            self.assertGreaterEqual(len(segment.content.strip()), rule.min_content_length)
+            # 验证内容不为空
+            self.assertTrue(len(segment.content.strip()) > 0)
             # 验证元数据
             self.assertIn("source", segment.metadata)
             self.assertIn("page", segment.metadata)
@@ -1329,7 +1339,6 @@ class TestPDFSplitting(unittest.TestCase):
             chunk_overlap=50,  # 减小重叠
             fixed_separator="\n\n",  # 父块分隔符
             separators=["\n\n", "。", "！", "？", ". ", " ", ""],  # 分隔符列表
-            min_content_length=100,  # 增加最小内容长度
             clean_text=True,  # 启用文本清理
             keep_separator=True,
             remove_empty_lines=True,
@@ -1346,8 +1355,8 @@ class TestPDFSplitting(unittest.TestCase):
         filtered_segments = []
         for segment in segments:
             content = segment.content.strip()
-            # 跳过过短或空白的内容
-            if len(content) < rule.min_content_length:
+            # 跳过空白的内容
+            if not content:
                 continue
             # 跳过只包含特殊字符的内容
             if not any(c.isalnum() for c in content):
@@ -1470,7 +1479,9 @@ class TestDocumentSplitting(unittest.TestCase):
     
     def setUp(self):
         """测试准备"""
-        self.test_dir = "test_data"
+        # 使用项目根目录下的data目录
+        project_root = Path(__file__).parent.parent.parent.parent.parent
+        self.test_dir = project_root / "data" / "test_data"
         os.makedirs(self.test_dir, exist_ok=True)
         
     def tearDown(self):

@@ -1,0 +1,313 @@
+{
+  "source_file": "test_hierarchical",
+  "split_mode": "parent_child",
+  "metadata": {
+    "total_segments": 18,
+    "processed_at": "2025-06-14T19:11:06.780483",
+    "stats": {
+      "parent_stats": {
+        "min_length": 332,
+        "max_length": 332,
+        "avg_length": 332.0,
+        "total_parents": 1
+      },
+      "child_stats": {
+        "min_length": 6,
+        "max_length": 29,
+        "avg_length": 18.58823529411765,
+        "total_children": 17
+      }
+    }
+  },
+  "segments": [
+    {
+      "id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+      "page_content": "第一章：引言\n这是一个较长的文档示例。它包含多个章节和段落。\n这个文档将用于测试父子分割功能。每个章节都可能被分成父块。\n每个父块又可以进一步分割成更小的子块。\n第二章：主要内容\n这一章包含了更多的细节信息。我们将详细讨论父子分割的原理。\n父块通常是较大的文本单位，比如章节或者大段落。\n子块则是更小的文本单位，可能是句子或者短段落。\n第三章：技术实现\n在实现层面，我们使用了两级分割策略。\n第一级分割会将文档分成较大的块，这些是父块。\n第二级分割则会将这些父块进一步分割成更小的子块。\n这种方式可以更好地保持文档的层级结构。\n第四章：总结\n父子分割方法提供了更灵活的文档处理方式。\n它可以同时保持文档的整体结构和局部细节。\n这对于后续的文档分析和处理非常有帮助。",
+      "metadata": {
+        "source": "test_hierarchical",
+        "type": "parent",
+        "index": 1,
+        "original_doc_id": "test_doc_id_3",
+        "doc_hash": "8160d0a257f478b707302e19d2c9db636f7f947052833638700487c6f6fb871d"
+      },
+      "index_node_id": null,
+      "index_node_hash": null,
+      "child_ids": null,
+      "group_id": null,
+      "children": [
+        {
+          "id": "87ab87d0-42be-4882-9ca0-eb14d0ff1a1d",
+          "page_content": "第一章：引言",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 1,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "a6007a355d7a85146d3f4e84dccedc1249dfa001cb75b13f3c7ef9b80d8c0672"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "8394ed01-f380-40fc-b3b9-79f8fe663727",
+          "page_content": "这是一个较长的文档示例。它包含多个章节和段落。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 2,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "63c3b201ba339e7045904d8bec8fa56dbac251720b6733634f67887d44fc9b78"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "0547bc29-c86d-48d7-b505-007aa80d27e8",
+          "page_content": "这个文档将用于测试父子分割功能。每个章节都可能被分成父块。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 3,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "49a615f9ce235babb9e4ac6b07ef4c893543e486536a698c1b874b49d844f763"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "b9cab3f3-3391-4627-b816-80ff088878f0",
+          "page_content": "每个父块又可以进一步分割成更小的子块。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 4,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "311426da302d054fe0e113eb10d31ce6074fe15e3fd1685f117d16ebba59237c"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "530b2f77-176c-4e3f-813e-c5c45d039507",
+          "page_content": "第二章：主要内容",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 5,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "7e71ac7d606b1dc7fc6c4d28f83b12b1029139fc4cd79ce57523c86507cfbc0f"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "e3448179-b2b9-4cd5-a5cb-400196e97360",
+          "page_content": "这一章包含了更多的细节信息。我们将详细讨论父子分割的原理。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 6,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "d71f7c7447ec89a75a15e9b78e2d4e8bf8bb46de0bd15e7ff20207618c8956fe"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "97121dad-0da1-41b2-bfb1-37177cd74e0e",
+          "page_content": "父块通常是较大的文本单位，比如章节或者大段落。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 7,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "f2c06a24f05077d91b4426f358282a464679aeb2007d80d03819b9364310aa9b"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "9ab280e7-5559-44f0-b9ba-82050c3d896e",
+          "page_content": "子块则是更小的文本单位，可能是句子或者短段落。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 8,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "a1fe4365eaa7660fb87c3fbd45a8f82a67925b703415b63ffeaf2eb721b35ef5"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "cdf130c0-2ae5-4cec-a3ba-72bf48f5a947",
+          "page_content": "第三章：技术实现",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 9,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "4c3aebe238993bf15bd372a9bf5b12a60e6c416051fba1ed052b783b14d1e3b3"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "47235af4-c5d7-472f-82ce-091ed433a6a6",
+          "page_content": "在实现层面，我们使用了两级分割策略。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 10,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "9f64bee7dc1964fd82e655d8c9585ce8b73b39141cb1c4437dfbef2ef189cc8d"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "1dcf7add-778b-454d-9e1f-03dcd6200531",
+          "page_content": "第一级分割会将文档分成较大的块，这些是父块。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 11,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "52db021d23b4f03fdb38fce757808a3469790399a394fcef78e824870716fbca"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "b5d9e409-8f90-423e-a135-ab8a2d49334d",
+          "page_content": "第二级分割则会将这些父块进一步分割成更小的子块。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 12,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "ed3e82dcbf447173b2b9f515b6a904a04811ee1a51b3586d706623636d85654d"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "3b97fcf5-5059-44d8-b669-96ae788b9efe",
+          "page_content": "这种方式可以更好地保持文档的层级结构。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 13,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "248ae762c0ef608d04c7ac8d171dde8760cbb7347b174fbc6efbebba46482ad9"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "21caf874-3589-41aa-a34c-0ea70ab99479",
+          "page_content": "第四章：总结",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 14,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "bbcac8537106c5216fbfdc16a09d420ff6270bcb36676a9f1bd21d4f9cb9ff5f"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "4a820696-1747-4466-b350-a5a374259bc0",
+          "page_content": "父子分割方法提供了更灵活的文档处理方式。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 15,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "b2988c762c798d55f3bc4defd6ee5d904f6df3da0a489ed5915efbf94a54f258"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "4f9a4255-7698-4a95-a850-620a69ef51a3",
+          "page_content": "它可以同时保持文档的整体结构和局部细节。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 16,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "0c6e5cb56b1431f9c9cfb551b9f05a5e5e21d1fb40f7248329ee6c78ba7ae15a"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        },
+        {
+          "id": "58719890-0004-49af-8eac-881d171e44e7",
+          "page_content": "这对于后续的文档分析和处理非常有帮助。",
+          "metadata": {
+            "source": "test_hierarchical",
+            "type": "child",
+            "parent_id": "9e4257a0-6296-48ff-aee6-216b35eb7660",
+            "index": 17,
+            "original_doc_id": "test_doc_id_3",
+            "doc_hash": "e34202d6cd8d300c5c4376304ff11af67f4b16fd4089fdae1fa96af2726e89f6"
+          },
+          "index_node_id": null,
+          "index_node_hash": null,
+          "child_ids": null,
+          "group_id": null
+        }
+      ]
+    }
+  ]
+}

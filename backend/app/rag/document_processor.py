@@ -30,37 +30,32 @@ class DocumentProcessor:
     文档处理器，提供文档处理功能
     """
     def __init__(self):
-        self.stop_words = set()
-        self.punctuation_translator = str.maketrans('', '', string.punctuation)
-        self.min_content_length = int(os.environ.get("DOC_MIN_CONTENT_LENGTH", "10"))
+        """初始化文档处理器"""
         self.max_content_length = int(os.environ.get("DOC_MAX_CONTENT_LENGTH", "100000"))
+        self.cache_enabled = os.environ.get("DOC_CACHE_ENABLED", "true").lower() == "true"
+        self.cache_dir = os.environ.get("DOC_CACHE_DIR", "data/cache")
         
-        # 缓存配置
-        self.use_cache = os.environ.get("DOC_USE_CACHE", "true").lower() == "true"
-        self.cache_dir = str(CACHE_DIR)
-        self.stop_words_file = str(RAW_DATA_DIR / "stop_words.txt")
-        
-        # 确保缓存目录存在
-        if self.use_cache:
+        # 创建缓存目录
+        if self.cache_enabled:
             os.makedirs(self.cache_dir, exist_ok=True)
             
-        # 加载停用词（如果有）
-        self._load_stop_words()
+        logger.info(f"初始化文档处理器: 最大内容长度={self.max_content_length}")
         
-        logger.info(f"初始化文档处理器: 最小内容长度={self.min_content_length}, 最大内容长度={self.max_content_length}")
-        logger.info(f"缓存设置: 启用={self.use_cache}, 缓存目录={self.cache_dir}")
+    def process_document(self, document: Document) -> Document:
+        """处理文档
         
-    def _load_stop_words(self):
-        """加载停用词"""
-        try:
-            if os.path.exists(self.stop_words_file):
-                with open(self.stop_words_file, 'r', encoding='utf-8') as f:
-                    self.stop_words = set(line.strip() for line in f if line.strip())
-                logger.info(f"加载了 {len(self.stop_words)} 个停用词")
-            else:
-                logger.info(f"停用词文件 {self.stop_words_file} 不存在，跳过加载")
-        except Exception as e:
-            logger.error(f"加载停用词失败: {str(e)}")
+        Args:
+            document: 待处理的文档
+            
+        Returns:
+            处理后的文档
+        """
+        # 检查文档内容长度
+        if len(document.page_content.strip()) > self.max_content_length:
+            logger.warning(f"文档内容超过最大长度限制: {len(document.page_content)} > {self.max_content_length}")
+            document.page_content = document.page_content[:self.max_content_length]
+            
+        return document
     
     def validate_document(self, document: Document) -> bool:
         """

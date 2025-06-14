@@ -1,3 +1,9 @@
+import os
+import sys
+
+# 添加父目录到 Python 路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 from app.core.database import get_mongodb_client
 from app.core.vector_store import get_vector_store
 from app.core.embedding import get_embedding_model

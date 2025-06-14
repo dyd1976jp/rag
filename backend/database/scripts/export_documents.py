@@ -1,3 +1,10 @@
+import os
+import sys
+from pathlib import Path
+
+# 添加项目根目录到 Python 路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
 from app.core.database import get_mongodb_client
 from app.core.vector_store import get_vector_store
 from app.core.embedding import get_embedding_model
@@ -6,7 +13,6 @@ from app.rag.models import Document
 from loguru import logger
 import json
 from datetime import datetime
-from pathlib import Path
 
 def export_documents():
     """导出所有文档数据为JSON格式"""

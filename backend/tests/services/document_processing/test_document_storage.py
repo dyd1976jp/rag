@@ -4,6 +4,8 @@ import json
 import logging
 from typing import Dict, Any
 from pathlib import Path
+import unittest
+from datetime import datetime
 
 # 添加项目根目录到Python路径
 sys.path.append(str(Path(__file__).parent.parent))
@@ -19,6 +21,21 @@ from langchain_core.documents import Document as LangchainDocument
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class TestDocumentStorage(unittest.TestCase):
+    def setUp(self):
+        """测试准备"""
+        # 使用项目根目录下的data目录
+        project_root = Path(__file__).parent.parent.parent.parent.parent
+        self.test_dir = project_root / "data" / "test_data"
+        self.output_dir = project_root / "data" / "results"
+        
+        # 创建必要的目录
+        self.test_dir.mkdir(parents=True, exist_ok=True)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 设置输出路径
+        self.split_output_path = self.output_dir / "split_results.json"
 
 def test_document_storage(pdf_path: str):
     """测试文档存储功能"""
@@ -73,10 +90,9 @@ def test_document_storage(pdf_path: str):
                 for doc in parent_docs
             ]
         }
-        split_output_path = "backend/data/split_results.json"
-        with open(split_output_path, "w", encoding="utf-8") as f:
+        with open(self.split_output_path, "w", encoding="utf-8") as f:
             json.dump(split_results, f, ensure_ascii=False, indent=2)
-        logger.info(f"分割结果已保存到 {split_output_path}")
+        logger.info(f"分割结果已保存到 {self.split_output_path}")
         
         # 存储父文档
         parent_embeddings = []

@@ -102,3 +102,30 @@ data/temp/*
 # Backend resources
 backend/resources/data/*
 !backend/resources/data/.gitkeep
+
+# 数据目录
+/data/*
+!/data/.gitkeep
+!/data/README.md
+
+# 忽略特定数据文件
+/data/uploads/*
+!/data/uploads/.gitkeep
+/data/cache/*
+!/data/cache/.gitkeep
+/data/temp/*
+!/data/temp/.gitkeep
+/data/vectors/*
+!/data/vectors/.gitkeep
+/data/embeddings/*
+!/data/embeddings/.gitkeep
+/data/exports/*
+!/data/exports/.gitkeep
+/data/processed/*
+!/data/processed/.gitkeep
+/data/raw/*
+!/data/raw/.gitkeep
+/data/db/*
+!/data/db/.gitkeep
+/data/splitter_cache/*
+!/data/splitter_cache/.gitkeep

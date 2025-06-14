@@ -1,0 +1,31 @@
+{
+  "source_file": "test_config_2",
+  "split_mode": "config",
+  "metadata": {
+    "total_segments": 1,
+    "processed_at": "2025-06-14T19:11:06.775060",
+    "stats": {
+      "min_length": 92,
+      "max_length": 92,
+      "avg_length": 92.0,
+      "total_segments": 1
+    }
+  },
+  "segments": [
+    {
+      "id": "2cd7d85c-4da2-4447-ad81-f76fe63bba26",
+      "page_content": "这是一个测试文档。它包含多个句子和段落。\n这是第一段的第二句话。这是第三句话。\n这是第二段。它也有多个句子。\n这是一个较长的句子，包含了更多的信息和细节描述。\n这是最后一段。\n它很短。",
+      "metadata": {
+        "source": "test_config",
+        "type": "parent",
+        "index": 1,
+        "original_doc_id": "test_doc_id_2",
+        "doc_hash": "e38b4a812a050a99024f17ccf742c133015f8e496128338f406819d191f9abc0"
+      },
+      "index_node_id": null,
+      "index_node_hash": null,
+      "child_ids": null,
+      "group_id": null
+    }
+  ]
+}

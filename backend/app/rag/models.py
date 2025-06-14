@@ -54,6 +54,7 @@ class DocumentSegment(BaseModel):
     index_node_hash: Optional[str] = None
     child_ids: Optional[List[str]] = None
     group_id: Optional[str] = None
+    children: Optional[List['DocumentSegment']] = None  # 添加子文档列表
     
     def __init__(self, **data):
         super().__init__(**data)
@@ -66,6 +67,24 @@ class DocumentSegment(BaseModel):
         """生成片段哈希值"""
         text = self.page_content + str(sorted(self.metadata.items()))
         return hashlib.sha256(text.encode()).hexdigest()
+        
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典格式，包含子文档"""
+        result = {
+            "id": self.id,
+            "page_content": self.page_content,
+            "metadata": self.metadata,
+            "index_node_id": self.index_node_id,
+            "index_node_hash": self.index_node_hash,
+            "child_ids": self.child_ids,
+            "group_id": self.group_id
+        }
+        
+        # 如果有子文档，递归转换
+        if self.children:
+            result["children"] = [child.to_dict() for child in self.children]
+            
+        return result
         
     def to_point_struct(self) -> Dict[str, Any]:
         """转换为向量存储的数据结构"""

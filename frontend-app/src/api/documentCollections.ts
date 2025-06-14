@@ -22,15 +22,39 @@ export const createCollection = (data: DocumentCollectionCreate) => {
 // 获取用户的所有文档集
 export const getCollections = async () => {
   try {
+    // 检查token是否存在
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.error('Token不存在，用户可能未登录');
+      throw new Error('请先登录');
+    }
+
+    console.log('开始获取文档集列表...');
     const response = await request<CollectionResponse>({
-      url: '/rag/collections',
+      url: '/rag/collections/',  // 添加末尾的斜杠以避免重定向
       method: 'get'
     });
-    console.log('API Response:', response);
-    console.log('Response data structure:', JSON.stringify(response.data, null, 2));
+    
+    console.log('文档集API响应:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data
+    });
+
+    // 验证响应数据结构
+    if (!response.data || !response.data.success) {
+      console.error('API响应格式不正确:', response.data);
+      throw new Error(response.data?.message || '获取文档集失败');
+    }
+
     return response;
-  } catch (error) {
-    console.error('getCollections API error:', error);
+  } catch (error: any) {
+    console.error('获取文档集列表失败:', {
+      error,
+      message: error.message,
+      response: error.response?.data
+    });
     throw error;
   }
 };
