@@ -50,7 +50,7 @@ class PdfExtractor(BaseExtractor):
                     if content.strip():
                         # 创建文档对象
                         doc = Document(
-                            content=content,
+                            page_content=content,
                             metadata={
                                 "source": self._file_path,
                                 "page": page_number + 1  # 页码从1开始

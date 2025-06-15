@@ -25,8 +25,9 @@ from app.services.llm_service import LLMService
 from app.models.user import User
 import app.rag as rag
 from pydantic import BaseModel
-from langchain_core.documents import Document
+from app.rag.models import Document  # 使用我们自己的Document类
 from app.rag.extractor.extract_processor import ExtractProcessor, ExtractMode
+from app.rag.document_splitter import ParentChildDocumentSplitter, Rule, SplitMode
 
 # 配置日志
 logger = logging.getLogger(__name__)
@@ -117,24 +118,32 @@ async def preview_document_split(
             page_content=content,
             metadata={
                 "source": file.filename if file else "direct_input",
-                "created_at": datetime.now().isoformat()
-            }
+                "created_at": datetime.now().isoformat(),
+                "doc_id": str(uuid.uuid4())  # 添加doc_id
+            },
+            source=file.filename if file else "direct_input"  # 添加source属性
         )
         
-        # 创建层级文档分割器
-        splitter = rag.HierarchicalDocumentSplitter(
-            parent_chunk_size=parent_chunk_size,
-            parent_chunk_overlap=parent_chunk_overlap,
-            parent_separator=parent_separator,
-            child_chunk_size=child_chunk_size,
-            child_chunk_overlap=child_chunk_overlap,
-            child_separator=child_separator
+        # 创建父子文档分割器
+        splitter = ParentChildDocumentSplitter()
+        
+        # 创建分割规则
+        rule = Rule(
+            mode=SplitMode.PARENT_CHILD,
+            max_tokens=parent_chunk_size,
+            chunk_overlap=parent_chunk_overlap,
+            fixed_separator=parent_separator,
+            subchunk_max_tokens=child_chunk_size,
+            subchunk_overlap=child_chunk_overlap,
+            subchunk_separator=child_separator,
+            clean_text=True,
+            keep_separator=True
         )
         
         # 执行分割
-        parent_docs = splitter.split_document(document)
+        segments = splitter.split_documents([document], rule)
         
-        if not parent_docs:
+        if not segments:
             return DocumentSplitPreviewResponse(
                 success=False,
                 message="文档分割后未产生有效内容，请检查文档或调整切割参数"
@@ -145,43 +154,64 @@ async def preview_document_split(
         parent_content = document.page_content
         children_content = []
         
-        logger.info(f"分割完成，生成了 {len(parent_docs)} 个父文档")
+        # 分离父文档和子文档
+        parent_segments = [s for s in segments if s.metadata["type"] == "parent"]
+        child_segments = [s for s in segments if s.metadata["type"] == "child"]
         
-        # 处理每个父文档及其子文档
-        for i, parent in enumerate(parent_docs):
-            # 添加父文档信息
-            result_segments.append({
+        logger.info(f"分割完成，生成了 {len(parent_segments)} 个父文档和 {len(child_segments)} 个子文档")
+        
+        # 处理父文档
+        for i, parent in enumerate(parent_segments):
+            parent_data = {
                 "id": i,
                 "content": parent.page_content,
-                "start": parent_content.find(parent.page_content),
-                "end": parent_content.find(parent.page_content) + len(parent.page_content),
+                "start": 0,  # 父文档的起始位置
+                "end": len(parent.page_content),
                 "length": len(parent.page_content),
-                "is_parent": True,
-                "doc_id": parent.metadata.get("doc_id", str(i))
-            })
+                "children": []  # 添加children数组
+            }
             
-            # 处理子文档
+            # 添加子文档
             if parent.children:
-                for child in parent.children:
-                    # 添加子文档内容
+                for j, child in enumerate(parent.children):
+                    child_data = {
+                        "id": f"{i}_{j}",
+                        "content": child.page_content,
+                        "start": 0,  # 子文档的起始位置
+                        "end": len(child.page_content),
+                        "length": len(child.page_content)
+                    }
+                    parent_data["children"].append(child_data)
                     children_content.append(child.page_content)
-                    
-                    # 计算子文档在父文档中的位置
-                    child_start = parent.page_content.find(child.page_content)
-                    if child_start != -1:
-                        result_segments.append({
-                            "id": len(result_segments),
-                            "content": child.page_content,
-                            "start": child_start,
-                            "end": child_start + len(child.page_content),
-                            "length": len(child.page_content),
-                            "is_parent": False,
-                            "parent_id": parent.metadata.get("doc_id", str(i)),
-                            "doc_id": child.metadata.get("doc_id", f"{i}-{len(children_content)}")
-                        })
-        
-        logger.info(f"处理完成，总共生成了 {len(result_segments)} 个段落")
-        
+            
+            result_segments.append(parent_data)
+            
+            # 打印每个父文档的详细信息
+            logger.info(f"\n父文档 {i + 1}:")
+            logger.info(f"  内容: {parent.page_content}")
+            logger.info(f"  长度: {len(parent.page_content)} 字符")
+            logger.info(f"  子文档数量: {len(parent.children) if parent.children else 0}")
+            
+            if parent.children:
+                for j, child in enumerate(parent.children):
+                    logger.info(f"  子文档 {j + 1}:")
+                    logger.info(f"    内容: {child.page_content}")
+                    logger.info(f"    长度: {len(child.page_content)} 字符")
+
+        logger.info(f"\n=== 分割统计 ===")
+        logger.info(f"父文档数: {len(parent_segments)}")
+        logger.info(f"子文档数: {len(child_segments)}")
+        if parent_segments:
+            parent_lengths = [len(p.page_content) for p in parent_segments]
+            logger.info(f"父文档平均长度: {sum(parent_lengths) / len(parent_lengths):.2f} 字符")
+            logger.info(f"父文档最短长度: {min(parent_lengths)} 字符")
+            logger.info(f"父文档最长长度: {max(parent_lengths)} 字符")
+        if child_segments:
+            child_lengths = [len(c.page_content) for c in child_segments]
+            logger.info(f"子文档平均长度: {sum(child_lengths) / len(child_lengths):.2f} 字符")
+            logger.info(f"子文档最短长度: {min(child_lengths)} 字符")
+            logger.info(f"子文档最长长度: {max(child_lengths)} 字符")
+
         return DocumentSplitPreviewResponse(
             success=True,
             segments=result_segments,
@@ -280,22 +310,24 @@ async def upload_document(
         logger.info(f"清洗文档内容")
         cleaned_document = rag.document_processor.clean_document(document)
         
-        # 创建文档分割器并应用自定义参数
-        logger.info(f"创建文档分割器，参数: parent_chunk_size={parent_chunk_size}, parent_chunk_overlap={parent_chunk_overlap}, "
-                   f"parent_separator={parent_separator}, child_chunk_size={child_chunk_size}, child_chunk_overlap={child_chunk_overlap}, child_separator={child_separator}")
+        # 创建父子文档分割器
+        splitter = ParentChildDocumentSplitter()
         
-        # 创建层级文档分割器
-        splitter = rag.HierarchicalDocumentSplitter(
-            parent_chunk_size=parent_chunk_size,
-            parent_chunk_overlap=parent_chunk_overlap,
-            parent_separator=parent_separator,
-            child_chunk_size=child_chunk_size,
-            child_chunk_overlap=child_chunk_overlap,
-            child_separator=child_separator
+        # 创建分割规则
+        rule = Rule(
+            mode=SplitMode.PARENT_CHILD,
+            max_tokens=parent_chunk_size,
+            chunk_overlap=parent_chunk_overlap,
+            fixed_separator=parent_separator,
+            subchunk_max_tokens=child_chunk_size,
+            subchunk_overlap=child_chunk_overlap,
+            subchunk_separator=child_separator,
+            clean_text=True,
+            keep_separator=True
         )
         
-        # 分割文档
-        segments = splitter.split_document(cleaned_document)
+        # 执行分割
+        segments = splitter.split_documents([cleaned_document], rule)
         logger.info(f"文档分割完成，生成了 {len(segments) if segments else 0} 个段落")
         
         # 打印原始文档信息
@@ -504,18 +536,24 @@ async def batch_upload_documents(
                 
             cleaned_document = rag.document_processor.clean_document(document)
             
-            # 创建层级文档分割器
-            splitter = rag.HierarchicalDocumentSplitter(
-                parent_chunk_size=parent_chunk_size,
-                parent_chunk_overlap=parent_chunk_overlap,
-                parent_separator=parent_separator,
-                child_chunk_size=child_chunk_size,
-                child_chunk_overlap=child_chunk_overlap,
-                child_separator=child_separator
+            # 创建父子文档分割器
+            splitter = ParentChildDocumentSplitter()
+            
+            # 创建分割规则
+            rule = Rule(
+                mode=SplitMode.PARENT_CHILD,
+                max_tokens=parent_chunk_size,
+                chunk_overlap=parent_chunk_overlap,
+                fixed_separator=parent_separator,
+                subchunk_max_tokens=child_chunk_size,
+                subchunk_overlap=child_chunk_overlap,
+                subchunk_separator=child_separator,
+                clean_text=True,
+                keep_separator=True
             )
             
-            # 分割文档
-            segments = splitter.split_document(cleaned_document)
+            # 执行分割
+            segments = splitter.split_documents([cleaned_document], rule)
             
             if not segments:
                 logger.warning(f"文档分割后未产生有效内容，跳过: {file.filename}")
