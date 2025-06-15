@@ -73,6 +73,7 @@ def save_segments_to_json(segments: List[DocumentSegment], source_file: str, spl
     if split_mode == "parent_child":
         # 只保存父文档，子文档会通过父文档的 children 字段包含
         parent_segments = [s for s in segments if s.metadata["type"] == "parent"]
+        # 使用 to_dict() 方法，它会自动处理 embedding 字段
         results["segments"] = [segment.to_dict() for segment in parent_segments]
         
         # 添加统计信息
@@ -99,6 +100,7 @@ def save_segments_to_json(segments: List[DocumentSegment], source_file: str, spl
         }
     else:
         # 对于其他分割模式，使用普通的平铺结构
+        # 使用 to_dict() 方法，它会自动处理 embedding 字段
         results["segments"] = [segment.to_dict() for segment in segments]
         
         # 添加统计信息

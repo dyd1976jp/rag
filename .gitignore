@@ -129,3 +129,10 @@ backend/resources/data/*
 !/data/db/.gitkeep
 /data/splitter_cache/*
 !/data/splitter_cache/.gitkeep
+
+# Document Processing
+backend/tests/services/document_processing/logs/
+backend/tests/services/document_processing/results/
+backend/tests/services/document_processing/split_results/
+backend/tests/services/document_processing/vectors/
+

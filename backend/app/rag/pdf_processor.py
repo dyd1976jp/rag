@@ -2,26 +2,39 @@
 
 import logging
 import io
-from typing import Dict, Any
+from typing import Dict, Any, Union
 import pypdfium2
-from .document_processor import Document
+from .models import Document
 from .cleaner.clean_processor import CleanProcessor
 
 class PDFProcessor:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         
-    def process_pdf(self, pdf_file_path: str, metadata: Dict[str, Any]) -> Document:
-        """处理PDF文件并返回文档对象"""
+    def process_pdf(self, pdf_file_path: str, document: Union[Dict[str, Any], Document]) -> Document:
+        """处理PDF文件并返回文档对象
+        
+        Args:
+            pdf_file_path: PDF文件路径
+            document: Document对象或元数据字典
+            
+        Returns:
+            Document: 处理后的文档对象
+        """
         try:
             self.logger.info(f"开始处理PDF文件: {pdf_file_path}")
             text = self._extract_text_from_pdf(pdf_file_path)
             
-            # 创建文档对象
-            document = Document(
-                page_content=text,
-                metadata=metadata
-            )
+            # 如果传入的是Document对象，更新其内容
+            if isinstance(document, Document):
+                document.page_content = text
+                return document
+            else:
+                # 如果传入的是元数据字典，创建新的Document对象
+                return Document(
+                    page_content=text,
+                    metadata=document
+                )
             
             self.logger.info(f"PDF处理完成: {pdf_file_path}, 文本长度: {len(text)}")
             return document
@@ -62,9 +75,9 @@ class PDFProcessor:
                     text_page.close()
                     page.close()
                     
-                    # 清理文本
-                    content = CleanProcessor.clean(content)
-                    if content.strip():
+                    # 只进行基本的空白处理，不做深度清洗
+                    content = content.strip()
+                    if content:
                         text_parts.append(content)
             finally:
                 pdf_document.close()
@@ -92,9 +105,9 @@ class PDFProcessor:
                     text_page.close()
                     page.close()
                     
-                    # 清理文本
-                    content = CleanProcessor.clean(content)
-                    if content.strip():
+                    # 只进行基本的空白处理，不做深度清洗
+                    content = content.strip()
+                    if content:
                         text_parts.append(content)
             finally:
                 pdf_document.close()

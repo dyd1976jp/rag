@@ -47,24 +47,23 @@ class Document(BaseModel):
 
 class DocumentSegment(BaseModel):
     """文档片段"""
-    id: str
+    id: str = PydanticField(default_factory=lambda: str(uuid.uuid4()))
     page_content: str
     metadata: Dict[str, Any] = PydanticField(default_factory=dict)
     index_node_id: Optional[str] = None
     index_node_hash: Optional[str] = None
     child_ids: Optional[List[str]] = None
     group_id: Optional[str] = None
-    children: Optional[List['DocumentSegment']] = None  # 添加子文档列表
+    children: Optional[List['DocumentSegment']] = None
+    embedding: Optional[List[float]] = None  # 添加 embedding 字段
     
     def __init__(self, **data):
         super().__init__(**data)
-        if not self.id:
-            self.id = str(uuid.uuid4())
-        if "doc_hash" not in self.metadata:
-            self.metadata["doc_hash"] = self._generate_hash()
+        if not self.index_node_hash:
+            self.index_node_hash = self._generate_hash()
             
     def _generate_hash(self) -> str:
-        """生成片段哈希值"""
+        """生成文档片段哈希值"""
         text = self.page_content + str(sorted(self.metadata.items()))
         return hashlib.sha256(text.encode()).hexdigest()
         
@@ -77,7 +76,8 @@ class DocumentSegment(BaseModel):
             "index_node_id": self.index_node_id,
             "index_node_hash": self.index_node_hash,
             "child_ids": self.child_ids,
-            "group_id": self.group_id
+            "group_id": self.group_id,
+            "embedding": None  # 默认设置为 None，因为模型中没有这个字段
         }
         
         # 如果有子文档，递归转换
@@ -96,7 +96,8 @@ class DocumentSegment(BaseModel):
                 "index_node_hash": self.index_node_hash,
                 "child_ids": self.child_ids
             },
-            ConstantField.GROUP_KEY.value: self.group_id or ""
+            ConstantField.GROUP_KEY.value: self.group_id or "",
+            ConstantField.VECTOR.value: self.embedding  # 添加 embedding 到输出
         }
 
 class ChildDocument(Document):
