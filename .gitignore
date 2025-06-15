@@ -85,10 +85,6 @@ data/splitter_cache/
 data/results/*
 data/exports/*
 
-# Backend data
-backend/data/
-backend/output/
-
 # Data directories
 data/raw/*
 data/processed/*

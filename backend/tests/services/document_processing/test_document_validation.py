@@ -14,6 +14,7 @@ from app.core.database import get_mongodb_client
 from app.core.vector_store import get_vector_store
 from app.rag.models import Document
 from langchain_core.documents import Document as LangchainDocument
+from app.core.paths import RESULTS_DIR
 
 # 配置日志
 logging.basicConfig(
@@ -233,7 +234,7 @@ class TestDocumentValidation(unittest.TestCase):
         # 使用项目根目录下的data目录
         project_root = Path(__file__).parent.parent.parent.parent.parent
         self.test_dir = project_root / "data" / "test_data"
-        self.output_dir = project_root / "data" / "results"
+        self.output_dir = RESULTS_DIR
         
         # 创建必要的目录
         self.test_dir.mkdir(parents=True, exist_ok=True)
