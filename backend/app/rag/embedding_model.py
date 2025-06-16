@@ -16,8 +16,8 @@ class EmbeddingModel:
     
     def __init__(self):
         # 从环境变量获取配置
-        self.model_name = os.environ.get("EMBEDDING_MODEL", "nomic-embed-text:latest")
-        self.api_base = os.environ.get("EMBEDDING_API_BASE", "http://localhost:11434")
+        self.model_name = os.environ.get("EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
+        self.api_base = os.environ.get("EMBEDDING_API_BASE", "http://192.168.1.30:1234")
         
         # 批处理配置
         self.max_batch_size = int(os.environ.get("EMBEDDING_MAX_BATCH_SIZE", "20"))

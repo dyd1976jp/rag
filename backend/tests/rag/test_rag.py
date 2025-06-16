@@ -4,6 +4,7 @@ import uuid
 import sys
 import os
 import socket
+import PyPDF2
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -14,8 +15,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 
 from app.db.mongodb import mongodb
 from app.rag import initialize_rag
-from app.rag.document_processor import Document
+from app.rag.models import Document
 import app.rag as rag
+from app.rag.pdf_processor import PDFProcessor
+from app.rag.document_splitter import ParentChildDocumentSplitter, Rule, SplitMode
 
 def check_milvus_available():
     """检查Milvus服务是否可用"""
@@ -49,41 +52,43 @@ async def test_document_storage_verification():
         # 1. Arrange: 准备测试数据
         doc_id = f"test-doc-{uuid.uuid4()}"
         dataset_id = "storage-verification-dataset"
-        content = "这是第一句，用于验证。这是第二句，同样用于验证。这是第三句，确保内容完整。"
-        
+        pdf_path = "/Users/tei/go/RAG-chat/data/uploads/初赛训练数据集.pdf"
+        # 使用 PDFProcessor 处理 PDF
+        pdf_processor = PDFProcessor()
         document = Document(
-            page_content=content,
+            page_content="",
             metadata={
                 "doc_id": doc_id,
                 "document_id": doc_id,
                 "dataset_id": dataset_id,
                 "file_name": "storage_test.txt"
-            }
+            },
+            source=pdf_path
         )
-
-        # 创建集合
-        collection_name = "test_verification_collection"
-        rag.retrieval_service.vector_store.create_collection(collection_name, 768)
-
-        # 模拟 RAGService 在 MongoDB 中创建初始记录
-        await mongodb.db["documents"].insert_one({
-            "id": doc_id,
-            "status": "processing",
-            "file_name": "storage_test.txt",
-            "user_id": "test_user"
-        })
-
-        # 2. Act: 分割和存储
-        segments = rag.document_splitter.split_document(document)
+        document = pdf_processor.process_pdf(pdf_path, document)
+        assert document.page_content.strip() != "", f"PDF内容为空: {pdf_path}"
+        # 分割规则与 test_document_storage.py 保持一致
+        splitter = ParentChildDocumentSplitter()
+        rule = Rule(
+            mode=SplitMode.PARENT_CHILD,
+            max_tokens=1024,
+            chunk_overlap=200,
+            fixed_separator="\n\n",
+            subchunk_max_tokens=512,
+            subchunk_overlap=50,
+            subchunk_separator="\n",
+            clean_text=True,
+            keep_separator=True
+        )
+        segments = splitter.split_documents([document], rule)
         logger.info(f"文档分割成 {len(segments)} 个段落")
         assert len(segments) > 0, "文档未能成功分割"
-
-        segment_ids = [seg.metadata["doc_id"] for seg in segments]
+        segment_ids = [seg.id for seg in segments]
 
         try:
             batch_result = await rag.retrieval_service.process_and_index_documents_batch(
                 documents=segments,
-                collection_name=collection_name
+                collection_name="test_verification_collection"
             )
             assert batch_result["success"], "批量索引失败"
             logger.info("文档批量索引成功")
@@ -134,7 +139,8 @@ async def test_document_storage_verification():
     finally:
         # 清理测试数据
         await mongodb.db["documents"].delete_one({"id": doc_id})
-        rag.retrieval_service.vector_store.delete(segment_ids)
+        if 'segment_ids' in locals():
+            rag.retrieval_service.vector_store.delete(segment_ids)
         logger.info(f"测试数据清理完毕: doc_id={doc_id}")
         await mongodb.close()
 
