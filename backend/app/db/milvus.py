@@ -6,7 +6,6 @@ class MilvusDB:
 
     def connect(self):
         connections.connect(
-            alias="default",
             host=settings.MILVUS_HOST,
             port=settings.MILVUS_PORT
         )

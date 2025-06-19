@@ -1,6 +1,8 @@
 from typing import List, Optional
-from loguru import logger
+import logging
 from fastapi import APIRouter, Depends, HTTPException
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 
 from ....rag.models import Document

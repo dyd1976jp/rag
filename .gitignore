@@ -131,4 +131,9 @@ backend/tests/services/document_processing/logs/
 backend/tests/services/document_processing/results/
 backend/tests/services/document_processing/split_results/
 backend/tests/services/document_processing/vectors/
+backend/data/cache
 
+# Temporary files
+temp/
+*.tmp
+*.temp

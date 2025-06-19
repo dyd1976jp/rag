@@ -53,9 +53,8 @@ def get_vector_store(embedding_model: Embeddings) -> Milvus:
     
     if _vector_store is None:
         try:
-            # 连接到Milvus
+            # 连接到Milvus - 使用Docker中的连接方式
             connections.connect(
-                alias="default",
                 host=MILVUS_HOST,
                 port=MILVUS_PORT
             )

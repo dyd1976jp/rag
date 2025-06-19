@@ -241,7 +241,7 @@ class EnhanceRecursiveCharacterTextSplitter(RecursiveCharacterTextSplitter):
 
 class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter):
     """固定分隔符的递归文本分割器"""
-    
+
     def __init__(
         self,
         chunk_size: int = 500,
@@ -260,31 +260,67 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
             length_function=length_function
         )
         self._fixed_separator = fixed_separator
+
+    @classmethod
+    def from_encoder(
+        cls,
+        chunk_size: int = 500,
+        chunk_overlap: int = 50,
+        fixed_separator: str = "\n\n",
+        separators: Optional[List[str]] = None,
+        keep_separator: bool = True,
+        length_function: Optional[Callable[[List[str]], List[int]]] = None,
+        **kwargs: Any
+    ):
+        """从编码器创建固定分隔符分割器"""
+        return cls(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            fixed_separator=fixed_separator,
+            separators=separators,
+            keep_separator=keep_separator,
+            length_function=length_function or (lambda x: [len(text) for text in x] if x else [0]),
+            **kwargs
+        )
         
     def split_text(self, text: str) -> List[str]:
         """分割文本"""
-        # 首先使用固定分隔符分割
-        if self._fixed_separator:
+        logger.debug(f"开始分割文本，长度: {len(text)}, 固定分隔符: '{self._fixed_separator}'")
+
+        # 首先尝试使用固定分隔符分割
+        if self._fixed_separator and self._fixed_separator in text:
             chunks = text.split(self._fixed_separator)
-            logger.debug(f"使用固定分隔符 '{self._fixed_separator}' 分割文本，得到 {len(chunks)} 个块")
-        else:
-            chunks = [text]
-            logger.debug("没有固定分隔符，使用整个文本作为一个块")
-            
-        # 对每个块进行处理
-        final_chunks = []
-        chunks_lengths = self._length_function(chunks)
-        logger.debug(f"块长度: {chunks_lengths}")
-        
-        for chunk, chunk_length in zip(chunks, chunks_lengths):
-            if chunk_length > self._chunk_size:
-                # 如果块太大，进行递归分割
-                logger.debug(f"块长度 {chunk_length} 超过限制 {self._chunk_size}，进行递归分割")
-                final_chunks.extend(self._split_text(chunk, self._separators))
+            logger.debug(f"使用固定分隔符 '{self._fixed_separator}' 分割文本，得到 {len(chunks)} 个原始块")
+
+            # 清理空块
+            cleaned_chunks = []
+            for chunk in chunks:
+                chunk = chunk.strip()
+                if chunk:
+                    cleaned_chunks.append(chunk)
+
+            logger.debug(f"清理后得到 {len(cleaned_chunks)} 个有效块")
+
+            # 如果分割成功且有多个块，返回分割结果
+            if len(cleaned_chunks) > 1:
+                final_chunks = []
+                for i, chunk in enumerate(cleaned_chunks):
+                    # 如果单个块太大，进行递归分割
+                    if len(chunk) > self._chunk_size:
+                        logger.debug(f"块 {i+1} 长度 {len(chunk)} 超过限制 {self._chunk_size}，进行递归分割")
+                        sub_chunks = self._split_text(chunk, self._separators)
+                        final_chunks.extend(sub_chunks)
+                    else:
+                        logger.debug(f"添加块 {i+1}，长度: {len(chunk)}")
+                        final_chunks.append(chunk)
+
+                logger.debug(f"固定分隔符分割最终生成 {len(final_chunks)} 个块")
+                return final_chunks
             else:
-                if chunk.strip():
-                    logger.debug(f"添加长度为 {chunk_length} 的块")
-                    final_chunks.append(chunk)
-                    
-        logger.debug(f"最终生成 {len(final_chunks)} 个块")
-        return final_chunks
+                logger.debug(f"固定分隔符分割只得到 {len(cleaned_chunks)} 个块，使用递归分割")
+        else:
+            logger.debug("固定分隔符不存在于文本中，使用递归分割")
+
+        # 使用递归分割作为后备方案
+        logger.debug("使用递归分割")
+        return self._split_text(text, self._separators)

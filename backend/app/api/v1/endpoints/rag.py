@@ -1,12 +1,38 @@
+"""
+RAG API端点模块
+
+本模块提供RAG相关的API端点，包括：
+1. 文档上传和处理
+2. 文档分割预览
+3. 文档搜索和检索
+4. RAG聊天功能
+
+注意：本文件较长，建议考虑拆分为多个子模块。
+"""
+
 import os
 import logging
 import shutil
 import uuid
 from datetime import datetime
+from typing import List, Optional, Dict, Any
+
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form, Path, Query, Body
 from fastapi.responses import JSONResponse
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
+
 from app.api.deps import get_current_user
+from app.api.v1.utils import (
+    SUPPORTED_EXTENSIONS,
+    validate_file_type,
+    save_uploaded_file,
+    process_document_by_type,
+    create_split_rule,
+    format_preview_response,
+    cleanup_temp_file,
+    log_document_info,
+    log_split_statistics
+)
 from app.schemas.rag import (
     DocumentUploadResponse,
     DocumentSearchRequest,
@@ -24,8 +50,7 @@ from app.services.rag_service import RAGService
 from app.services.llm_service import LLMService
 from app.models.user import User
 import app.rag as rag
-from pydantic import BaseModel
-from app.rag.models import Document  # 使用我们自己的Document类
+from app.rag.models import Document
 from app.rag.extractor.extract_processor import ExtractProcessor, ExtractMode
 from app.rag.document_splitter import ParentChildDocumentSplitter, Rule, SplitMode
 
@@ -36,7 +61,16 @@ router = APIRouter()
 llm_service = LLMService()
 rag_service = RAGService()
 
-# 定义文档切割预览请求模型
+# 定义文档切割预览请求模型（用于纯文本内容预览）
+class DocumentSplitRequest(BaseModel):
+    content: str = Field(..., description="要分割的文本内容", min_length=1)
+    parent_chunk_size: int = Field(1024, description="父块分段最大长度", gt=0)
+    parent_chunk_overlap: int = Field(200, description="父块重叠长度", ge=0)
+    parent_separator: str = Field("\n\n", description="父块分段标识符")
+    child_chunk_size: int = Field(512, description="子块分段最大长度", gt=0)
+    child_chunk_overlap: int = Field(50, description="子块重叠长度", ge=0)
+    child_separator: str = Field("\n", description="子块分段标识符")
+
 # 定义文档切割预览响应模型
 class DocumentSplitPreviewResponse(BaseModel):
     success: bool
@@ -48,183 +82,120 @@ class DocumentSplitPreviewResponse(BaseModel):
 
 @router.post("/documents/preview-split", response_model=DocumentSplitPreviewResponse)
 async def preview_document_split(
-    file: Optional[UploadFile] = File(None),
-    content: Optional[str] = Body(None),
-    parent_chunk_size: int = Body(1024),
-    parent_chunk_overlap: int = Body(200),
-    parent_separator: str = Body("\n\n"),
-    child_chunk_size: int = Body(512),
-    child_chunk_overlap: int = Body(50),
-    child_separator: str = Body("\n"),
+    request: DocumentSplitRequest,
     current_user: User = Depends(get_current_user)
 ):
-    """预览文档分割结果
-    
-    参数:
-        file: 上传的文件
-        content: 文本内容
-        parent_chunk_size: 父块分段最大长度，默认1024
-        parent_chunk_overlap: 父块重叠长度，默认200
-        parent_separator: 父块分段标识符，默认"\n\n"
-        child_chunk_size: 子块分段最大长度，默认512
-        child_chunk_overlap: 子块重叠长度，默认50
-        child_separator: 子块分段标识符，默认"\n"
+    """
+    预览纯文本内容的分割结果
+
+    此端点仅用于预览纯文本内容的分割效果。
+
+    **重要提示：**
+    - 如果需要上传文件并预览分割结果，请使用 `POST /documents/upload` 端点，并设置 `preview_only=true`
+    - 此端点只接受JSON格式的请求体，不支持文件上传
+    - 适用于已有文本内容的分割预览场景
+
+    Args:
+        request: 包含文本内容和分割参数的请求体
+        current_user: 当前用户信息
+
+    Returns:
+        DocumentSplitPreviewResponse: 分割预览结果
     """
     try:
-        # 获取文档内容
-        if file:
-            content_bytes = await file.read()
-            # 检查文件扩展名
-            file_ext = os.path.splitext(file.filename)[1].lower()
-            
-            logger.info(f"处理文件: {file.filename}, 扩展名: {file_ext}")
-            
-            if file_ext == '.pdf':
-                # 创建临时文件
-                temp_file_path = f"/tmp/{file.filename}"
-                with open(temp_file_path, "wb") as f:
-                    f.write(content_bytes)
-                
-                try:
-                    # 使用ExtractProcessor处理PDF
-                    documents = ExtractProcessor.extract_pdf(
-                        file_path=temp_file_path,
-                        mode=ExtractMode.UNSTRUCTURED
-                    )
-                    
-                    # 合并所有文档内容
-                    content = "\n\n".join([doc.page_content for doc in documents])
-                finally:
-                    # 清理临时文件
-                    if os.path.exists(temp_file_path):
-                        os.remove(temp_file_path)
-            else:
-                # 对于其他文件，尝试使用UTF-8解码
-                try:
-                    content = content_bytes.decode('utf-8')
-                except UnicodeDecodeError:
-                    # 如果UTF-8解码失败，尝试使用其他编码
-                    try:
-                        content = content_bytes.decode('gbk')
-                    except UnicodeDecodeError:
-                        content = content_bytes.decode('latin1')
-                        
-            logger.info(f"文件内容解码完成，长度: {len(content)}")
-        elif not content:
-            raise HTTPException(status_code=400, detail="必须提供文件或文本内容")
-            
+        logger.info(f"=== 开始纯文本分割预览 ===")
+        logger.info(f"用户: {current_user.email}")
+        logger.info(f"文本长度: {len(request.content)} 字符")
+        logger.info(f"分割参数: parent_size={request.parent_chunk_size}, child_size={request.child_chunk_size}")
+
+        # 验证文本内容
+        if not request.content.strip():
+            raise HTTPException(status_code=400, detail="文本内容不能为空")
+
         # 创建文档对象
         document = Document(
-            page_content=content,
+            page_content=request.content,
             metadata={
-                "source": file.filename if file else "direct_input",
-                "created_at": datetime.now().isoformat(),
-                "doc_id": str(uuid.uuid4())  # 添加doc_id
-            },
-            source=file.filename if file else "direct_input"  # 添加source属性
+                "source": "direct_input",
+                "doc_id": str(uuid.uuid4()),
+                "document_id": str(uuid.uuid4()),
+                "user_id": str(current_user.id)
+            }
         )
-        
-        # 创建父子文档分割器
+
+        logger.info(f"创建文档对象完成")
+
+        # 清洗文档内容
+        logger.info(f"清洗文档内容")
+        cleaned_document = rag.document_processor.clean_document(document)
+
+        # 创建分割器和规则
         splitter = ParentChildDocumentSplitter()
-        
-        # 创建分割规则
         rule = Rule(
             mode=SplitMode.PARENT_CHILD,
-            max_tokens=parent_chunk_size,
-            chunk_overlap=parent_chunk_overlap,
-            fixed_separator=parent_separator,
-            subchunk_max_tokens=child_chunk_size,
-            subchunk_overlap=child_chunk_overlap,
-            subchunk_separator=child_separator,
+            max_tokens=request.parent_chunk_size,
+            chunk_overlap=request.parent_chunk_overlap,
+            fixed_separator=request.parent_separator,
+            subchunk_max_tokens=request.child_chunk_size,
+            subchunk_overlap=request.child_chunk_overlap,
+            subchunk_separator=request.child_separator,
             clean_text=True,
             keep_separator=True
         )
-        
-        # 执行分割
-        segments = splitter.split_documents([document], rule)
-        
+
+        logger.info(f"开始执行分割")
+        segments = splitter.split_documents([cleaned_document], rule)
+        logger.info(f"分割完成，生成 {len(segments) if segments else 0} 个段落")
+
         if not segments:
             return DocumentSplitPreviewResponse(
                 success=False,
-                message="文档分割后未产生有效内容，请检查文档或调整切割参数"
+                message="文档分割后未产生有效内容"
             )
-            
-        # 准备返回结果
-        result_segments = []
-        parent_content = document.page_content
-        children_content = []
-        
-        # 分离父文档和子文档
-        parent_segments = [s for s in segments if s.metadata["type"] == "parent"]
-        child_segments = [s for s in segments if s.metadata["type"] == "child"]
-        
-        logger.info(f"分割完成，生成了 {len(parent_segments)} 个父文档和 {len(child_segments)} 个子文档")
-        
-        # 处理父文档
-        for i, parent in enumerate(parent_segments):
-            parent_data = {
-                "id": i,
-                "content": parent.page_content,
-                "start": 0,  # 父文档的起始位置
-                "end": len(parent.page_content),
-                "length": len(parent.page_content),
-                "children": []  # 添加children数组
-            }
-            
-            # 添加子文档
-            if parent.children:
-                for j, child in enumerate(parent.children):
-                    child_data = {
-                        "id": f"{i}_{j}",
-                        "content": child.page_content,
-                        "start": 0,  # 子文档的起始位置
-                        "end": len(child.page_content),
-                        "length": len(child.page_content)
-                    }
-                    parent_data["children"].append(child_data)
-                    children_content.append(child.page_content)
-            
-            result_segments.append(parent_data)
-            
-            # 打印每个父文档的详细信息
-            logger.info(f"\n父文档 {i + 1}:")
-            logger.info(f"  内容: {parent.page_content}")
-            logger.info(f"  长度: {len(parent.page_content)} 字符")
-            logger.info(f"  子文档数量: {len(parent.children) if parent.children else 0}")
-            
-            if parent.children:
-                for j, child in enumerate(parent.children):
-                    logger.info(f"  子文档 {j + 1}:")
-                    logger.info(f"    内容: {child.page_content}")
-                    logger.info(f"    长度: {len(child.page_content)} 字符")
 
-        logger.info(f"\n=== 分割统计 ===")
-        logger.info(f"父文档数: {len(parent_segments)}")
-        logger.info(f"子文档数: {len(child_segments)}")
-        if parent_segments:
-            parent_lengths = [len(p.page_content) for p in parent_segments]
-            logger.info(f"父文档平均长度: {sum(parent_lengths) / len(parent_lengths):.2f} 字符")
-            logger.info(f"父文档最短长度: {min(parent_lengths)} 字符")
-            logger.info(f"父文档最长长度: {max(parent_lengths)} 字符")
-        if child_segments:
-            child_lengths = [len(c.page_content) for c in child_segments]
-            logger.info(f"子文档平均长度: {sum(child_lengths) / len(child_lengths):.2f} 字符")
-            logger.info(f"子文档最短长度: {min(child_lengths)} 字符")
-            logger.info(f"子文档最长长度: {max(child_lengths)} 字符")
+        # 格式化预览结果
+        result_segments = []
+        children_content = []
+
+        for i, segment in enumerate(segments):
+            segment_data = {
+                "id": i,
+                "content": segment.page_content,
+                "start": segment.metadata.get("chunk_start", 0),
+                "end": segment.metadata.get("chunk_end", len(segment.page_content)),
+                "length": len(segment.page_content),
+                "type": segment.metadata.get("type", "unknown")
+            }
+            result_segments.append(segment_data)
+
+            # 收集子段落内容
+            if segment.metadata.get("type") == "child":
+                children_content.append(segment.page_content)
+
+        logger.info(f"预览结果格式化完成，返回 {len(result_segments)} 个段落")
 
         return DocumentSplitPreviewResponse(
             success=True,
+            message="文本分割预览成功",
             segments=result_segments,
             total_segments=len(result_segments),
-            parentContent=parent_content,
+            parentContent=cleaned_document.page_content,
             childrenContent=children_content
         )
-        
-    except Exception as e:
-        logger.error(f"文档分割预览失败: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/documents/upload", response_model=DocumentUploadResponse)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"纯文本分割预览失败: {str(e)}")
+        import traceback
+        logger.error(f"详细错误: {traceback.format_exc()}")
+
+        return DocumentSplitPreviewResponse(
+            success=False,
+            message=f"文本分割预览失败: {str(e)}"
+        )
+
+@router.post("/documents/upload")
 async def upload_document(
     file: UploadFile = File(...),
     parent_chunk_size: int = Form(1024),
@@ -254,33 +225,23 @@ async def upload_document(
                f"parent_separator={parent_separator}, child_chunk_size={child_chunk_size}, child_chunk_overlap={child_chunk_overlap}, child_separator={child_separator}, preview_only={preview_only}")
     logger.info(f"preview_only参数类型: {type(preview_only)}, 值: {preview_only}")
     
-    # 支持的文件类型
-    supported_extensions = ['.txt', '.pdf', '.md']
-    
-    # 检查文件扩展名
-    file_ext = os.path.splitext(file.filename)[1].lower()
+    # 验证文件类型
+    is_supported, file_ext = validate_file_type(file.filename)
     logger.info(f"文件扩展名: {file_ext}")
-    
-    if file_ext not in supported_extensions:
+
+    if not is_supported:
         logger.warning(f"不支持的文件类型: {file_ext}")
         return JSONResponse(
             status_code=400,
             content={
                 "success": False,
-                "message": f"不支持的文件类型: {file_ext}，支持的类型: {', '.join(supported_extensions)}"
+                "message": f"不支持的文件类型: {file_ext}，支持的类型: {', '.join(SUPPORTED_EXTENSIONS)}"
             }
         )
-    
-    # 保存文件到临时位置
-    upload_dir = "data/uploads"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, file.filename)
-    
+
+    # 保存上传的文件
     try:
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        logger.info(f"文件已保存到临时位置: {file_path}")
+        file_path = save_uploaded_file(file)
         logger.info(f"用户 {current_user.email} 上传文件 {file.filename}")
 
         # 生成文档ID
@@ -296,15 +257,7 @@ async def upload_document(
         }
         
         # 根据文件类型处理文档
-        if file_ext.lower() == '.pdf':
-            logger.info(f"处理PDF文件: {file.filename}")
-            document = rag.pdf_processor.process_pdf(file_path, metadata)
-        else:
-            # 处理文本文件
-            logger.info(f"处理文本文件: {file.filename}")
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            document = Document(page_content=content, metadata=metadata)
+        document = process_document_by_type(file_path, file.filename, metadata)
         
         # 清洗文档
         logger.info(f"清洗文档内容")
@@ -314,43 +267,37 @@ async def upload_document(
         splitter = ParentChildDocumentSplitter()
         
         # 创建分割规则
-        rule = Rule(
-            mode=SplitMode.PARENT_CHILD,
-            max_tokens=parent_chunk_size,
-            chunk_overlap=parent_chunk_overlap,
-            fixed_separator=parent_separator,
-            subchunk_max_tokens=child_chunk_size,
-            subchunk_overlap=child_chunk_overlap,
-            subchunk_separator=child_separator,
-            clean_text=True,
-            keep_separator=True
+        rule = create_split_rule(
+            parent_chunk_size, parent_chunk_overlap, parent_separator,
+            child_chunk_size, child_chunk_overlap, child_separator
         )
         
         # 执行分割
         segments = splitter.split_documents([cleaned_document], rule)
         logger.info(f"文档分割完成，生成了 {len(segments) if segments else 0} 个段落")
         
-        # 打印原始文档信息
-        logger.info(f"\n=== 原始文档信息 ===")
-        logger.info(f"文件名: {file.filename}")
-        logger.info(f"文档ID: {doc_id}")
-        logger.info(f"文档内容前100字符: {cleaned_document.page_content[:100]}")
-        logger.info(f"总字符数: {len(cleaned_document.page_content)}")
+        # 记录文档信息
+        log_document_info(doc_id, file.filename, cleaned_document)
 
-        # 准备返回的段落数据
+        # 如果是预览模式，返回格式化的预览结果
+        if preview_only:
+            logger.info(f"预览模式处理完成")
+            return format_preview_response(segments, cleaned_document)
+
+        # 正常处理模式：准备返回的段落数据
         result_segments = []
         logger.info(f"\n=== 段落分割结果 ===")
-        
+
         for i, segment in enumerate(segments):
             # 确保每个段落都有正确的起始和结束位置
             start_pos = segment.metadata.get("chunk_start")
             if start_pos is None:
                 start_pos = 0
-            
+
             end_pos = segment.metadata.get("chunk_end")
             if end_pos is None:
                 end_pos = start_pos + len(segment.page_content)
-            
+
             segment_data = {
                 "id": i,
                 "content": segment.page_content,
@@ -359,7 +306,7 @@ async def upload_document(
                 "length": len(segment.page_content)
             }
             result_segments.append(segment_data)
-            
+
             # 打印每个段落的详细信息
             logger.info(f"\n段落 {i + 1}:")
             logger.info(f"  内容: {segment.page_content}")
@@ -368,33 +315,8 @@ async def upload_document(
             logger.info(f"  结束位置: {end_pos}")
             logger.info(f"  元数据: {segment.metadata}")
 
-        logger.info(f"\n=== 分割统计 ===")
-        logger.info(f"总段落数: {len(result_segments)}")
-        if result_segments:
-            avg_length = sum(len(s['content']) for s in result_segments) / len(result_segments)
-            logger.info(f"平均段落长度: {avg_length:.2f} 字符")
-            logger.info(f"最短段落长度: {min(len(s['content']) for s in result_segments)} 字符")
-            logger.info(f"最长段落长度: {max(len(s['content']) for s in result_segments)} 字符")
-
-        # 如果是预览模式，直接返回处理结果
-        if preview_only:
-            logger.info(f"预览模式处理完成，返回 {len(result_segments)} 个段落")
-            return {
-                "success": True,
-                "message": "文档预览成功",
-                "preview_mode": True,
-                "segments": result_segments,
-                "total_segments": len(segments),
-                "original_text": cleaned_document.page_content,  # 添加原始文本
-                "file_name": file.filename,
-                "statistics": {
-                    "total_segments": len(segments),
-                    "total_chars": len(cleaned_document.page_content),
-                    "avg_segment_length": sum(len(s['content']) for s in result_segments) / len(result_segments) if result_segments else 0,
-                    "min_segment_length": min(len(s['content']) for s in result_segments) if result_segments else 0,
-                    "max_segment_length": max(len(s['content']) for s in result_segments) if result_segments else 0
-                }
-            }
+        # 记录分割统计信息
+        log_split_statistics(segments)
         
         # 正常处理模式：保存到数据库和向量存储
         logger.info(f"正常上传模式：开始保存文档")
@@ -405,9 +327,8 @@ async def upload_document(
             segments=segments
         )
         
-        # 删除临时文件
-        os.remove(file_path)
-        logger.info(f"临时文件已删除: {file_path}")
+        # 清理临时文件
+        cleanup_temp_file(file_path)
         
         if not result["success"]:
             logger.error(f"文档处理失败: {result.get('message', '未知错误')}")
@@ -430,9 +351,7 @@ async def upload_document(
         logger.error(f"详细错误: {traceback.format_exc()}")
         
         # 确保临时文件被删除
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            logger.info(f"异常处理：临时文件已删除: {file_path}")
+        cleanup_temp_file(file_path)
             
         return JSONResponse(
             status_code=500,

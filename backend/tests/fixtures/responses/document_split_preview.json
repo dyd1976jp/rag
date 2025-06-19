@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "segments": [
+    {
+      "id": 0,
+      "content": "第一章：项目概述\n\n本项目是一个基于RAG（检索增强生成）技术的智能问答系统。",
+      "start": 0,
+      "end": 45,
+      "length": 45,
+      "children": [
+        {
+          "id": "0_0",
+          "content": "第一章：项目概述",
+          "start": 0,
+          "end": 8,
+          "length": 8
+        },
+        {
+          "id": "0_1", 
+          "content": "本项目是一个基于RAG（检索增强生成）技术的智能问答系统。",
+          "start": 10,
+          "end": 45,
+          "length": 35
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "content": "系统能够处理多种格式的文档，包括PDF、TXT和Markdown文件。",
+      "start": 46,
+      "end": 78,
+      "length": 32,
+      "children": [
+        {
+          "id": "1_0",
+          "content": "系统能够处理多种格式的文档，包括PDF、TXT和Markdown文件。",
+          "start": 46,
+          "end": 78,
+          "length": 32
+        }
+      ]
+    }
+  ],
+  "total_segments": 2,
+  "parentContent": "第一章：项目概述\n\n本项目是一个基于RAG（检索增强生成）技术的智能问答系统。\n\n系统能够处理多种格式的文档，包括PDF、TXT和Markdown文件。",
+  "childrenContent": [
+    "第一章：项目概述",
+    "本项目是一个基于RAG（检索增强生成）技术的智能问答系统。",
+    "系统能够处理多种格式的文档，包括PDF、TXT和Markdown文件。"
+  ]
+}

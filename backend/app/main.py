@@ -14,6 +14,7 @@ import os
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 from .core.config import settings
 from .api.endpoints import auth, llm as llm_old
@@ -98,9 +99,77 @@ app.include_router(api_v1_router, prefix="/api/v1")
 logger.info("注册管理模块路由: /admin/api")
 app.include_router(admin_router)
 
+# 请求验证异常处理器
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """
+    请求验证异常处理器
+
+    专门处理RequestValidationError，避免在处理包含二进制数据的multipart/form-data请求时出现UTF-8编码错误。
+
+    Args:
+        request: FastAPI请求对象
+        exc: 请求验证异常对象
+
+    Returns:
+        JSONResponse: 统一的错误响应
+    """
+    try:
+        # 安全地提取错误信息，避免编码问题
+        error_details = []
+        for error in exc.errors():
+            # 只提取安全的字符串信息，避免包含二进制数据
+            safe_error = {
+                "type": error.get("type", "validation_error"),
+                "loc": [str(loc) for loc in error.get("loc", [])],
+                "msg": str(error.get("msg", "Validation error"))
+            }
+            error_details.append(safe_error)
+
+        logger.warning(f"请求验证失败: {request.url} - {len(error_details)}个错误")
+
+        # 检查是否是文件上传相关的错误
+        url_path = str(request.url.path)
+        if "upload" in url_path or "preview-split" in url_path:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "detail": "文件上传请求格式错误。请确保使用正确的端点：使用 /documents/upload 端点上传文件，并设置 preview_only=true 进行预览。",
+                    "error_type": "file_upload_validation_error",
+                    "suggestion": "对于文档预览分割，请使用 POST /api/v1/rag/documents/upload 端点，并在表单数据中设置 preview_only=true"
+                }
+            )
+
+        return JSONResponse(
+            status_code=422,
+            content={
+                "detail": "请求参数验证失败",
+                "errors": error_details
+            }
+        )
+    except Exception as e:
+        # 如果在处理验证错误时出现异常，返回简单的错误信息
+        logger.error(f"处理验证异常时出错: {str(e)}")
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "请求格式错误，请检查请求参数"}
+        )
+
 # 全局异常处理
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """
+    全局异常处理器
+
+    捕获所有未处理的异常，记录日志并返回统一的错误响应。
+
+    Args:
+        request: FastAPI请求对象
+        exc: 异常对象
+
+    Returns:
+        JSONResponse: 统一的错误响应
+    """
     logger.error(f"全局异常: {str(exc)}")
     return JSONResponse(
         status_code=500,
@@ -121,10 +190,20 @@ async def root():
 
 # 启动时记录
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
+    """
+    应用启动事件处理器
+
+    在应用启动时执行初始化操作和记录日志。
+    """
     logger.info("应用启动")
 
 # 关闭时记录
 @app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("应用关闭") 
+async def shutdown_event() -> None:
+    """
+    应用关闭事件处理器
+
+    在应用关闭时执行清理操作和记录日志。
+    """
+    logger.info("应用关闭")

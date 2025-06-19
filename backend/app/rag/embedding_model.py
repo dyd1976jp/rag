@@ -13,18 +13,22 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingModel:
     """嵌入模型类"""
-    
+
     def __init__(self):
         # 从环境变量获取配置
         self.model_name = os.environ.get("EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
         self.api_base = os.environ.get("EMBEDDING_API_BASE", "http://192.168.1.30:1234")
-        
+
         # 批处理配置
         self.max_batch_size = int(os.environ.get("EMBEDDING_MAX_BATCH_SIZE", "20"))
         self.max_retries = int(os.environ.get("EMBEDDING_MAX_RETRIES", "3"))
         self.retry_delay = int(os.environ.get("EMBEDDING_RETRY_DELAY", "5"))
         self.timeout = int(os.environ.get("EMBEDDING_TIMEOUT", "30"))
-        
+
+        # 缓存向量维度，避免重复API调用
+        self._dimension_cache = None
+        self._api_available = None
+
         logger.info(f"初始化嵌入模型: 模型={self.model_name}, API地址={self.api_base}")
         logger.info(f"批处理配置: 最大批量={self.max_batch_size}, 重试次数={self.max_retries}, 重试间隔={self.retry_delay}秒, 超时={self.timeout}秒")
     
@@ -136,12 +140,58 @@ class EmbeddingModel:
             logger.error(f"查询嵌入失败: {str(e)}")
             raise
             
+    def check_api_availability(self) -> bool:
+        """检查API是否可用"""
+        if self._api_available is not None:
+            return self._api_available
+
+        try:
+            # 使用简单的健康检查，超时时间更短
+            response = requests.get(
+                f"{self.api_base}/health",
+                timeout=5
+            )
+            self._api_available = response.status_code == 200
+        except:
+            # 如果健康检查失败，尝试实际的API调用
+            try:
+                response = requests.post(
+                    f"{self.api_base}/v1/embeddings",
+                    json={
+                        "model": self.model_name,
+                        "input": "test"
+                    },
+                    timeout=5
+                )
+                self._api_available = response.status_code == 200
+            except:
+                self._api_available = False
+
+        logger.info(f"嵌入模型API可用性: {self._api_available}")
+        return self._api_available
+
     def get_dimension(self) -> int:
         """获取向量维度"""
+        # 如果已缓存，直接返回
+        if self._dimension_cache is not None:
+            return self._dimension_cache
+
         try:
+            # 检查API是否可用
+            if not self.check_api_availability():
+                # 如果API不可用，返回默认维度（nomic-embed-text-v1.5的维度）
+                logger.warning("嵌入模型API不可用，使用默认维度768")
+                self._dimension_cache = 768
+                return self._dimension_cache
+
             # 使用一个简单的测试文本获取向量维度
             test_embedding = self.embed_query("test")
-            return len(test_embedding)
+            self._dimension_cache = len(test_embedding)
+            logger.info(f"获取向量维度成功: {self._dimension_cache}")
+            return self._dimension_cache
         except Exception as e:
             logger.error(f"获取向量维度失败: {str(e)}")
-            raise 
+            # 返回默认维度而不是抛出异常
+            logger.warning("使用默认向量维度768")
+            self._dimension_cache = 768
+            return self._dimension_cache

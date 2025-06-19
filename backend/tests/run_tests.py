@@ -10,9 +10,15 @@ import subprocess
 import sys
 import os
 from pathlib import Path
+from typing import Any
 
-def parse_args():
-    """解析命令行参数"""
+def parse_args() -> argparse.Namespace:
+    """
+    解析命令行参数
+
+    Returns:
+        argparse.Namespace: 解析后的命令行参数
+    """
     parser = argparse.ArgumentParser(description='RAG-Chat 测试运行工具')
     parser.add_argument('--module', '-m', help='要测试的模块 (api, db, discover, services)', default=None)
     parser.add_argument('--file', '-f', help='要测试的文件路径', default=None)
@@ -22,8 +28,16 @@ def parse_args():
     parser.add_argument('--log-level', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'], default=None, help='日志级别')
     return parser.parse_args()
 
-def run_tests(args):
-    """运行测试"""
+def run_tests(args: argparse.Namespace) -> int:
+    """
+    运行测试
+
+    Args:
+        args: 命令行参数
+
+    Returns:
+        int: 退出代码
+    """
     # 确保我们在backend目录中
     if not Path('app').exists() or not Path('tests').exists():
         print("\n错误: 请在backend目录中运行此脚本")
@@ -82,8 +96,10 @@ def run_tests(args):
         print("\n测试被用户中断")
         return 130
 
-def print_help():
-    """打印帮助信息"""
+def print_help() -> None:
+    """
+    打印帮助信息
+    """
     print("\nRAG-Chat 测试运行工具")
     print("\n用法示例:")
     print("  python tests/run_tests.py                     # 运行所有测试")

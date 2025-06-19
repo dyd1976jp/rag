@@ -11,19 +11,9 @@ from ..core.paths import (
     CACHE_DIR,
     RAW_DATA_DIR
 )
+from .models import Document  # 使用正确的 Pydantic Document 类
 
 logger = logging.getLogger(__name__)
-
-class Document:
-    """
-    文档类，表示一个可以被处理的文本文档
-    """
-    def __init__(self, page_content: str, metadata: Dict[str, Any] = None):
-        self.page_content = page_content
-        self.metadata = metadata or {}
-        
-    def __str__(self) -> str:
-        return f"Document(content_length={len(self.page_content)}, metadata={self.metadata})"
 
 class DocumentProcessor:
     """
@@ -32,14 +22,20 @@ class DocumentProcessor:
     def __init__(self):
         """初始化文档处理器"""
         self.max_content_length = int(os.environ.get("DOC_MAX_CONTENT_LENGTH", "100000"))
+        self.min_content_length = int(os.environ.get("DOC_MIN_CONTENT_LENGTH", "10"))
         self.cache_enabled = os.environ.get("DOC_CACHE_ENABLED", "true").lower() == "true"
+        self.use_cache = self.cache_enabled  # 为了向后兼容，添加这个别名
         self.cache_dir = os.environ.get("DOC_CACHE_DIR", "data/cache")
-        
+
+        # 初始化停用词和标点符号翻译器
+        self.stop_words = set(['的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这'])
+        self.punctuation_translator = str.maketrans('', '', string.punctuation + '，。！？；：""''（）【】《》')
+
         # 创建缓存目录
         if self.cache_enabled:
             os.makedirs(self.cache_dir, exist_ok=True)
-            
-        logger.info(f"初始化文档处理器: 最大内容长度={self.max_content_length}")
+
+        logger.info(f"初始化文档处理器: 最大内容长度={self.max_content_length}, 最小内容长度={self.min_content_length}, 缓存启用={self.cache_enabled}")
         
     def process_document(self, document: Document) -> Document:
         """处理文档
@@ -88,11 +84,11 @@ class DocumentProcessor:
         
     def clean_document(self, document: Document) -> Document:
         """
-        清洗文档，去除无用信息
-        
+        清洗文档，去除无用信息，保持文档格式
+
         Args:
             document: 要清洗的文档
-            
+
         Returns:
             清洗后的文档
         """
@@ -103,37 +99,46 @@ class DocumentProcessor:
             if cached_result:
                 logger.info(f"从缓存获取清洗结果: {cache_key}")
                 return cached_result
-        
+
         # 获取原始内容
         content = document.page_content
-        
-        # 规范化Unicode字符
-        content = unicodedata.normalize('NFKC', content)
-        
-        # 替换多个连续空白字符为单个空格
-        content = re.sub(r'\s+', ' ', content)
-        
-        # 删除控制字符
+
+        # 规范化Unicode字符（使用NFC而不是NFKC，避免改变标点符号）
+        content = unicodedata.normalize('NFC', content)
+
+        # 删除控制字符，但保留换行符和制表符
         content = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', content)
-        
+
+        # 规范化空白字符，但保持换行符结构
+        # 将多个连续空格替换为单个空格，但保留换行符
+        content = re.sub(r'[ \t]+', ' ', content)  # 只处理空格和制表符
+
+        # 清理多余的空行（超过2个连续换行符的情况）
+        content = re.sub(r'\n{3,}', '\n\n', content)
+
+        # 清理行首行尾的空格
+        lines = content.split('\n')
+        lines = [line.strip() for line in lines]
+        content = '\n'.join(lines)
+
         # 截断过长的内容
         if len(content) > self.max_content_length:
             logger.info(f"文档内容过长，截断为 {self.max_content_length} 字符")
             content = content[:self.max_content_length]
-        
+
         # 创建新的Document对象
         cleaned_doc = Document(
             page_content=content.strip(),
             metadata=document.metadata.copy()
         )
-        
+
         # 添加清洗时间到元数据
         cleaned_doc.metadata["cleaned_at"] = datetime.now().isoformat()
-        
+
         # 缓存清洗结果
         if self.use_cache:
             self._save_to_cache(cache_key, cleaned_doc)
-            
+
         return cleaned_doc
         
     def extract_keywords(self, document: Document, max_keywords: int = 10) -> List[str]:

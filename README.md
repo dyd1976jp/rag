@@ -31,19 +31,26 @@ cd RAG-chat
 ### 2. 安装后端依赖
 ```bash
 cd backend
-# 安装基础依赖
+
+# 生产环境依赖
 pip install -r requirements.txt
 
-# 如果需要运行测试，还需要安装测试依赖
-pip install -r requirements/test.txt
+# 开发环境依赖（包含测试工具和代码检查工具）
+pip install -r requirements-dev.txt
 ```
 
 ### 3. 安装前端依赖
+
+#### 主应用前端
 ```bash
-cd frontend
+cd frontend-app
 npm install
-# 或使用 yarn
-yarn install
+```
+
+#### 管理后台前端
+```bash
+cd frontend-admin
+npm install
 ```
 
 ### 4. 运行Milvus（必需）
@@ -77,16 +84,22 @@ uvicorn app.main:app --reload
 
 ### 2. 启动前端
 
+#### 启动主应用
 ```bash
-cd frontend
+cd frontend-app
 npm run dev
-# 或使用 yarn
-yarn dev
+```
+
+#### 启动管理后台
+```bash
+cd frontend-admin
+npm run dev
 ```
 
 ### 3. 访问系统
 
-打开浏览器访问 http://localhost:3000
+- **主应用**: http://localhost:5173
+- **管理后台**: http://localhost:5174
 
 ## 使用指南
 

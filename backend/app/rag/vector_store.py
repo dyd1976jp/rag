@@ -105,11 +105,28 @@ class MilvusVectorStore(BaseVectorStore):
     def _connect(self):
         """连接到Milvus服务器"""
         try:
-            connections.connect(alias="default", host=self.host, port=str(self.port))
+            # 使用Docker中Milvus的连接方式
+            connections.connect(host=self.host, port=str(self.port))
             logger.info(f"成功连接到Milvus服务器: {self.host}:{self.port}")
         except Exception as e:
             logger.error(f"连接Milvus服务器失败: {e}")
             raise
+
+    def _check_connection(self):
+        """检查Milvus连接状态"""
+        try:
+            # 检查连接是否存在
+            if not connections.has_connection("default"):
+                logger.warning("Milvus连接不存在，尝试重新连接")
+                self._connect()
+
+            # 简单的连接测试 - 列出集合
+            utility.list_collections()
+            logger.debug("Milvus连接检查通过")
+            return True
+        except Exception as e:
+            logger.error(f"Milvus连接检查失败: {str(e)}")
+            return False
     
     def _get_index_config(self, row_count: int) -> Dict[str, Any]:
         """根据数据量选择合适的索引配置"""

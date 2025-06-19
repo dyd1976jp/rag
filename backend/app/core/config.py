@@ -71,7 +71,11 @@ class Settings(BaseSettings):
     SPLITTER_TIMEOUT: int = int(os.getenv("SPLITTER_TIMEOUT", "300"))  # 默认分割超时5分钟
     
     # CORS配置
-    BACKEND_CORS_ORIGINS: list = ["http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: list = [
+        "http://localhost:3000",  # 兼容旧配置
+        "http://localhost:5173",  # frontend-app (Vite默认端口)
+        "http://localhost:5174",  # frontend-admin (Vite默认端口)
+    ]
     
     # 向量数据库配置
     CHROMA_PERSIST_DIRECTORY: str = str(get_env_path("CHROMA_PERSIST_DIR", CHROMA_DIR))

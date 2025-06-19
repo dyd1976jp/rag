@@ -303,17 +303,16 @@ class ParentChildDocumentSplitter(DocumentSplitter):
         all_segments = []
         
         for doc in documents:
-            # 1. 对原始文档进行完整清理
-            doc.page_content = CleanProcessor.clean(doc.page_content, level=CleanLevel.FULL)
-            if not doc.page_content:
+            # 1. 检查文档内容是否为空
+            if not doc.page_content or not doc.page_content.strip():
                 continue
                 
             # 2. 创建父文档分词器
             parent_splitter = FixedRecursiveCharacterTextSplitter.from_encoder(
                 chunk_size=rule.max_tokens,
                 chunk_overlap=rule.chunk_overlap,
-                fixed_separator="\n\n",  # 固定使用双换行作为主分隔符
-                separators=["\n\n", "。", ". ", " ", ""],  # 递归分隔符
+                fixed_separator=rule.fixed_separator,  # 使用传入的父分隔符
+                separators=[rule.fixed_separator, "\n", "。", ". ", " ", ""],  # 递归分隔符
                 keep_separator=rule.keep_separator,
                 length_function=lambda x: [len(text) for text in x]
             )
@@ -348,8 +347,8 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                     child_splitter = FixedRecursiveCharacterTextSplitter.from_encoder(
                         chunk_size=rule.subchunk_max_tokens,
                         chunk_overlap=rule.subchunk_overlap,
-                        fixed_separator="\n",  # 固定使用单换行作为主分隔符
-                        separators=["\n", " ", ""],  # 递归分隔符
+                        fixed_separator=rule.subchunk_separator,  # 使用传入的子分隔符
+                        separators=[rule.subchunk_separator, " ", ""],  # 递归分隔符
                         keep_separator=rule.keep_separator,
                         length_function=lambda x: [len(text) for text in x]
                     )

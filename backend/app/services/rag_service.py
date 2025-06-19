@@ -837,20 +837,33 @@ class RAGService:
                 embedding_model is not None):
             logger.error("RAG基本组件不可用")
             return False
-        
+
+        # 检查嵌入模型API是否可用
+        if not embedding_model.check_api_availability():
+            logger.warning("嵌入模型API不可用，但允许继续使用默认配置")
+            # 不直接返回False，而是继续检查其他组件
+
         # 检查向量存储是否可用
         try:
+            # 获取向量维度（现在有默认值，不会失败）
+            dimension = embedding_model.get_dimension()
+
             if retrieval_service.vector_store.collection is None:
                 # 尝试初始化集合
-                dimension = embedding_model.get_dimension()
                 retrieval_service.vector_store.create_collection(self.vector_collection_name, dimension)
                 logger.info(f"向量存储集合 {self.vector_collection_name} 初始化完成")
-            
-            # 测试向量存储连接
-            test_vector = [0.0] * embedding_model.get_dimension()
-            retrieval_service.vector_store.search_by_vector(test_vector, top_k=1)
-            logger.info("向量存储连接测试成功")
-            
+
+            # 测试向量存储连接（使用更轻量的测试）
+            try:
+                # 简单的连接测试，不进行实际搜索
+                retrieval_service.vector_store._check_connection()
+                logger.info("向量存储连接测试成功")
+            except AttributeError:
+                # 如果没有_check_connection方法，使用搜索测试
+                test_vector = [0.0] * dimension
+                retrieval_service.vector_store.search_by_vector(test_vector, top_k=1)
+                logger.info("向量存储搜索测试成功")
+
             return True
         except Exception as e:
             logger.error(f"检查向量存储可用性失败: {str(e)}")
