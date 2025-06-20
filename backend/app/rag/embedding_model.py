@@ -6,6 +6,7 @@ import os
 import time
 import logging
 import requests
+import traceback
 from typing import List, Optional
 import numpy as np
 
@@ -78,30 +79,26 @@ class EmbeddingModel:
         
         for attempt in range(self.max_retries):
             try:
-                # 准备请求数据
+                # 准备请求数据，使用OpenAI兼容格式
                 data = {
                     "model": self.model_name,
-                    "prompt": texts[0] if len(texts) == 1 else texts,
-                    "options": {
-                        "temperature": 0.0,
-                        "num_ctx": 2048
-                    }
+                    "input": texts
                 }
-                
+
                 # 发送请求
                 response = requests.post(
-                    f"{self.api_base}/api/embeddings",
+                    f"{self.api_base}/v1/embeddings",
                     json=data,
                     timeout=self.timeout
                 )
-                
+
                 # 检查响应
                 if response.status_code == 200:
                     result = response.json()
                     if "data" in result and len(result["data"]) > 0:
                         embeddings = [item["embedding"] for item in result["data"]]
                         return embeddings
-                
+
                 # 如果响应不成功，抛出异常
                 raise Exception(f"API调用失败: {response.text}")
                 

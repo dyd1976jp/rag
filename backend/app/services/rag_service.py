@@ -34,18 +34,35 @@ class RAGService:
         self.results_dir = str(RESULTS_DIR)
         # 批处理大小
         self.batch_size = int(os.environ.get("RAG_BATCH_SIZE", "50"))
-        
+
         # 索引相关配置
         self.vector_collection_name = os.environ.get("RAG_VECTOR_COLLECTION", "rag_documents")
-        
+
         # 确保上传目录存在
         os.makedirs(self.upload_dir, exist_ok=True)
-        
+
         # 初始化时创建必要的MongoDB索引
         # 注意：这里不直接调用异步方法，而是在应用启动时调用setup_indexes方法
-        
+
         logger.info(f"初始化RAG服务: 文档集合={self.collection_name}, 向量集合={self.vector_collection_name}")
         logger.info(f"批处理配置: 批次大小={self.batch_size}")
+
+    def _get_rag_components(self):
+        """动态获取RAG组件，确保获取最新的初始化状态"""
+        from app.rag import (
+            retrieval_service,
+            document_processor,
+            document_splitter,
+            pdf_processor,
+            embedding_model
+        )
+        return {
+            'retrieval_service': retrieval_service,
+            'document_processor': document_processor,
+            'document_splitter': document_splitter,
+            'pdf_processor': pdf_processor,
+            'embedding_model': embedding_model
+        }
     
     async def setup_indexes(self):
         """应用启动时调用此方法来设置索引"""
@@ -92,14 +109,37 @@ class RAGService:
         """
         try:
             start_time = datetime.now()
-            
+
             # 检查RAG服务是否可用
             if not self._check_rag_available():
                 return {
                     "success": False,
                     "message": "RAG服务不可用，请确保Milvus和嵌入模型服务已启动"
                 }
-            
+
+            # 获取RAG组件
+            components = self._get_rag_components()
+            retrieval_service = components['retrieval_service']
+            document_processor = components['document_processor']
+            document_splitter = components['document_splitter']
+            pdf_processor = components['pdf_processor']
+            embedding_model = components['embedding_model']
+
+            # 调试信息：检查组件是否正确获取
+            logger.info(f"RAG组件获取结果:")
+            logger.info(f"- retrieval_service: {retrieval_service is not None}")
+            logger.info(f"- document_processor: {document_processor is not None}")
+            logger.info(f"- document_splitter: {document_splitter is not None}")
+            logger.info(f"- pdf_processor: {pdf_processor is not None}")
+            logger.info(f"- embedding_model: {embedding_model is not None}")
+
+            if embedding_model is None:
+                logger.error("embedding_model 为 None，无法继续处理")
+                return {
+                    "success": False,
+                    "message": "嵌入模型未正确初始化，请检查RAG服务配置"
+                }
+
             # 获取文件大小和限制配置
             file_size = os.path.getsize(file_path)
             max_file_size = int(os.environ.get("MAX_FILE_SIZE", "104857600"))  # 默认100MB
@@ -521,7 +561,12 @@ class RAGService:
                 }
             
             start_time = datetime.now()
-            
+
+            # 获取RAG组件
+            components = self._get_rag_components()
+            retrieval_service = components['retrieval_service']
+            embedding_model = components['embedding_model']
+
             # 确保向量存储集合已初始化
             try:
                 if retrieval_service.vector_store.collection is None:
@@ -540,18 +585,11 @@ class RAGService:
             # 使用检索服务搜索文档
             if include_parent:
                 # 使用父子文档检索功能
-                # 构建过滤条件
-                filter_conditions = {}
-                if not search_all:
-                    filter_conditions["dataset_id"] = user_id
-                if collection_id:
-                    filter_conditions["collection_id"] = collection_id
-
                 results_with_parent = retrieval_service.retrieve_with_parent(
                     query=query,
                     dataset_id=None if search_all else user_id,  # 如果search_all为True，则不限制dataset_id
                     top_k=top_k,
-                    filter_conditions=filter_conditions
+                    use_cache=True
                 )
                 
                 # 记录搜索性能指标
@@ -589,18 +627,11 @@ class RAGService:
                     formatted_results.append(formatted_result)
             else:
                 # 使用标准检索功能
-                # 构建过滤条件
-                filter_conditions = {}
-                if not search_all:
-                    filter_conditions["dataset_id"] = user_id
-                if collection_id:
-                    filter_conditions["collection_id"] = collection_id
-
                 results = retrieval_service.retrieve(
                     query=query,
                     dataset_id=None if search_all else user_id,  # 如果search_all为True，则不限制dataset_id
                     top_k=top_k,
-                    filter_conditions=filter_conditions
+                    use_cache=True
                 )
                 
                 # 记录搜索性能指标
@@ -830,6 +861,20 @@ class RAGService:
     
     def _check_rag_available(self) -> bool:
         """检查RAG服务是否可用"""
+        # 动态获取RAG组件，确保获取最新的初始化状态
+        components = self._get_rag_components()
+        retrieval_service = components['retrieval_service']
+        document_processor = components['document_processor']
+        document_splitter = components['document_splitter']
+        embedding_model = components['embedding_model']
+
+        # 调试信息
+        logger.info(f"RAG组件状态检查:")
+        logger.info(f"- retrieval_service: {retrieval_service is not None}")
+        logger.info(f"- document_processor: {document_processor is not None}")
+        logger.info(f"- document_splitter: {document_splitter is not None}")
+        logger.info(f"- embedding_model: {embedding_model is not None}")
+
         # 检查基本组件是否存在
         if not (retrieval_service is not None and
                 document_processor is not None and
@@ -848,21 +893,22 @@ class RAGService:
             # 获取向量维度（现在有默认值，不会失败）
             dimension = embedding_model.get_dimension()
 
-            if retrieval_service.vector_store.collection is None:
+            if retrieval_service is not None and retrieval_service.vector_store.collection is None:
                 # 尝试初始化集合
                 retrieval_service.vector_store.create_collection(self.vector_collection_name, dimension)
                 logger.info(f"向量存储集合 {self.vector_collection_name} 初始化完成")
 
             # 测试向量存储连接（使用更轻量的测试）
-            try:
-                # 简单的连接测试，不进行实际搜索
-                retrieval_service.vector_store._check_connection()
-                logger.info("向量存储连接测试成功")
-            except AttributeError:
-                # 如果没有_check_connection方法，使用搜索测试
-                test_vector = [0.0] * dimension
-                retrieval_service.vector_store.search_by_vector(test_vector, top_k=1)
-                logger.info("向量存储搜索测试成功")
+            if retrieval_service is not None:
+                try:
+                    # 简单的连接测试，不进行实际搜索
+                    retrieval_service.vector_store._check_connection()
+                    logger.info("向量存储连接测试成功")
+                except AttributeError:
+                    # 如果没有_check_connection方法，使用搜索测试
+                    test_vector = [0.0] * dimension
+                    retrieval_service.vector_store.search_by_vector(test_vector, top_k=1)
+                    logger.info("向量存储搜索测试成功")
 
             return True
         except Exception as e:
@@ -895,7 +941,12 @@ class RAGService:
                     "success": False,
                     "message": "RAG服务不可用，请确保Milvus和嵌入模型服务已启动"
                 }
-            
+
+            # 获取RAG组件
+            components = self._get_rag_components()
+            retrieval_service = components['retrieval_service']
+            embedding_model = components['embedding_model']
+
             # 保存文档信息到MongoDB
             doc_info = {
                 "id": doc_id,

@@ -42,6 +42,69 @@ async def get_default_llm():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="没有找到默认模型")
     return llm
 
+@router.get("/providers/list", response_model=List[str])
+async def list_providers(
+    current_user = Depends(get_current_user)
+):
+    """
+    获取所有可用的LLM提供商
+    """
+    return await llm_service.get_providers()
+
+@router.get("/models/{provider}", response_model=List[Dict[str, Any]])
+async def list_models_by_provider(
+    provider: str = Path(..., title="提供商名称"),
+    current_user = Depends(get_current_user)
+):
+    """
+    获取指定提供商下的所有模型类型
+    """
+    return await llm_service.get_models_by_provider(provider)
+
+# 修改转发逻辑，直接调用服务层函数
+@router.get("/discover-models", response_model=List[Dict[str, Any]])
+async def get_discover_models(
+    provider: str = Query(..., description="提供商名称，如lmstudio或ollama"),
+    url: str = Query(..., description="API URL，例如http://0.0.0.0:1234"),
+    current_user = Depends(get_current_user)
+):
+    """
+    发现本地服务中的模型
+
+    此接口用于自动发现本地运行的模型服务中的可用模型，
+    并检查它们是否已在系统中注册。
+
+    - provider: 提供商，目前支持"lmstudio"和"ollama"
+    - url: 服务的API地址，例如LM Studio为"http://0.0.0.0:1234"
+    """
+    logger.info(f"发现模型请求: provider={provider}, url={url}")
+
+    try:
+        # 修正URL格式
+        if url and not url.startswith("http"):
+            url = "http://" + url
+            logger.debug(f"URL已修正: {url}")
+
+        # 直接调用服务层函数
+        result = await llm_service.discover_local_models(provider, url)
+
+        if not result:
+            logger.warning(f"未找到模型: provider={provider}, url={url}")
+            return []
+
+        if isinstance(result, list) and len(result) > 0 and "error" in result[0]:
+            error_msg = result[0].get("error", "未知错误")
+            logger.error(f"发现模型错误: {error_msg}")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
+
+        logger.info(f"发现{len(result)}个模型")
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"处理发现模型请求时出错: {str(e)}")
+        return [{"error": f"处理请求时出错: {str(e)}"}]
+
 @router.get("/{llm_id}", response_model=LLMResponse)
 async def get_llm(
     llm_id: str = Path(..., title="LLM ID"),
@@ -117,68 +180,7 @@ async def set_default_llm(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="模型不存在")
     return result
 
-@router.get("/providers/list", response_model=List[str])
-async def list_providers(
-    current_user = Depends(get_current_user)
-):
-    """
-    获取所有可用的LLM提供商
-    """
-    return await llm_service.get_providers()
 
-@router.get("/models/{provider}", response_model=List[Dict[str, Any]])
-async def list_models_by_provider(
-    provider: str = Path(..., title="提供商名称"),
-    current_user = Depends(get_current_user)
-):
-    """
-    获取指定提供商下的所有模型类型
-    """
-    return await llm_service.get_models_by_provider(provider)
-
-# 修改转发逻辑，直接调用服务层函数
-@router.get("/discover-models", response_model=List[Dict[str, Any]])
-async def get_discover_models(
-    provider: str = Query(..., description="提供商名称，如lmstudio或ollama"),
-    url: str = Query(..., description="API URL，例如http://0.0.0.0:1234"),
-    current_user = Depends(get_current_user)
-):
-    """
-    发现本地服务中的模型
-    
-    此接口用于自动发现本地运行的模型服务中的可用模型，
-    并检查它们是否已在系统中注册。
-    
-    - provider: 提供商，目前支持"lmstudio"和"ollama"
-    - url: 服务的API地址，例如LM Studio为"http://0.0.0.0:1234"
-    """
-    logger.info(f"发现模型请求: provider={provider}, url={url}")
-    
-    try:
-        # 修正URL格式
-        if url and not url.startswith("http"):
-            url = "http://" + url
-            logger.debug(f"URL已修正: {url}")
-        
-        # 直接调用服务层函数
-        result = await llm_service.discover_local_models(provider, url)
-        
-        if not result:
-            logger.warning(f"未找到模型: provider={provider}, url={url}")
-            return []
-            
-        if isinstance(result, list) and len(result) > 0 and "error" in result[0]:
-            error_msg = result[0].get("error", "未知错误")
-            logger.error(f"发现模型错误: {error_msg}")
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
-            
-        logger.info(f"发现{len(result)}个模型")
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception(f"处理发现模型请求时出错: {str(e)}")
-        return [{"error": f"处理请求时出错: {str(e)}"}]
 
 # 直接使用服务层方法，保持与discover模块一致的参数
 @router.post("/register-from-discovery", response_model=LLMResponse)

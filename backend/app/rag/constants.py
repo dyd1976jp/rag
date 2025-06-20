@@ -119,7 +119,7 @@ class IndexType:
     TEXT = "TEXT"
 
 class Field(Enum):
-    CONTENT_KEY = "page_content"      # 文本内容
+    CONTENT_KEY = "content"           # 文本内容 (匹配实际集合schema)
     METADATA_KEY = "metadata"         # 元数据
     GROUP_KEY = "group_id"           # 分组ID
     VECTOR = "vector"                # 向量
