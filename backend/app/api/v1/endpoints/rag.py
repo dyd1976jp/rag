@@ -244,16 +244,19 @@ async def upload_document(
         file_path = save_uploaded_file(file)
         logger.info(f"用户 {current_user.email} 上传文件 {file.filename}")
 
-        # 生成文档ID
+        # 生成文档ID和数据集ID
         doc_id = str(uuid.uuid4())
-        logger.info(f"生成文档ID: {doc_id}")
-        
+        dataset_id = str(current_user.id)  # 使用用户ID作为数据集ID
+        logger.info(f"生成文档ID: {doc_id}, 数据集ID: {dataset_id}")
+
         # 准备元数据
         metadata = {
             "doc_id": doc_id,
             "document_id": doc_id,
+            "dataset_id": dataset_id,
             "file_name": file.filename,
-            "preview": preview_only
+            "preview": preview_only,
+            "created_by": str(current_user.id)
         }
         
         # 根据文件类型处理文档
@@ -324,7 +327,8 @@ async def upload_document(
             doc_id=doc_id,
             file_name=file.filename,
             user_id=str(current_user.id),
-            segments=segments
+            segments=segments,
+            dataset_id=dataset_id
         )
         
         # 清理临时文件

@@ -97,12 +97,13 @@ async def initialize_rag():
     if embedding_model is not None and vector_store is not None:
         try:
             from app.db.mongodb import mongodb
-            from app.db.document_store import DocumentStore
             from app.rag.retrieval_service import RetrievalService
             from app.rag.constants import RETRIEVAL_CONFIG
-            
+
+            # 延迟导入DocumentStore以避免循环导入
+            from app.db.document_store import DocumentStore
             document_store = DocumentStore(mongodb.db)
-            
+
             retrieval_service = RetrievalService(
                 vector_store=vector_store,
                 document_store=document_store,
@@ -113,6 +114,8 @@ async def initialize_rag():
             logger.info("检索服务初始化成功")
         except Exception as e:
             logger.error(f"检索服务初始化失败: {str(e)}")
+            import traceback
+            traceback.print_exc()
             retrieval_service = None
     else:
         logger.warning("嵌入模型或向量存储未初始化，检索服务将不可用")

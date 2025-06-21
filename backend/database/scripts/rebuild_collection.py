@@ -11,10 +11,9 @@ from app.rag.constants import Field, DEFAULT_COLLECTION_NAME
 
 def rebuild_collection():
     try:
-        # 连接到 Milvus
+        # 连接到 Milvus - 使用Docker兼容的连接方式
         print("正在连接到 Milvus...")
         connections.connect(
-            alias="default",
             host=os.environ.get("MILVUS_HOST", "localhost"),
             port=os.environ.get("MILVUS_PORT", "19530")
         )

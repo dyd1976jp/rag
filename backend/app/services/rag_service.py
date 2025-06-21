@@ -920,7 +920,8 @@ class RAGService:
         doc_id: str,
         file_name: str,
         user_id: str,
-        segments: List[Document]
+        segments: List[Document],
+        dataset_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         保存处理后的文档段落到向量存储
@@ -952,6 +953,7 @@ class RAGService:
                 "id": doc_id,
                 "file_name": file_name,
                 "user_id": user_id,
+                "dataset_id": dataset_id or user_id,  # 如果没有指定dataset_id，使用user_id
                 "segments_count": len(segments),
                 "status": "processing",
                 "created_at": datetime.now(timezone.utc),

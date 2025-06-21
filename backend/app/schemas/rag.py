@@ -17,9 +17,9 @@ class DocumentSearchRequest(BaseModel):
     collection_id: Optional[str] = Field(None, description="文档集ID，如果指定则只搜索该文档集中的文档")
 
 class DocumentMetadata(BaseModel):
-    doc_id: str
-    document_id: str
-    file_name: str
+    doc_id: Optional[str] = None
+    document_id: Optional[str] = None
+    file_name: Optional[str] = None
     position: Optional[int] = None
     score: Optional[float] = None
 

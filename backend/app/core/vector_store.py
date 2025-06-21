@@ -19,30 +19,23 @@ _vector_store: Optional[Milvus] = None
 def create_collection() -> None:
     """创建Milvus集合"""
     try:
-        # 定义字段
-        fields = [
-            FieldSchema(name="id", dtype=DataType.VARCHAR, is_primary=True, max_length=100),
-            FieldSchema(name="content", dtype=DataType.VARCHAR, max_length=65535),
-            FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=VECTOR_DIM),
-            FieldSchema(name="metadata", dtype=DataType.JSON)
-        ]
-        
-        # 创建集合模式
-        schema = CollectionSchema(fields=fields, description="文档向量存储")
-        
-        # 创建集合
-        collection = Collection(name=COLLECTION_NAME, schema=schema)
-        
-        # 创建索引
-        index_params = {
-            "metric_type": "COSINE",
-            "index_type": "HNSW",
-            "params": {"M": 8, "efConstruction": 64}
-        }
-        collection.create_index(field_name="vector", index_params=index_params)
-        collection.load()
-        
-        logger.info(f"成功创建集合: {COLLECTION_NAME}")
+        from ..rag.collection_manager import collection_manager
+
+        # 使用统一的集合管理器创建集合
+        collection = collection_manager.create_collection(
+            collection_name=COLLECTION_NAME,
+            dimension=VECTOR_DIM,
+            drop_existing=False
+        )
+
+        if collection:
+            # 创建索引
+            collection_manager.create_indexes(collection)
+            collection.load()
+            logger.info(f"集合 {COLLECTION_NAME} 创建成功（支持动态字段）")
+        else:
+            raise Exception("集合创建失败")
+
     except Exception as e:
         logger.error(f"创建集合失败: {str(e)}")
         raise
@@ -84,9 +77,8 @@ def get_vector_store(embedding_model: Embeddings) -> Milvus:
 def clear() -> None:
     """清理向量存储"""
     try:
-        # 确保连接存在
+        # 确保连接存在 - 使用Docker兼容的连接方式
         connections.connect(
-            alias="default",
             host=MILVUS_HOST,
             port=MILVUS_PORT
         )

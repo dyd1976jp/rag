@@ -18,46 +18,30 @@ async def init_mongodb():
 
 def init_milvus():
     """初始化Milvus连接和集合"""
-    # 连接Milvus
+    # 连接Milvus - 使用Docker兼容的连接方式
     connections.connect(
-        alias="default",
         host=settings.MILVUS_HOST,
-        port=settings.MILVUS_PORT,
-        user=settings.MILVUS_USER,
-        password=settings.MILVUS_PASSWORD
+        port=settings.MILVUS_PORT
     )
     
     # 检查集合是否存在，如果存在则删除
     if utility.has_collection(settings.MILVUS_COLLECTION):
         utility.drop_collection(settings.MILVUS_COLLECTION)
     
-    # 定义集合字段
-    fields = [
-        FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
-        FieldSchema(name="document_id", dtype=DataType.VARCHAR, max_length=200),
-        FieldSchema(name="vector", dtype=DataType.FLOAT_VECTOR, dim=768)  # 使用text-embedding-nomic-embed-text-v1.5模型的维度
-    ]
-    
-    # 创建集合schema
-    schema = CollectionSchema(
-        fields=fields,
-        description="Document vectors for RAG system"
-    )
+    # 使用统一的集合管理器创建标准schema
+    from app.rag.collection_manager import collection_manager
+
+    # 创建支持动态字段的标准schema
+    schema = collection_manager.create_standard_schema(dimension=768)
     
     # 创建集合
     collection = Collection(
         name=settings.MILVUS_COLLECTION,
-        schema=schema,
-        using='default'
+        schema=schema
     )
-    
-    # 创建索引
-    index_params = {
-        "metric_type": "L2",
-        "index_type": "IVF_FLAT",
-        "params": {"nlist": 1024}
-    }
-    collection.create_index(field_name="vector", index_params=index_params)
+
+    # 使用集合管理器创建索引
+    collection_manager.create_indexes(collection)
     
     print("Milvus初始化完成")
     return collection

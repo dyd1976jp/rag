@@ -259,10 +259,11 @@ class MilvusVectorStore(BaseVectorStore):
                 )
             ]
 
-            # 创建schema
+            # 创建schema，启用动态字段支持
             schema = CollectionSchema(
                 fields=fields,
-                description="Document vectors with text and metadata"
+                description="Document vectors with text and metadata",
+                enable_dynamic_field=True  # 启用动态字段支持
             )
 
             # 创建集合
@@ -336,8 +337,11 @@ class MilvusVectorStore(BaseVectorStore):
             # 准备数据
             data = []
             for doc, vector in zip(documents, vectors):
+                # 使用段落的唯一ID作为主键，而不是原始文档的doc_id
+                segment_id = doc.metadata.get("id") or doc.metadata.get("doc_id", str(uuid.uuid4()))
+
                 point = {
-                    Field.PRIMARY_KEY.value: doc.metadata.get("doc_id", str(uuid.uuid4())),
+                    Field.PRIMARY_KEY.value: segment_id,
                     Field.VECTOR.value: vector,
                     Field.CONTENT_KEY.value: doc.page_content,
                     Field.METADATA_KEY.value: doc.metadata,
@@ -402,10 +406,16 @@ class MilvusVectorStore(BaseVectorStore):
             for hits in results:
                 for hit in hits:
                     entity = hit.entity
-                    metadata = entity.get(Field.METADATA_KEY.value, {})
-                    page_content = entity.get(Field.CONTENT_KEY.value, "")
+                    # 使用getattr或直接访问属性，而不是get方法
+                    metadata = getattr(entity, Field.METADATA_KEY.value, {})
+                    page_content = getattr(entity, Field.CONTENT_KEY.value, "")
+
+                    # 确保metadata是字典类型
+                    if not isinstance(metadata, dict):
+                        metadata = {}
+
                     metadata['score'] = float(hit.distance)
-                    
+
                     doc = Document(page_content=page_content, metadata=metadata)
                     search_results.append(doc)
             

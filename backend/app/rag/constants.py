@@ -92,15 +92,18 @@ CACHE_CONFIG = {
     "max_size": 1000             # 最大缓存条目数
 }
 
-# 字段定义
-class Field:
+# 字段定义（统一使用Enum）
+class Field(Enum):
     """字段名称常量"""
-    ID = "id"
-    VECTOR = "vector"
-    PAGE_CONTENT = "page_content"
-    METADATA = "metadata"
-    GROUP_ID = "group_id"
-    SPARSE_VECTOR = "sparse_vector"
+    PRIMARY_KEY = "id"                    # 主键
+    VECTOR = "vector"                     # 向量
+    CONTENT_KEY = "page_content"          # 文本内容
+    METADATA_KEY = "metadata"             # 元数据
+    GROUP_KEY = "group_id"               # 分组ID
+    SPARSE_VECTOR = "sparse_vector"      # 稀疏向量（用于全文搜索）
+    TEXT_KEY = "text"                    # 文本
+    DOC_ID = "metadata.doc_id"           # 文档ID
+    DOCUMENT_ID = "metadata.document_id"  # 文档ID
 
 # 距离度量类型
 class Distance:
@@ -108,6 +111,9 @@ class Distance:
     L2 = "L2"
     IP = "IP"
     COSINE = "COSINE"
+    COSINE_LOWER = "cosine"
+    EUCLID = "euclid"
+    DOT = "dot"
 
 # 索引类型
 class IndexType:
@@ -116,25 +122,7 @@ class IndexType:
     IVF_FLAT = "IVF_FLAT"
     IVF_SQ8 = "IVF_SQ8"
     HNSW = "HNSW"
+    HNSW_LOWER = "hnsw"
     TEXT = "TEXT"
-
-class Field(Enum):
-    CONTENT_KEY = "content"           # 文本内容 (匹配实际集合schema)
-    METADATA_KEY = "metadata"         # 元数据
-    GROUP_KEY = "group_id"           # 分组ID
-    VECTOR = "vector"                # 向量
-    SPARSE_VECTOR = "sparse_vector"  # 稀疏向量（用于全文搜索）
-    TEXT_KEY = "text"               # 文本
-    PRIMARY_KEY = "id"              # 主键
-    DOC_ID = "metadata.doc_id"      # 文档ID
-    DOCUMENT_ID = "metadata.document_id"  # 文档ID
-
-class IndexType:
-    HNSW = "hnsw"
-    TEXT = "text"
+    TEXT_LOWER = "text"
     PAYLOAD = "payload"
-
-class Distance:
-    COSINE = "cosine"
-    EUCLID = "euclid"
-    DOT = "dot" 

@@ -330,16 +330,21 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                 parent_id = str(uuid.uuid4())
                 parent_hash = hashlib.sha256(parent_content.encode()).hexdigest()
                 
+                # 继承原始文档的所有元数据
+                parent_metadata = doc.metadata.copy() if doc.metadata else {}
+                parent_metadata.update({
+                    "id": parent_id,  # 添加段落的唯一ID
+                    "source": doc.source,
+                    "type": "parent",
+                    "index": i + 1,
+                    "original_doc_id": doc.doc_id,
+                    "doc_hash": parent_hash
+                })
+
                 parent_segment = DocumentSegment(
                     id=parent_id,
                     page_content=parent_content,
-                    metadata={
-                        "source": doc.source,
-                        "type": "parent",
-                        "index": i + 1,
-                        "original_doc_id": doc.doc_id,
-                        "doc_hash": parent_hash
-                    }
+                    metadata=parent_metadata
                 )
                 
                 # 5. 创建子文档分词器
@@ -367,17 +372,22 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                         child_id = str(uuid.uuid4())
                         child_hash = hashlib.sha256(child_content.encode()).hexdigest()
                         
+                        # 继承原始文档的所有元数据
+                        child_metadata = doc.metadata.copy() if doc.metadata else {}
+                        child_metadata.update({
+                            "id": child_id,  # 添加段落的唯一ID
+                            "source": doc.source,
+                            "type": "child",
+                            "parent_id": parent_id,
+                            "index": j + 1,
+                            "original_doc_id": doc.doc_id,
+                            "doc_hash": child_hash
+                        })
+
                         child_segment = DocumentSegment(
                             id=child_id,
                             page_content=child_content,
-                            metadata={
-                                "source": doc.source,
-                                "type": "child",
-                                "parent_id": parent_id,
-                                "index": j + 1,
-                                "original_doc_id": doc.doc_id,
-                                "doc_hash": child_hash
-                            }
+                            metadata=child_metadata
                         )
                         parent_segment.children.append(child_segment)
                         all_segments.append(child_segment)
