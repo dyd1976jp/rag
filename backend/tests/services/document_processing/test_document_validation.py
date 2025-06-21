@@ -203,7 +203,8 @@ def main():
     """主函数"""
     try:
         # 1. 加载分割结果
-        split_output_path = "backend/data/split_results.json"
+        from app.core.paths import RESULTS_DIR
+        split_output_path = RESULTS_DIR / "split_results.json"
         split_docs = load_split_results(split_output_path)
         if not split_docs:
             logger.error("无法加载分割结果文件")

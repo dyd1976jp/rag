@@ -75,22 +75,42 @@ EMBEDDING_API_BASE=http://your_embedding_model_url:port
 
 ## 运行系统
 
-### 1. 启动后端
+### 快速启动（推荐）
+
+我们提供了便捷的脚本来启动整个系统：
 
 ```bash
-cd backend
-uvicorn app.main:app --reload
+# 启动系统（后端 + 前端）
+./scripts/start.sh
+
+# 停止系统
+./scripts/stop.sh
 ```
 
-### 2. 启动前端
+启动后，系统将自动在后台运行：
+- **后端API服务**: http://localhost:8000
+- **主应用**: http://localhost:5173
+- **管理后台**: http://localhost:5174
 
-#### 启动主应用
+### 手动启动（单独控制）
+
+如果需要单独控制各个组件：
+
+#### 1. 启动后端
+```bash
+cd backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+#### 2. 启动前端
+
+**启动主应用**
 ```bash
 cd frontend-app
 npm run dev
 ```
 
-#### 启动管理后台
+**启动管理后台**
 ```bash
 cd frontend-admin
 npm run dev
@@ -100,6 +120,14 @@ npm run dev
 
 - **主应用**: http://localhost:5173
 - **管理后台**: http://localhost:5174
+
+### 管理员登录
+
+访问管理后台后，使用以下默认凭据登录：
+- **用户名**: admin
+- **密码**: adminpassword
+
+⚠️ **注意**: 在生产环境中，请修改默认密码以提高安全性。
 
 ## 使用指南
 
@@ -122,14 +150,50 @@ npm run dev
 
 ## 常见问题
 
-1. **上传文档后看不到内容怎么办？**
+### 启动相关问题
+
+1. **端口冲突**
+   - 如果8000或5173端口已被占用，请修改启动脚本中的端口设置
+
+2. **依赖问题**
+   - 确保已安装所有必要的依赖：`pip install -r backend/requirements.txt`
+   - 前端依赖：`cd frontend-app && npm install` 和 `cd frontend-admin && npm install`
+
+3. **权限问题**
+   - 确保脚本有执行权限：`chmod +x scripts/start.sh scripts/stop.sh`
+
+4. **模块导入错误**
+   - 如果出现 `ModuleNotFoundError: No module named 'app'` 错误，启动脚本已通过设置 PYTHONPATH 环境变量解决此问题
+
+5. **进程无法正常终止**
+   - 如果使用停止脚本后仍有进程未终止，可以手动终止：
+   ```bash
+   # 查找并终止uvicorn进程
+   ps aux | grep uvicorn
+   kill -9 <进程ID>
+
+   # 查找并终止vite进程
+   ps aux | grep vite
+   kill -9 <进程ID>
+   ```
+
+### 功能相关问题
+
+6. **上传文档后看不到内容怎么办？**
    - 检查Milvus服务是否正常运行
    - 查看后端日志确认文档处理状态
 
-2. **RAG功能不工作怎么办？**
+7. **RAG功能不工作怎么办？**
    - 确认已上传并成功处理了文档
    - 检查Milvus和嵌入模型服务是否正常
 
-3. **系统响应很慢怎么办？**
+8. **系统响应很慢怎么办？**
    - 检查网络连接
    - 考虑使用本地部署的模型服务降低延迟
+
+## 项目文档
+
+- [项目规划文档](PLANNING.md) - 详细的技术架构和开发规划
+- [任务清单](TASK.md) - 开发进度和任务管理
+- [API文档](docs/api/README.md) - 完整的API接口文档
+- [开发文档](docs/development/README.md) - 开发指南和工作流程

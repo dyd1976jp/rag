@@ -1,5 +1,8 @@
 # RAG Chat API 完整文档
 
+> 📍 **文档位置**: 此文档已移动到 `docs/api/API_DOCUMENTATION.md`
+> 请访问新位置获取最新的API文档。
+
 ## 目录
 
 1. [概述](#概述)
