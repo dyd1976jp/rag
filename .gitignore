@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.pyo
+*.pyd
 .Python
 env/
 build/
@@ -19,6 +21,9 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Virtual Environment
 venv/
@@ -42,15 +47,17 @@ frontend/build/
 *.swp
 *.swo
 .DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
 
 # Database
 *.db
 *.sqlite3
 
 # Logs
-logs/app/**/*.log
-logs/tests/**/*.log
-logs/services/**/*.log
+logs/
+*.log
 !logs/**/.gitkeep
 
 # Test
@@ -85,46 +92,17 @@ data/splitter_cache/
 data/results/*
 data/exports/*
 
-# Data directories
-data/raw/*
-data/processed/*
-data/uploads/*
-data/temp/*
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-!data/uploads/.gitkeep
-!data/temp/.gitkeep
+# Data directories (consolidated)
+/data/*
+!/data/.gitkeep
+!/data/README.md
+!/data/*/
+/data/*/**
+!/data/**/.gitkeep
 
 # Backend resources
 backend/resources/data/*
 !backend/resources/data/.gitkeep
-
-# 数据目录
-/data/*
-!/data/.gitkeep
-!/data/README.md
-
-# 忽略特定数据文件
-/data/uploads/*
-!/data/uploads/.gitkeep
-/data/cache/*
-!/data/cache/.gitkeep
-/data/temp/*
-!/data/temp/.gitkeep
-/data/vectors/*
-!/data/vectors/.gitkeep
-/data/embeddings/*
-!/data/embeddings/.gitkeep
-/data/exports/*
-!/data/exports/.gitkeep
-/data/processed/*
-!/data/processed/.gitkeep
-/data/raw/*
-!/data/raw/.gitkeep
-/data/db/*
-!/data/db/.gitkeep
-/data/splitter_cache/*
-!/data/splitter_cache/.gitkeep
 
 # Document Processing
 backend/tests/services/document_processing/logs/
@@ -136,3 +114,35 @@ backend/tests/services/document_processing/vectors/
 temp/
 *.tmp
 *.temp
+
+# Debug files
+backend/debug/
+**/debug_*.py
+**/test_*.py
+**/test_*.html
+verify_fix.py
+final_verification.py
+
+# API test files  
+test_api_*.py
+test_*_api*.py
+test_frontend_*.py
+test_complete_*.py
+test_comprehensive_*.py
+test_document_*.py
+test_preview_*.py
+test_path_*.py
+
+# Frontend test pages
+**/public/test-*.html
+**/public/debug-*.html
+**/TestCollections.tsx
+**/SimpleTest.tsx
+
+# Reports and analysis
+*_REPORT.md
+*_SUMMARY.md
+*_DIAGNOSIS.md
+*_ANALYSIS*.md
+ROOT_DIRECTORY_REORGANIZATION_REPORT.md
+
