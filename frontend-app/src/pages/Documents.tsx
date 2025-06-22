@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DocumentPreview from '../components/DocumentPreview';
+import CompleteDocumentPreview from '../components/CompleteDocumentPreview';
 import { Document, PreviewSegment } from '../utils/types';
-import { 
-  DocumentCollection, 
-  DocumentCollectionCreate 
+import {
+  DocumentCollection,
+  DocumentCollectionCreate
 } from '../types/documentCollection';
 import * as documentCollectionApi from '../api/documentCollections';
 
@@ -111,44 +112,12 @@ const Documents: React.FC = () => {
       return;
     }
 
-    setIsUploading(true);
+    // 清除之前的错误信息
     setErrorMessage('');
+    setSuccessMessage('');
 
-    try {
-      // 使用文档上传接口的预览模式，而不是纯文本预览接口
-      const formData = new FormData();
-      if (selectedFile) {
-        formData.append('file', selectedFile);
-      }
-      formData.append('parent_chunk_size', chunkSize.toString());
-      formData.append('parent_chunk_overlap', chunkOverlap.toString());
-      formData.append('parent_separator', '\n\n');
-      formData.append('child_chunk_size', Math.floor(chunkSize / 2).toString());
-      formData.append('child_chunk_overlap', Math.floor(chunkOverlap / 4).toString());
-      formData.append('child_separator', '\n');
-      formData.append('preview_only', 'true'); // 设置为预览模式
-
-      const response = await axios.post('/api/v1/rag/documents/upload', formData, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-
-      if (response.data && response.data.success) {
-        setPreviewSegments(response.data.segments || []);
-        setPreviewDocumentId(response.data.doc_id || '');
-        setShowPreview(true);
-        setSuccessMessage('预览成功');
-      } else {
-        setErrorMessage(response.data.message || '预览失败');
-      }
-    } catch (error: any) {
-      console.error('预览失败:', error);
-      setErrorMessage(error.response?.data?.message || '预览失败');
-    } finally {
-      setIsUploading(false);
-    }
+    // 显示完整文档预览组件，让组件自己处理API调用
+    setShowPreview(true);
   };
 
   const handleUpload = async () => {
@@ -592,13 +561,20 @@ const Documents: React.FC = () => {
 
               {showPreview && (
                 <div className="border-t mt-6 pt-6">
-                  <h3 className="text-sm font-medium text-gray-700 mb-4">文档切割预览</h3>
-                  <DocumentPreview
-                    segments={previewSegments}
-                    documentId={previewDocumentId || ''}
+                  <h3 className="text-sm font-medium text-gray-700 mb-4">完整文档切割预览</h3>
+                  <CompleteDocumentPreview
+                    file={selectedFile}
+                    chunkSize={chunkSize}
+                    chunkOverlap={chunkOverlap}
+                    splitByParagraph={splitByParagraph}
+                    splitBySentence={splitBySentence}
                     onClose={() => {
                       setShowPreview(false);
                       setPreviewDocumentId('');
+                    }}
+                    onSegmentClick={(segmentId) => {
+                      console.log('点击段落:', segmentId);
+                      // 可以在这里添加段落点击的处理逻辑
                     }}
                   />
                 </div>

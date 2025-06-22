@@ -189,3 +189,68 @@ export const getDocumentSplitterParams = async (documentId: string): Promise<Spl
     throw new Error(errorMessage);
   }
 };
+
+// 完整文档预览API响应的数据类型
+export interface CompleteDocumentPreviewResponse {
+  success: boolean;
+  message?: string;
+  preview_mode: boolean;
+  doc_id: string;
+  total_segments: number;
+  segments: Array<{
+    id: number;
+    content: string;
+    start: number;
+    end: number;
+    length: number;
+  }>;
+  parentContent: string;
+  childrenContent: string[];
+}
+
+// 完整文档预览API调用函数
+export const getCompleteDocumentPreview = async (
+  file: File,
+  chunkSize: number = 512,
+  chunkOverlap: number = 50,
+  splitByParagraph: boolean = true,
+  splitBySentence: boolean = true
+): Promise<CompleteDocumentPreviewResponse> => {
+  if (!file) {
+    throw new Error('文件不能为空');
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('parent_chunk_size', chunkSize.toString());
+    formData.append('parent_chunk_overlap', chunkOverlap.toString());
+    formData.append('parent_separator', '\n\n');
+    formData.append('child_chunk_size', Math.floor(chunkSize / 2).toString());
+    formData.append('child_chunk_overlap', Math.floor(chunkOverlap / 4).toString());
+    formData.append('child_separator', '\n');
+    formData.append('preview_only', 'true'); // 设置为预览模式
+
+    const response = await request<CompleteDocumentPreviewResponse>({
+      url: '/rag/documents/upload',
+      method: 'post',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+
+    if (!response.data) {
+      throw new Error('获取完整文档预览失败');
+    }
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || '获取完整文档预览失败');
+    }
+
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || '获取完整文档预览失败';
+    throw new Error(errorMessage);
+  }
+};

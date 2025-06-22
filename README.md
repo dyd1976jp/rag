@@ -191,9 +191,39 @@ npm run dev
    - 检查网络连接
    - 考虑使用本地部署的模型服务降低延迟
 
+## 项目结构
+
+```
+RAG-chat/
+├── backend/                    # 后端API服务
+│   ├── app/                   # 应用核心代码
+│   ├── tests/                 # 测试文件
+│   │   ├── integration/       # 集成测试（包含从根目录移动的test_*.py文件）
+│   │   ├── unit/              # 单元测试
+│   │   └── utils/             # 测试工具
+│   ├── debug/                 # 调试文件（包含从根目录移动的debug_*.py文件）
+│   ├── requirements.txt       # 生产依赖
+│   └── requirements-dev.txt   # 开发依赖
+├── frontend-app/              # 主应用前端
+├── frontend-admin/            # 管理后台前端
+├── data/                      # 数据存储目录
+├── docs/                      # 项目文档
+│   ├── api/                   # API文档
+│   ├── development/           # 开发文档
+│   ├── testing/               # 测试文档
+│   └── fixes/                 # 修复记录（包含从根目录移动的*_REPORT.md文件）
+├── scripts/                   # 自动化脚本
+├── logs/                      # 日志文件
+├── temp/                      # 临时文件（包含从根目录移动的测试HTML和JSON文件）
+├── TASK.md                    # 任务清单
+├── PLANNING.md                # 项目规划
+└── README.md                  # 项目说明
+```
+
 ## 项目文档
 
 - [项目规划文档](PLANNING.md) - 详细的技术架构和开发规划
 - [任务清单](TASK.md) - 开发进度和任务管理
 - [API文档](docs/api/README.md) - 完整的API接口文档
 - [开发文档](docs/development/README.md) - 开发指南和工作流程
+- [修复记录](docs/fixes/) - 各种问题修复的详细记录

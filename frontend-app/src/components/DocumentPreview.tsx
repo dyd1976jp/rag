@@ -4,6 +4,17 @@ import {
   getDocumentSplitterParams
 } from '../api/documentCollections';
 
+/**
+ * DocumentPreview 组件 - 段落详情预览组件
+ *
+ * 职责：专门用于显示单个段落的详细信息
+ * - 显示段落列表供用户选择
+ * - 调用段落预览API获取特定段落的父子内容关系
+ * - 展示选中段落的详细信息（父内容 + 子内容列表）
+ *
+ * 注意：此组件不用于完整文档预览，完整文档预览请使用 CompleteDocumentPreview 组件
+ */
+
 interface SplitterParams {
   chunkSize: number;
   chunkOverlap: number;
@@ -220,7 +231,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
         <div className="p-4 border-b">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-medium text-gray-900">
-              文档切割预览（共 {segments.length} 个段落）
+              段落详情预览（共 {segments.length} 个段落）
             </h2>
             <button
               onClick={onClose}
@@ -340,10 +351,11 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
                 <div className="flex items-center justify-center h-[400px] text-gray-500">
                   <div className="text-center">
                     <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 616 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    <p>请选择左侧段落查看切片详情</p>
+                    <p>请选择左侧段落查看详细信息</p>
+                    <p className="text-xs text-gray-400 mt-2">此组件专门用于查看单个段落的父子内容关系</p>
                   </div>
                 </div>
               ) : (
