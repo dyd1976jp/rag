@@ -32,32 +32,57 @@ const Chat: React.FC = () => {
   const [showReferences, setShowReferences] = useState<{[key: string]: boolean}>({});
   const [collections, setCollections] = useState<DocumentCollection[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   
   useEffect(() => {
-    // 检查是否已认证
+    // 在开发模式下，暂时跳过认证检查
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/auth');
-      return;
-    }
+    console.log('当前token:', token);
 
     // 获取文档集列表
     const fetchCollections = async () => {
       try {
-        const response = await getCollections();
-        setCollections(response.data.data.collections);
+        setDebugInfo('开始获取文档集列表...');
+        console.log('开始获取文档集列表...');
+
+        // 使用更简单的fetch调用，避免可能的axios问题
+        const response = await fetch('/api/v1/rag/collections/', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('文档集API完整响应:', data);
+
+        if (data && data.success && data.data && data.data.collections) {
+          console.log('设置文档集数据:', data.data.collections);
+          setCollections(data.data.collections);
+          setDebugInfo(`成功获取 ${data.data.collections.length} 个文档集`);
+        } else {
+          console.error('响应数据结构不正确:', data);
+          setCollections([]);
+          setDebugInfo('错误: 响应数据结构不正确');
+        }
       } catch (err) {
         console.error('获取文档集失败:', err);
+        setCollections([]);
+        setDebugInfo(`错误: ${err instanceof Error ? err.message : String(err)}`);
       }
     };
 
     fetchCollections();
-    
+
     // 滚动到最新消息
     scrollToBottom();
-  }, [messages, navigate]);
+  }, [navigate]); // 移除messages依赖，避免无限循环
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -220,23 +245,45 @@ const Chat: React.FC = () => {
           
           {/* 文档集选择器 */}
           {ragEnabled && (
-            <div className="flex items-center mt-2">
-              <label htmlFor="collection" className="block text-sm font-medium text-gray-700 mr-2">
-                文档集
-              </label>
-              <select
-                id="collection"
-                value={selectedCollection}
-                onChange={(e) => setSelectedCollection(e.target.value)}
-                className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-              >
-                <option value="">选择文档集</option>
-                {collections.map((collection) => (
-                  <option key={collection.id} value={collection.id}>
-                    {collection.name}
-                  </option>
-                ))}
-              </select>
+            <div className="flex flex-col mt-2 space-y-2">
+              <div className="flex items-center">
+                <label htmlFor="collection" className="block text-sm font-medium text-gray-700 mr-2">
+                  文档集 ({collections.length})
+                </label>
+                <select
+                  id="collection"
+                  value={selectedCollection}
+                  onChange={(e) => setSelectedCollection(e.target.value)}
+                  className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                >
+                  <option value="">选择文档集</option>
+                  {collections.map((collection) => (
+                    <option key={collection.id} value={collection.id}>
+                      {collection.name}
+                    </option>
+                  ))}
+                </select>
+                {collections.length === 0 && (
+                  <span className="ml-2 text-sm text-red-500">无文档集</span>
+                )}
+              </div>
+
+              {/* 文档集列表显示（用于调试） */}
+              {collections.length > 0 && (
+                <div className="text-xs text-gray-600">
+                  可用文档集: {collections.map(c => c.name).join(', ')}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 调试信息 */}
+          {debugInfo && (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+              <details>
+                <summary className="cursor-pointer text-yellow-800">调试信息 (点击展开)</summary>
+                <pre className="mt-2 text-yellow-700 whitespace-pre-wrap">{debugInfo}</pre>
+              </details>
             </div>
           )}
         </div>

@@ -5,6 +5,8 @@ import Chat from './pages/Chat';
 import Documents from './pages/Documents';
 import DocumentCollectionDetail from './pages/DocumentCollectionDetail';
 import Models from './pages/Models';
+import TestCollections from './pages/TestCollections';
+import SimpleTest from './pages/SimpleTest';
 
 const App: React.FC = () => {
   return (
@@ -15,6 +17,8 @@ const App: React.FC = () => {
         <Route path="/documents" element={<Documents />} />
         <Route path="/collections/:id" element={<DocumentCollectionDetail />} />
         <Route path="/models" element={<Models />} />
+        <Route path="/test-collections" element={<TestCollections />} />
+        <Route path="/simple-test" element={<SimpleTest />} />
         <Route path="/" element={<Navigate replace to="/auth" />} />
       </Routes>
     </Router>

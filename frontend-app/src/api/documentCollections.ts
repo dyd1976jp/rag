@@ -142,7 +142,7 @@ export const getDocumentSlicePreview = async (documentId: string, segmentId: num
 
   try {
     const response = await request<DocumentSlicePreviewResponse>({
-      url: `/api/v1/rag/collections/documents/${documentId}/slices/${segmentId}/preview`,
+      url: `/rag/collections/${documentId}/preview/${segmentId}`,
       method: 'get'
     });
 
@@ -175,7 +175,7 @@ export const getDocumentSplitterParams = async (documentId: string): Promise<Spl
 
   try {
     const response = await request<SplitterParams>({
-      url: `/api/v1/rag/collections/documents/${documentId}/splitter-params`,
+      url: `/rag/collections/${documentId}/splitter-params`,
       method: 'get'
     });
 

@@ -58,6 +58,22 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
     const loadSplitterParams = async () => {
       try {
         console.log('正在加载文档切割参数:', documentId);
+
+        // 检查是否为预览模式的文档
+        if (documentId.startsWith('preview_')) {
+          console.log('检测到预览模式文档，使用默认切割参数');
+          // 对于预览模式的文档，使用默认参数，避免不必要的API调用
+          setSplitterParams({
+            chunkSize: 512,
+            chunkOverlap: 50,
+            minChunkSize: 50,
+            splitByParagraph: true,
+            paragraphSeparator: "\\n\\n",
+            splitBySentence: true
+          });
+          return;
+        }
+
         const params = await getDocumentSplitterParams(documentId);
         console.log('获取到切割参数:', params);
         setSplitterParams({
@@ -111,7 +127,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
       console.log('开始加载切片预览:', {
         documentId,
         segmentId,
-        retryAttempt
+        retryAttempt,
+        isPreviewMode: documentId.startsWith('preview_')
       });
 
       if (typeof segmentId !== 'number' || segmentId < 0) {
@@ -120,11 +137,17 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
 
       const preview = await getDocumentSlicePreview(documentId, segmentId);
       console.log('获取到切片预览数据:', {
+        success: preview.success,
         hasParentContent: !!preview.parentContent,
         parentContentLength: preview.parentContent?.length || 0,
         childrenCount: preview.childrenContent?.length || 0
       });
-      
+
+      // 检查API响应是否成功
+      if (!preview.success) {
+        throw new Error(preview.message || '获取预览数据失败');
+      }
+
       // 验证返回的数据
       if (!preview.parentContent && !preview.childrenContent?.length) {
         throw new Error('未获取到有效的预览内容');
@@ -141,11 +164,17 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
       });
     } catch (error: any) {
       console.error('加载预览失败:', error);
-      
+
+      // 特殊处理预览模式的错误
+      let errorMessage = error.message || '未知错误';
+      if (documentId.startsWith('preview_') && errorMessage.includes('预览文档不存在或已过期')) {
+        errorMessage = '预览数据已过期，请重新生成文档预览';
+      }
+
       // 如果还有重试次数，则进行重试
-      if (retryAttempt < MAX_RETRY_COUNT) {
+      if (retryAttempt < MAX_RETRY_COUNT && !errorMessage.includes('预览数据已过期')) {
         console.log(`第 ${retryAttempt + 1} 次重试...`);
-        
+
         // 使用指数退避策略进行重试
         const delay = RETRY_DELAY * Math.pow(2, retryAttempt);
         setTimeout(() => {
@@ -155,8 +184,8 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
         setPreviewState(prev => ({
           ...prev,
           isLoading: false,
-          error: `加载失败: ${error.message || '未知错误'}`,
-          retryCount: 0
+          error: `加载失败: ${errorMessage}`,
+          retryCount: retryAttempt
         }));
       }
     }
@@ -276,22 +305,38 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
                 </div>
               ) : previewState.error ? (
                 <div className="flex flex-col items-center justify-center h-[400px]">
-                  <div className="text-red-500 mb-4 text-center">
+                  <div className="text-red-500 mb-4 text-center max-w-md">
                     <svg className="w-12 h-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
-                    <div className="text-base">{previewState.error}</div>
+                    <div className="text-base mb-2">{previewState.error}</div>
+                    {previewState.error.includes('预览数据已过期') && (
+                      <div className="text-sm text-gray-600">
+                        请返回上传页面重新生成文档预览
+                      </div>
+                    )}
                   </div>
-                  {previewState.retryCount < MAX_RETRY_COUNT && selectedSegment !== null && documentId && (
+                  <div className="flex gap-3">
+                    {previewState.retryCount < MAX_RETRY_COUNT &&
+                     selectedSegment !== null &&
+                     documentId &&
+                     !previewState.error.includes('预览数据已过期') && (
+                      <button
+                        onClick={() => handleSegmentClick(selectedSegment)}
+                        className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      >
+                        重新加载
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleSegmentClick(selectedSegment)}
-                      className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      onClick={onClose}
+                      className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
                     >
-                      重新加载
+                      关闭预览
                     </button>
-                  )}
+                  </div>
                 </div>
-              ) : !selectedSegment ? (
+              ) : selectedSegment === null ? (
                 <div className="flex items-center justify-center h-[400px] text-gray-500">
                   <div className="text-center">
                     <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

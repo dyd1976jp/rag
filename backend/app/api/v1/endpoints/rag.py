@@ -282,10 +282,18 @@ async def upload_document(
         # 记录文档信息
         log_document_info(doc_id, file.filename, cleaned_document)
 
-        # 如果是预览模式，返回格式化的预览结果
+        # 如果是预览模式，存储到缓存并返回格式化的预览结果
         if preview_only:
             logger.info(f"预览模式处理完成")
-            return format_preview_response(segments, cleaned_document)
+
+            # 生成预览格式的doc_id
+            preview_doc_id = f"preview_{doc_id}"
+
+            # 将预览数据存储到缓存中，用于后续的子块预览
+            from app.services.preview_cache_service import preview_cache_service
+            preview_cache_service.store_preview_data(preview_doc_id, segments, cleaned_document)
+
+            return format_preview_response(segments, cleaned_document, preview_doc_id)
 
         # 正常处理模式：准备返回的段落数据
         result_segments = []
@@ -878,28 +886,68 @@ async def preview_document_slice(
         logger.info(f"文档ID: {document_id}")
         logger.info(f"切片索引: {slice_index}")
         
-        # 从数据库获取文档
-        document = await rag_service.get_document_by_id(document_id)
-        if not document:
-            logger.error(f"文档不存在: {document_id}")
-            return DocumentSlicePreviewResponse(
-                success=False,
-                message="文档不存在"
-            )
+        # 首先尝试从预览缓存获取文档数据
+        from app.services.preview_cache_service import preview_cache_service
+        preview_data = None
+
+        # 检查是否为预览模式的文档ID
+        if document_id.startswith("preview_"):
+            preview_data = preview_cache_service.get_preview_data(document_id)
+            if not preview_data:
+                logger.error(f"预览文档不存在或已过期: {document_id}")
+                return DocumentSlicePreviewResponse(
+                    success=False,
+                    message="预览文档不存在或已过期，请重新生成预览"
+                )
+
+        # 如果不是预览模式，从数据库获取文档
+        document = None
+        if not preview_data:
+            document = await rag_service.get_document_by_id(document_id)
+            if not document:
+                logger.error(f"文档不存在: {document_id}")
+                return DocumentSlicePreviewResponse(
+                    success=False,
+                    message="文档不存在"
+                )
         
-        logger.info(f"成功获取文档信息:")
-        logger.info(f"- 文件名: {document.metadata.get('file_name', '未知')}")
-        logger.info(f"- 文档内容长度: {len(document.page_content)} 字符")
-        logger.info(f"- 文档内容预览: {document.page_content[:200]}...")
-        
-        # 获取文档的所有切片
-        segments = await rag_service.get_document_segments(document_id)
-        if not segments:
-            logger.error(f"文档没有切片: {document_id}")
-            return DocumentSlicePreviewResponse(
-                success=False,
-                message="文档没有切片"
-            )
+        # 处理预览模式和正常模式的数据获取
+        if preview_data:
+            # 预览模式：从缓存数据获取信息
+            file_name = preview_data["document"]["metadata"].get("file_name", "预览文档")
+            document_content = preview_data["document"]["page_content"]
+            segments_data = preview_data["segments"]
+
+            logger.info(f"成功获取预览文档信息:")
+            logger.info(f"- 文件名: {file_name}")
+            logger.info(f"- 文档内容长度: {len(document_content)} 字符")
+            logger.info(f"- 段落数量: {len(segments_data)}")
+
+            # 转换为Document对象格式以保持兼容性
+            from langchain.schema import Document
+            segments = []
+            for seg_data in segments_data:
+                seg_doc = Document(
+                    page_content=seg_data["page_content"],
+                    metadata=seg_data["metadata"]
+                )
+                segments.append(seg_doc)
+
+        else:
+            # 正常模式：从数据库获取
+            logger.info(f"成功获取文档信息:")
+            logger.info(f"- 文件名: {document.metadata.get('file_name', '未知')}")
+            logger.info(f"- 文档内容长度: {len(document.page_content)} 字符")
+            logger.info(f"- 文档内容预览: {document.page_content[:200]}...")
+
+            # 获取文档的所有切片
+            segments = await rag_service.get_document_segments(document_id)
+            if not segments:
+                logger.error(f"文档没有切片: {document_id}")
+                return DocumentSlicePreviewResponse(
+                    success=False,
+                    message="文档没有切片"
+                )
         
         if slice_index >= len(segments):
             logger.error(f"切片索引无效: {slice_index}, 总切片数: {len(segments)}")
@@ -919,27 +967,49 @@ async def preview_document_slice(
         logger.info(f"- 切片内容预览: {current_segment.page_content[:200]}...")
         logger.info(f"- 切片元数据: {current_segment.metadata}")
         
-        # 获取父级内容（原始文档内容）
-        parent_content = document.page_content
-        logger.info(f"\n=== 父级内容信息 ===")
-        logger.info(f"- 内容长度: {len(parent_content)} 字符")
-        logger.info(f"- 内容预览: {parent_content[:200]}...")
-        
-        # 获取子切片内容（当前切片的子切片）
-        children_content = []
-        if current_segment:
-            # 如果当前切片存在，获取其子切片
-            child_segments = await rag_service.get_segment_children(current_segment.metadata.get("doc_id"))
-            if child_segments:
-                children_content = [segment.page_content for segment in child_segments]
-                logger.info(f"\n=== 子切片信息 ===")
-                logger.info(f"- 子切片数量: {len(children_content)}")
-                for i, content in enumerate(children_content):
-                    logger.info(f"\n子切片 {i + 1}:")
-                    logger.info(f"- 内容长度: {len(content)} 字符")
-                    logger.info(f"- 内容预览: {content[:200]}...")
-            else:
-                logger.info("没有找到子切片")
+        # 获取父级内容和子切片内容
+        if preview_data:
+            # 预览模式：从缓存数据获取
+            parent_content = preview_data["document"]["page_content"]
+
+            # 获取子切片内容：查找当前父切片对应的所有子切片
+            children_content = []
+            current_segment_id = current_segment.metadata.get("id")
+
+            for seg_data in segments_data:
+                seg_type = seg_data["metadata"].get("type")
+                seg_parent_id = seg_data["metadata"].get("parent_id")
+
+                if (seg_type == "child" and seg_parent_id == current_segment_id):
+                    children_content.append(seg_data["page_content"])
+
+            logger.info(f"\n=== 预览模式父级内容信息 ===")
+            logger.info(f"- 内容长度: {len(parent_content)} 字符")
+            logger.info(f"- 内容预览: {parent_content[:200]}...")
+            logger.info(f"- 子切片数量: {len(children_content)}")
+
+        else:
+            # 正常模式：从数据库获取
+            parent_content = document.page_content
+            logger.info(f"\n=== 父级内容信息 ===")
+            logger.info(f"- 内容长度: {len(parent_content)} 字符")
+            logger.info(f"- 内容预览: {parent_content[:200]}...")
+
+            # 获取子切片内容（当前切片的子切片）
+            children_content = []
+            if current_segment:
+                # 如果当前切片存在，获取其子切片
+                child_segments = await rag_service.get_segment_children(current_segment.metadata.get("doc_id"))
+                if child_segments:
+                    children_content = [segment.page_content for segment in child_segments]
+                    logger.info(f"\n=== 子切片信息 ===")
+                    logger.info(f"- 子切片数量: {len(children_content)}")
+                    for i, content in enumerate(children_content):
+                        logger.info(f"\n子切片 {i + 1}:")
+                        logger.info(f"- 内容长度: {len(content)} 字符")
+                        logger.info(f"- 内容预览: {content[:200]}...")
+                else:
+                    logger.info("没有找到子切片")
         
         # 准备返回结果
         result_segments = []

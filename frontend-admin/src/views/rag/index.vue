@@ -424,6 +424,7 @@
             <div class="preview-actions">
               <el-button @click="activeUploadTab = 'settings'">调整参数</el-button>
               <el-button type="primary" @click="refreshPreview">刷新预览</el-button>
+              <el-button type="info" @click="showJsonPreview">查看JSON格式</el-button>
               <el-button type="success" @click="submitUpload">确认并上传</el-button>
             </div>
           </div>
@@ -476,15 +477,32 @@
         <el-empty v-else description="暂无内容" />
       </div>
     </el-dialog>
+
+    <!-- JSON预览对话框 -->
+    <el-dialog
+      v-model="jsonPreviewVisible"
+      title="文档切割结果 - JSON格式"
+      width="80%"
+      destroy-on-close
+    >
+      <div class="json-preview-container">
+        <div class="json-preview-header">
+          <span>JSON格式预览</span>
+          <el-button size="small" @click="copyJsonToClipboard">复制到剪贴板</el-button>
+        </div>
+        <pre class="json-preview-content">{{ formattedJsonPreview }}</pre>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, nextTick, onBeforeUnmount } from 'vue'
+import { ref, onMounted, reactive, nextTick, onBeforeUnmount, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UploadFilled, InfoFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '@/store/user'
 import { getRAGStatus, getDocuments, deleteDocument as apiDeleteDocument, searchDocuments, previewDocumentSplit, getDocumentStatus } from '@/api/rag'
+import request from '@/utils/request'
 
 // 用户存储
 const userStore = useUserStore()
@@ -533,6 +551,10 @@ const isUploading = ref(false)
 // 添加预览相关的状态变量
 const previewDialogVisible = ref(false)
 const documentSegments = ref([])
+
+// 添加JSON预览相关的状态变量
+const jsonPreviewVisible = ref(false)
+const lastPreviewResponse = ref(null)
 
 // 添加文本输入相关的状态变量
 const textContent = ref('')
@@ -878,11 +900,13 @@ const submitUpload = () => {
       
       // 设置上传参数
       const uploadParams = {
-        chunk_size: splitSettings.chunkSize,
-        chunk_overlap: splitSettings.chunkOverlap,
-        split_by_paragraph: splitSettings.splitByParagraph,
-        split_by_sentence: splitSettings.splitBySentence,
-        preview_only: true  // 在预览时总是设置为true
+        parent_chunk_size: splitSettings.chunkSize,
+        parent_chunk_overlap: splitSettings.chunkOverlap,
+        parent_separator: '\n\n',
+        child_chunk_size: Math.floor(splitSettings.chunkSize / 2),
+        child_chunk_overlap: Math.floor(splitSettings.chunkOverlap / 4),
+        child_separator: '\n',
+        preview_only: isPreviewMode  // 根据当前模式决定是否为预览
       };
       console.log('上传参数:', uploadParams);
       uploadRef.value.data = uploadParams;
@@ -911,10 +935,12 @@ const submitUpload = () => {
     
     // 设置上传参数
     const uploadParams = {
-      chunk_size: splitSettings.chunkSize,
-      chunk_overlap: splitSettings.chunkOverlap,
-      split_by_paragraph: splitSettings.splitByParagraph,
-      split_by_sentence: splitSettings.splitBySentence,
+      parent_chunk_size: splitSettings.chunkSize,
+      parent_chunk_overlap: splitSettings.chunkOverlap,
+      parent_separator: '\n\n',
+      child_chunk_size: Math.floor(splitSettings.chunkSize / 2),
+      child_chunk_overlap: Math.floor(splitSettings.chunkOverlap / 4),
+      child_separator: '\n',
       preview_only: isPreviewMode  // 根据当前标签页决定是否为预览模式
     };
     console.log('文本文件上传参数:', uploadParams);
@@ -963,7 +989,16 @@ const handleUploadSuccess = (response) => {
       // 这是预览结果，显示预览内容
       ElMessage.success('文档预览获取成功');
       previewLoading.value = false;
-      
+
+      // 保存完整的响应数据用于JSON预览
+      lastPreviewResponse.value = response;
+
+      // 设置预览内容 - 这是关键修复！
+      if (response.parentContent) {
+        previewContent.value = response.parentContent;
+        console.log(`设置预览内容，长度: ${previewContent.value.length} 字符`);
+      }
+
       // 设置预览内容
       if (response.segments && response.segments.length > 0) {
         console.log(`收到 ${response.segments.length} 个预览段落`);
@@ -972,11 +1007,11 @@ const handleUploadSuccess = (response) => {
           ...segment,
           id: index
         }));
-        
+
         // 切换到预览标签页
         console.log('切换到预览标签页');
         activeUploadTab.value = 'preview';
-        
+
         // 等待DOM更新后滚动到顶部
         nextTick(() => {
           if (previewTextRef.value) {
@@ -1188,12 +1223,12 @@ const showSplitPreview = async () => {
   console.log('===== 调用showSplitPreview方法结束 =====');
 }
 
-// 刷新预览
+// 刷新预览 - 使用upload接口进行预览
 const refreshPreview = async () => {
   console.log('===== 刷新预览开始 =====');
   previewLoading.value = true;
   previewSegments.value = []; // 清空之前的结果
-  
+
   try {
     // 确保有内容可以预览
     if (!previewContent.value || previewContent.value.trim().length === 0) {
@@ -1202,62 +1237,90 @@ const refreshPreview = async () => {
       previewLoading.value = false;
       return;
     }
-    
-    const previewParams = {
-      chunk_size: splitSettings.chunkSize,
-      chunk_overlap: splitSettings.chunkOverlap,
-      split_by_paragraph: splitSettings.splitByParagraph,
-      split_by_sentence: splitSettings.splitBySentence,
-      content_length: previewContent.value.length
-    };
-    
-    console.log('发送预览请求，参数:', previewParams);
-    
-    const response = await previewDocumentSplit({
-      content: previewContent.value,
-      chunk_size: splitSettings.chunkSize,
-      chunk_overlap: splitSettings.chunkOverlap,
-      split_by_paragraph: splitSettings.splitByParagraph,
-      split_by_sentence: splitSettings.splitBySentence
-    });
-    
-    console.log('预览响应:', response);
-    
-    if (response.success) {
-      // 确保每个段落都有唯一ID
-      previewSegments.value = (response.segments || []).map((segment, index) => ({
-        ...segment,
-        id: index // 确保id是索引，而不是从后端返回的可能重复的id
-      }));
-      
-      console.log(`成功获取 ${previewSegments.value.length} 个预览段落`);
-      
-      // 如果没有段落，显示提示
-      if (previewSegments.value.length === 0) {
-        console.log('未生成预览段落，显示警告');
-        ElMessage.warning('根据当前设置，文档无法被切割成段落');
-      } else {
-        ElMessage.success(`成功生成 ${previewSegments.value.length} 个段落`);
+
+    console.log('使用upload接口进行文本预览');
+
+    // 创建一个临时的文本文件用于预览
+    const textBlob = new Blob([previewContent.value], { type: 'text/plain' });
+    const textFile = new File([textBlob], 'preview_text.txt', { type: 'text/plain' });
+
+    // 创建FormData
+    const formData = new FormData();
+    formData.append('file', textFile);
+    formData.append('parent_chunk_size', splitSettings.chunkSize.toString());
+    formData.append('parent_chunk_overlap', splitSettings.chunkOverlap.toString());
+    formData.append('parent_separator', '\n\n');
+    formData.append('child_chunk_size', Math.floor(splitSettings.chunkSize / 2).toString());
+    formData.append('child_chunk_overlap', Math.floor(splitSettings.chunkOverlap / 4).toString());
+    formData.append('child_separator', '\n');
+    formData.append('preview_only', 'true'); // 关键：设置为预览模式
+
+    console.log('发送预览请求到upload接口');
+
+    // 直接调用upload接口
+    const response = await request({
+      url: '/api/v1/rag/documents/upload',
+      method: 'post',
+      data: formData,
+      headers: {
+        'Content-Type': 'multipart/form-data'
       }
-      
-      // 切换到预览标签页
-      console.log('切换到预览标签页');
-      activeUploadTab.value = 'preview';
-      
-      // 等待DOM更新后滚动到顶部
-      nextTick(() => {
-        if (previewTextRef.value) {
-          previewTextRef.value.scrollTop = 0;
-          console.log('已滚动预览内容到顶部');
+    });
+
+    console.log('预览响应:', response.data);
+
+    if (response.data && response.data.success) {
+      // 检查是否为预览模式响应
+      if (response.data.preview_mode) {
+        console.log('收到预览模式响应，处理预览结果');
+
+        // 保存完整的响应数据用于JSON预览
+        lastPreviewResponse.value = response.data;
+
+        // 设置预览内容 - 这是关键修复！
+        if (response.data.parentContent) {
+          previewContent.value = response.data.parentContent;
+          console.log(`设置预览内容，长度: ${previewContent.value.length} 字符`);
         }
-      });
+
+        // 确保每个段落都有唯一ID
+        previewSegments.value = (response.data.segments || []).map((segment, index) => ({
+          ...segment,
+          id: index // 确保id是索引，而不是从后端返回的可能重复的id
+        }));
+
+        console.log(`成功获取 ${previewSegments.value.length} 个预览段落`);
+
+        // 如果没有段落，显示提示
+        if (previewSegments.value.length === 0) {
+          console.log('未生成预览段落，显示警告');
+          ElMessage.warning('根据当前设置，文档无法被切割成段落');
+        } else {
+          ElMessage.success(`成功生成 ${previewSegments.value.length} 个段落`);
+        }
+
+        // 切换到预览标签页
+        console.log('切换到预览标签页');
+        activeUploadTab.value = 'preview';
+
+        // 等待DOM更新后滚动到顶部
+        nextTick(() => {
+          if (previewTextRef.value) {
+            previewTextRef.value.scrollTop = 0;
+            console.log('已滚动预览内容到顶部');
+          }
+        });
+      } else {
+        console.log('响应不是预览模式，可能配置有误');
+        ElMessage.error('预览配置错误，请检查后端设置');
+      }
     } else {
-      console.log('预览请求失败:', response.message);
-      ElMessage.error(`预览失败: ${response.message || '未知错误'}`);
+      console.log('预览请求失败:', response.data?.message);
+      ElMessage.error(`预览失败: ${response.data?.message || '未知错误'}`);
     }
   } catch (error) {
     console.error('预览文档切割失败:', error);
-    
+
     // 提供更详细的错误信息
     let errorMessage = '预览文档切割失败';
     if (error.response) {
@@ -1276,7 +1339,7 @@ const refreshPreview = async () => {
       // 请求配置有误
       errorMessage += `，${error.message}`;
     }
-    
+
     console.log('显示错误消息:', errorMessage);
     ElMessage.error(errorMessage);
   } finally {
@@ -1359,9 +1422,62 @@ const handleTextSubmit = async () => {
 
   // 将文本内容设置为预览内容
   previewContent.value = textContent.value
-  
+
   // 显示预览
   await showSplitPreview()
+}
+
+// 显示JSON预览
+const showJsonPreview = () => {
+  if (!previewSegments.value || previewSegments.value.length === 0) {
+    ElMessage.warning('没有可预览的切割结果')
+    return
+  }
+
+  jsonPreviewVisible.value = true
+}
+
+// 格式化JSON预览内容
+const formattedJsonPreview = computed(() => {
+  if (!previewSegments.value || previewSegments.value.length === 0) {
+    return '暂无数据'
+  }
+
+  const previewData = {
+    success: true,
+    preview_mode: true,
+    total_segments: previewSegments.value.length,
+    segments: previewSegments.value,
+    parentContent: previewContent.value,
+    childrenContent: previewSegments.value
+      .filter(segment => segment.type === 'child')
+      .map(segment => segment.content),
+    statistics: {
+      total_characters: previewContent.value ? previewContent.value.length : 0,
+      average_segment_length: getAverageSegmentLength(),
+      parent_segments: previewSegments.value.filter(s => s.type === 'parent').length,
+      child_segments: previewSegments.value.filter(s => s.type === 'child').length
+    },
+    settings: {
+      parent_chunk_size: splitSettings.chunkSize,
+      parent_chunk_overlap: splitSettings.chunkOverlap,
+      child_chunk_size: Math.floor(splitSettings.chunkSize / 2),
+      child_chunk_overlap: Math.floor(splitSettings.chunkOverlap / 4)
+    }
+  }
+
+  return JSON.stringify(previewData, null, 2)
+})
+
+// 复制JSON到剪贴板
+const copyJsonToClipboard = async () => {
+  try {
+    await navigator.clipboard.writeText(formattedJsonPreview.value)
+    ElMessage.success('JSON内容已复制到剪贴板')
+  } catch (error) {
+    console.error('复制失败:', error)
+    ElMessage.error('复制失败，请手动选择复制')
+  }
 }
 
 // 生命周期钩子
@@ -1694,6 +1810,38 @@ onBeforeUnmount(() => {
   padding: 12px;
   background-color: #f5f7fa;
   border-radius: 4px;
+}
+
+/* JSON预览样式 */
+.json-preview-container {
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+}
+
+.json-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #dcdfe6;
+  border-radius: 4px 4px 0 0;
+}
+
+.json-preview-content {
+  flex: 1;
+  padding: 16px;
+  background-color: #fafafa;
+  border: 1px solid #dcdfe6;
+  border-radius: 0 0 4px 4px;
+  overflow-y: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #2c3e50;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .segments-stats {

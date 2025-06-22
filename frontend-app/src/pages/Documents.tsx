@@ -113,18 +113,22 @@ const Documents: React.FC = () => {
 
     setIsUploading(true);
     setErrorMessage('');
-    
+
     try {
+      // 使用文档上传接口的预览模式，而不是纯文本预览接口
       const formData = new FormData();
       if (selectedFile) {
         formData.append('file', selectedFile);
       }
-      formData.append('chunk_size', chunkSize.toString());
-      formData.append('chunk_overlap', chunkOverlap.toString());
-      formData.append('split_by_paragraph', splitByParagraph.toString());
-      formData.append('split_by_sentence', splitBySentence.toString());
-      
-      const response = await axios.post('/api/v1/rag/documents/preview-split', formData, {
+      formData.append('parent_chunk_size', chunkSize.toString());
+      formData.append('parent_chunk_overlap', chunkOverlap.toString());
+      formData.append('parent_separator', '\n\n');
+      formData.append('child_chunk_size', Math.floor(chunkSize / 2).toString());
+      formData.append('child_chunk_overlap', Math.floor(chunkOverlap / 4).toString());
+      formData.append('child_separator', '\n');
+      formData.append('preview_only', 'true'); // 设置为预览模式
+
+      const response = await axios.post('/api/v1/rag/documents/upload', formData, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'multipart/form-data'
@@ -132,8 +136,8 @@ const Documents: React.FC = () => {
       });
 
       if (response.data && response.data.success) {
-        setPreviewSegments(response.data.segments);
-        setPreviewDocumentId(documentId || '');
+        setPreviewSegments(response.data.segments || []);
+        setPreviewDocumentId(response.data.doc_id || '');
         setShowPreview(true);
         setSuccessMessage('预览成功');
       } else {
@@ -161,10 +165,12 @@ const Documents: React.FC = () => {
     if (selectedFile) {
       formData.append('file', selectedFile);
     }
-    formData.append('chunk_size', chunkSize.toString());
-    formData.append('chunk_overlap', chunkOverlap.toString());
-    formData.append('split_by_paragraph', splitByParagraph.toString());
-    formData.append('split_by_sentence', splitBySentence.toString());
+    formData.append('parent_chunk_size', chunkSize.toString());
+    formData.append('parent_chunk_overlap', chunkOverlap.toString());
+    formData.append('parent_separator', '\n\n');
+    formData.append('child_chunk_size', Math.floor(chunkSize / 2).toString());
+    formData.append('child_chunk_overlap', Math.floor(chunkOverlap / 4).toString());
+    formData.append('child_separator', '\n');
     
     try {
       const response = await axios.post('/api/v1/rag/documents/upload', formData, {

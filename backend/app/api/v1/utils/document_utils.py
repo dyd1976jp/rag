@@ -145,14 +145,15 @@ def create_split_rule(
     )
 
 
-def format_preview_response(segments: List, cleaned_document: Document) -> Dict[str, Any]:
+def format_preview_response(segments: List, cleaned_document: Document, doc_id: str = None) -> Dict[str, Any]:
     """
     格式化预览响应数据
-    
+
     Args:
         segments: 分割后的段落列表
         cleaned_document: 清洗后的文档
-        
+        doc_id: 文档ID，用于预览模式的子块查询
+
     Returns:
         Dict: 格式化的响应数据
     """
@@ -162,38 +163,38 @@ def format_preview_response(segments: List, cleaned_document: Document) -> Dict[
             "message": "文档分割后未产生有效内容"
         }
 
-    # 分离父文档和子文档
-    parent_segments = [s for s in segments if s.metadata.get("type") == "parent"]
-    
+    # 如果没有提供doc_id，生成一个临时ID用于预览
+    if not doc_id:
+        import uuid
+        doc_id = f"preview_{uuid.uuid4()}"
+    # 如果已经提供了doc_id，直接使用（调用方已经确保格式正确）
+
+    # 使用与API方式一致的平铺结构格式化
     result_segments = []
     children_content = []
 
-    for i, parent in enumerate(parent_segments):
-        parent_data = {
+    # 直接处理所有段落，保持与API方式一致的平铺结构
+    for i, segment in enumerate(segments):
+        segment_data = {
             "id": i,
-            "content": parent.page_content,
-            "start": 0,
-            "end": len(parent.page_content),
-            "length": len(parent.page_content),
-            "children": []
+            "content": segment.page_content,
+            "start": segment.metadata.get("chunk_start", 0),
+            "end": segment.metadata.get("chunk_end", len(segment.page_content)),
+            "length": len(segment.page_content),
+            "type": segment.metadata.get("type", "unknown")
         }
+        result_segments.append(segment_data)
 
-        if hasattr(parent, 'children') and parent.children:
-            for j, child in enumerate(parent.children):
-                child_data = {
-                    "id": f"{i}_{j}",
-                    "content": child.page_content,
-                    "start": 0,
-                    "end": len(child.page_content),
-                    "length": len(child.page_content)
-                }
-                parent_data["children"].append(child_data)
-                children_content.append(child.page_content)
+        # 收集子段落内容
+        if segment.metadata.get("type") == "child":
+            children_content.append(segment.page_content)
 
-        result_segments.append(parent_data)
+    logger.info(f"预览结果格式化完成，返回 {len(result_segments)} 个段落")
 
     return {
         "success": True,
+        "preview_mode": True,  # 添加预览模式标识
+        "doc_id": doc_id,  # 添加doc_id到响应中
         "segments": result_segments,
         "total_segments": len(result_segments),
         "parentContent": cleaned_document.page_content,
