@@ -77,7 +77,7 @@ tests/
 - `integration/simple_test.py`
 - `integration/test_simple_api.py`
 - `integration/test_simple_text.py`
-- `integration/verify_fix.py`
+- `backend/debug/verify_fix.py` (已移动)
 - `integration/final_test_verification.py`
 
 **旧目录结构 (5个目录)**:

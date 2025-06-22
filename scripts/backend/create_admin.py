@@ -18,7 +18,7 @@ from datetime import datetime
 from bson import ObjectId
 
 # 添加backend目录到Python路径
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'backend')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'backend')))
 
 from app.db.mongodb import mongodb
 from app.core.security import get_password_hash
@@ -32,7 +32,7 @@ async def create_admin_user(email: str, username: str, password: str):
     """创建管理员用户"""
     try:
         # 连接到MongoDB
-        await mongodb.connect_to_database()
+        await mongodb.connect()
         logger.info(f"已连接到数据库: {settings.MONGODB_DB}")
         
         # 检查用户是否已存在
@@ -85,7 +85,7 @@ async def create_admin_user(email: str, username: str, password: str):
         raise
     finally:
         # 关闭数据库连接
-        await mongodb.close_database_connection()
+        await mongodb.close()
 
 def parse_args():
     """解析命令行参数"""

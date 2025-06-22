@@ -40,9 +40,9 @@
 **合并目标:** `tests/unit/test_llm_discovery.py` + `tests/integration/test_discovery_api.py`
 
 #### 4. 验证和修复测试 (功能重复)
-**需要整理的文件:**
-- `integration/verify_fix.py` - 修复验证
-- `integration/final_test_verification.py` - 最终验证测试
+**已整理的文件:**
+- `backend/debug/verify_fix.py` - 修复验证（已移动到debug目录）
+- `backend/debug/final_verification.py` - 最终验证测试（已移动到debug目录）
 - `integration/test_pdf_detailed.py` - PDF详细测试
 
 **处理方案:** 保留核心功能，移除重复验证
