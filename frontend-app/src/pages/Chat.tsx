@@ -47,7 +47,7 @@ const Chat: React.FC = () => {
     const fetchCollections = async () => {
       try {
         const response = await getCollections();
-        setCollections(response.data);
+        setCollections(response.data.data.collections);
       } catch (err) {
         console.error('获取文档集失败:', err);
       }

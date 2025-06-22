@@ -1,9 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   getDocumentSlicePreview,
-  getDocumentSplitterParams,
-  DocumentSliceError,
-  SplitterParams as APISplitterParams
+  getDocumentSplitterParams
 } from '../api/documentCollections';
 
 interface SplitterParams {

@@ -61,7 +61,7 @@ const Auth: React.FC = () => {
         });
         
         if (response.ok) {
-          const data = await response.json();
+          await response.json();
           // 注册成功后切换到登录状态
           setIsLogin(true);
           setError('');

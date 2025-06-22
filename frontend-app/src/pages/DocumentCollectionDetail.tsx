@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import DocumentPreview from '../components/DocumentPreview';
 import { DocumentCollection } from '../types/documentCollection';
-import { Document, PreviewSegment } from '../utils/types';
+import { Document } from '../utils/types';
 import * as documentCollectionApi from '../api/documentCollections';
 
 const DocumentCollectionDetail: React.FC = () => {

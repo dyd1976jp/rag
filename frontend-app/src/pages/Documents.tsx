@@ -24,7 +24,6 @@ const Documents: React.FC = () => {
   const [chunkOverlap, setChunkOverlap] = useState(50);
   const [splitByParagraph, setSplitByParagraph] = useState(true);
   const [splitBySentence, setSplitBySentence] = useState(true);
-  const [textContent, setTextContent] = useState('');
 
   const [collections, setCollections] = useState<DocumentCollection[]>([]);
   const [isAddingToCollection, setIsAddingToCollection] = useState(false);
@@ -106,7 +105,7 @@ const Documents: React.FC = () => {
     setErrorMessage('');
   };
 
-  const handlePreview = async (e?: React.MouseEvent, documentId?: string) => {
+  const handlePreview = async (_e?: React.MouseEvent, documentId?: string) => {
     if (!selectedFile && !documentId) {
       setErrorMessage('请先选择文件');
       return;
@@ -299,17 +298,17 @@ const Documents: React.FC = () => {
     }
   };
 
-  const handleRemoveFromCollection = async (collectionId: string, documentId: string) => {
-    try {
-      await documentCollectionApi.removeDocumentFromCollection(collectionId, documentId);
-      setSuccessMessage('文档已从文档集中移除');
-      fetchCollections();
-      fetchDocuments();
-    } catch (error) {
-      console.error('从文档集中移除文档失败:', error);
-      setErrorMessage('从文档集中移除文档失败');
-    }
-  };
+  // const handleRemoveFromCollection = async (collectionId: string, documentId: string) => {
+  //   try {
+  //     await documentCollectionApi.removeDocumentFromCollection(collectionId, documentId);
+  //     setSuccessMessage('文档已从文档集中移除');
+  //     fetchCollections();
+  //     fetchDocuments();
+  //   } catch (error) {
+  //     console.error('从文档集中移除文档失败:', error);
+  //     setErrorMessage('从文档集中移除文档失败');
+  //   }
+  // };
 
   const handleDocumentSelect = (docId: string) => {
     setSelectedDocuments(prev => {
