@@ -1,0 +1,1 @@
+scripts/deployment/restart_backend_with_init.sh

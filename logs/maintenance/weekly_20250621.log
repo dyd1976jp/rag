@@ -1,0 +1,72 @@
+[2025-06-21 18:34:25] 🚀 开始每周维护检查...
+[2025-06-21 18:34:25] 🔗 检查符号链接...
+[2025-06-21 18:34:25] 🔗 开始验证符号链接...
+[2025-06-21 18:34:25] ✅ initialize.sh -> scripts/setup/initialize.sh (有效)
+[2025-06-21 18:34:25] ✅ restart_backend.sh -> scripts/deployment/restart_backend.sh (有效)
+[2025-06-21 18:34:25] ✅ restart_backend_with_init.sh -> scripts/deployment/restart_backend_with_init.sh (有效)
+[2025-06-21 18:34:25] ✅ backend/scripts/create_admin.py -> ../../scripts/backend/create_admin.py (有效)
+[2025-06-21 18:34:25] ✅ backend/database/scripts/init_db.py -> ../../../scripts/database/init_db.py (有效)
+[2025-06-21 18:34:25] ✅ backend/database/scripts/init_db.sh -> ../../../scripts/database/init_db.sh (有效)
+[2025-06-21 18:34:25] 🎉 所有符号链接验证通过！
+[2025-06-21 18:34:25] ✅ 符号链接检查通过
+[2025-06-21 18:34:25] 🔐 检查脚本执行权限...
+[2025-06-21 18:34:25] ✅ 脚本权限检查完成
+[2025-06-21 18:34:25] 📝 检查文档同步状态...
+[2025-06-21 18:34:25] ✅ 文档存在: setup/README.md
+[2025-06-21 18:34:25] ✅ 文档存在: deployment/README.md
+[2025-06-21 18:34:25] ✅ 文档存在: testing/README.md
+[2025-06-21 18:34:25] ✅ 文档存在: tools/README.md
+[2025-06-21 18:34:25] ✅ 文档存在: backend/README.md
+[2025-06-21 18:34:25] ✅ 文档存在: database/README.md
+[2025-06-21 18:34:25] 🆕 检查新增脚本分类...
+[2025-06-21 18:34:25] ✅ 所有脚本已正确分类
+[2025-06-21 18:34:25] 📊 生成维护报告...
+
+=== 维护检查报告 ===
+检查时间: 2025-06-21 18:34:25
+检查项目: 符号链接、权限、文档、脚本分类
+日志文件: /Users/tei/go/RAG-chat/logs/maintenance/weekly_20250621.log
+
+建议操作:
+1. 查看完整日志了解详细情况
+2. 修复发现的问题
+3. 更新相关文档
+
+[2025-06-21 18:34:26] 📋 维护报告已生成
+[2025-06-21 18:34:26] 🎉 每周维护检查完成，无严重问题
+[2025-06-21 18:38:44] 🚀 开始每周维护检查...
+[2025-06-21 18:38:44] 🔗 检查符号链接...
+[2025-06-21 18:38:44] 🔗 开始验证符号链接...
+[2025-06-21 18:38:44] ✅ initialize.sh -> scripts/setup/initialize.sh (有效)
+[2025-06-21 18:38:44] ✅ restart_backend.sh -> scripts/deployment/restart_backend.sh (有效)
+[2025-06-21 18:38:44] ✅ restart_backend_with_init.sh -> scripts/deployment/restart_backend_with_init.sh (有效)
+[2025-06-21 18:38:44] ✅ backend/scripts/create_admin.py -> ../../scripts/backend/create_admin.py (有效)
+[2025-06-21 18:38:44] ✅ backend/database/scripts/init_db.py -> ../../../scripts/database/init_db.py (有效)
+[2025-06-21 18:38:44] ✅ backend/database/scripts/init_db.sh -> ../../../scripts/database/init_db.sh (有效)
+[2025-06-21 18:38:44] 🎉 所有符号链接验证通过！
+[2025-06-21 18:38:44] ✅ 符号链接检查通过
+[2025-06-21 18:38:44] 🔐 检查脚本执行权限...
+[2025-06-21 18:38:44] ✅ 脚本权限检查完成
+[2025-06-21 18:38:44] 📝 检查文档同步状态...
+[2025-06-21 18:38:44] ✅ 文档存在: setup/README.md
+[2025-06-21 18:38:44] ✅ 文档存在: deployment/README.md
+[2025-06-21 18:38:44] ✅ 文档存在: testing/README.md
+[2025-06-21 18:38:44] ✅ 文档存在: tools/README.md
+[2025-06-21 18:38:44] ✅ 文档存在: backend/README.md
+[2025-06-21 18:38:44] ✅ 文档存在: database/README.md
+[2025-06-21 18:38:44] 🆕 检查新增脚本分类...
+[2025-06-21 18:38:44] ✅ 所有脚本已正确分类
+[2025-06-21 18:38:44] 📊 生成维护报告...
+
+=== 维护检查报告 ===
+检查时间: 2025-06-21 18:38:44
+检查项目: 符号链接、权限、文档、脚本分类
+日志文件: /Users/tei/go/RAG-chat/logs/maintenance/weekly_20250621.log
+
+建议操作:
+1. 查看完整日志了解详细情况
+2. 修复发现的问题
+3. 更新相关文档
+
+[2025-06-21 18:38:44] 📋 维护报告已生成
+[2025-06-21 18:38:44] 🎉 每周维护检查完成，无严重问题

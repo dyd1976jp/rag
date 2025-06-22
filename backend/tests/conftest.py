@@ -13,7 +13,8 @@ from pathlib import Path
 from typing import Dict, Any, Generator
 
 # 添加项目根目录到Python路径
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+sys.path.insert(0, project_root)
 
 # 导入MongoDB模拟模块
 from tests.mocks.mongodb_mock import mongodb as mock_mongodb
