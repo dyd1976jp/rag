@@ -1,0 +1,61 @@
+{
+  "doc_id": "preview_7d8c8b5f-752c-479f-9421-b690eb5adb89",
+  "created_at": "2025-06-23T22:12:20.219964",
+  "document": {
+    "page_content": "这是一个包含中文字符的测试文档。\n\n它用于测试UTF-8编码问题的修复。\n\n第一段：介绍内容\n这里包含一些中文字符：你好世界！\n\n第二段：详细说明\n测试各种特殊字符：©®™€£¥\n\n第三段：总结内容\n这个文件名包含中文字符，用于测试文件上传时的编码处理。\n\n测试内容足够长，以确保分割功能正常工作。\n这里添加更多内容来测试分割算法。\n每个段落都应该被正确处理。",
+    "metadata": {
+      "doc_id": "7d8c8b5f-752c-479f-9421-b690eb5adb89",
+      "document_id": "7d8c8b5f-752c-479f-9421-b690eb5adb89",
+      "dataset_id": "dev-test-admin-id",
+      "file_name": "初赛训练数据集.txt",
+      "preview": true,
+      "created_by": "dev-test-admin-id",
+      "cleaned_at": "2025-06-23T22:12:20.219740"
+    }
+  },
+  "segments": [
+    {
+      "id": 0,
+      "page_content": "这是一个包含中文字符的测试文档。它用于测试UTF-8编码问题的修复。第一段：介绍内容这里包含一些中文字符：你好世界！第二段：详细说明测试各种特殊字符：©®™€£¥第三段：总结内容这个文件名包含中文字符，用于测试文件上传时的编码处理。测试内容足够长，以确保分割功能正常工作。这里添加更多内容来测试分割算法。每个段落都应该被正确处理。",
+      "metadata": {
+        "doc_id": "7d8c8b5f-752c-479f-9421-b690eb5adb89",
+        "document_id": "7d8c8b5f-752c-479f-9421-b690eb5adb89",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:12:20.219740",
+        "id": "3a6d8609-352c-4e91-9152-851ca3fecc9a",
+        "source": null,
+        "type": "child",
+        "parent_id": "38e9c67e-d68e-4587-96a2-5927ffa5c742",
+        "index": 1,
+        "original_doc_id": "46dd5df8-c737-4681-a199-59e4c7573a08",
+        "doc_hash": "f919a769ec2796ebc07c45bceca085c9f69e587866a56aebc9d7598c511b2c4a"
+      },
+      "type": "child"
+    },
+    {
+      "id": 1,
+      "page_content": "这是一个包含中文字符的测试文档。\n它用于测试UTF-8编码问题的修复。\n第一段：介绍内容\n这里包含一些中文字符：你好世界！\n第二段：详细说明\n测试各种特殊字符：©®™€£¥\n第三段：总结内容\n这个文件名包含中文字符，用于测试文件上传时的编码处理。\n测试内容足够长，以确保分割功能正常工作。\n这里添加更多内容来测试分割算法。\n每个段落都应该被正确处理。",
+      "metadata": {
+        "doc_id": "7d8c8b5f-752c-479f-9421-b690eb5adb89",
+        "document_id": "7d8c8b5f-752c-479f-9421-b690eb5adb89",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:12:20.219740",
+        "id": "38e9c67e-d68e-4587-96a2-5927ffa5c742",
+        "source": null,
+        "type": "parent",
+        "index": 1,
+        "original_doc_id": "46dd5df8-c737-4681-a199-59e4c7573a08",
+        "doc_hash": "6254efe2232c565fde76b659dabc2a2d4d3f619fc6dfbe52f36edfe82c10d0d0"
+      },
+      "type": "parent"
+    }
+  ],
+  "parent_count": 1,
+  "child_count": 1
+}

@@ -299,14 +299,14 @@ class ParentChildDocumentSplitter(DocumentSplitter):
         """分割父子文档"""
         if not rule:
             rule = Rule(mode=SplitMode.PARENT_CHILD)
-            
+
         all_segments = []
-        
+
         for doc in documents:
             # 1. 检查文档内容是否为空
             if not doc.page_content or not doc.page_content.strip():
                 continue
-                
+
             # 2. 创建父文档分词器
             parent_splitter = FixedRecursiveCharacterTextSplitter.from_encoder(
                 chunk_size=rule.max_tokens,
@@ -316,20 +316,22 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                 keep_separator=rule.keep_separator,
                 length_function=lambda x: [len(text) for text in x]
             )
-            
+
             # 3. 分割父文档
             parent_nodes = parent_splitter.split_text(doc.page_content)
-            
+
+            logger.info(f"父文档分割完成，得到 {len(parent_nodes)} 个父块")
+
             # 4. 处理每个父节点
             for i, parent_content in enumerate(parent_nodes):
                 parent_content = parent_content.strip()
                 if not parent_content:
                     continue
-                    
+
                 # 创建父文档
                 parent_id = str(uuid.uuid4())
                 parent_hash = hashlib.sha256(parent_content.encode()).hexdigest()
-                
+
                 # 继承原始文档的所有元数据
                 parent_metadata = doc.metadata.copy() if doc.metadata else {}
                 parent_metadata.update({
@@ -346,53 +348,67 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                     page_content=parent_content,
                     metadata=parent_metadata
                 )
-                
-                # 5. 创建子文档分词器
-                if rule.subchunk_max_tokens > 0:
-                    child_splitter = FixedRecursiveCharacterTextSplitter.from_encoder(
-                        chunk_size=rule.subchunk_max_tokens,
-                        chunk_overlap=rule.subchunk_overlap,
-                        fixed_separator=rule.subchunk_separator,  # 使用传入的子分隔符
-                        separators=[rule.subchunk_separator, " ", ""],  # 递归分隔符
-                        keep_separator=rule.keep_separator,
-                        length_function=lambda x: [len(text) for text in x]
-                    )
-                    
-                    # 6. 分割子文档
-                    child_nodes = child_splitter.split_text(parent_content)
-                    
-                    # 7. 处理每个子节点
-                    parent_segment.children = []
-                    for j, child_content in enumerate(child_nodes):
-                        child_content = child_content.strip()
-                        if not child_content:  # 只检查内容是否为空
-                            continue
-                            
-                        # 创建子文档
-                        child_id = str(uuid.uuid4())
-                        child_hash = hashlib.sha256(child_content.encode()).hexdigest()
-                        
-                        # 继承原始文档的所有元数据
-                        child_metadata = doc.metadata.copy() if doc.metadata else {}
-                        child_metadata.update({
-                            "id": child_id,  # 添加段落的唯一ID
-                            "source": doc.source,
-                            "type": "child",
-                            "parent_id": parent_id,
-                            "index": j + 1,
-                            "original_doc_id": doc.doc_id,
-                            "doc_hash": child_hash
-                        })
 
-                        child_segment = DocumentSegment(
-                            id=child_id,
-                            page_content=child_content,
-                            metadata=child_metadata
-                        )
-                        parent_segment.children.append(child_segment)
-                        all_segments.append(child_segment)
-                
-                # 添加父文档
+                logger.info(f"处理父块 {i+1}: 长度 {len(parent_content)} 字符，内容: {parent_content[:50]}...")
+
+                # 5. 创建子文档分词器并分割子文档
+                # 为换行符分割提供更好的递归分隔符序列
+                if rule.subchunk_separator in ['\\n', '\n']:
+                    # 对于换行符分割，使用更合理的递归分隔符序列
+                    child_separators = ["\n", "。", "！", "？", ". ", "! ", "? ", "，", ", ", " ", ""]
+                else:
+                    child_separators = [rule.subchunk_separator, "。", ". ", " ", ""]
+
+                child_splitter = FixedRecursiveCharacterTextSplitter.from_encoder(
+                    chunk_size=rule.subchunk_max_tokens,
+                    chunk_overlap=rule.subchunk_overlap,
+                    fixed_separator=rule.subchunk_separator,  # 使用传入的子分隔符
+                    separators=child_separators,  # 使用优化的递归分隔符
+                    keep_separator=rule.keep_separator,
+                    length_function=lambda x: [len(text) for text in x]
+                )
+
+                # 6. 分割子文档
+                child_nodes = child_splitter.split_text(parent_content)
+                logger.info(f"父块 {i+1} 分割为 {len(child_nodes)} 个子块")
+
+                # 7. 处理每个子节点
+                parent_segment.children = []
+                for j, child_content in enumerate(child_nodes):
+                    child_content = child_content.strip()
+                    if not child_content:  # 只检查内容是否为空
+                        continue
+
+                    # 创建子文档
+                    child_id = str(uuid.uuid4())
+                    child_hash = hashlib.sha256(child_content.encode()).hexdigest()
+
+                    # 继承原始文档的所有元数据
+                    child_metadata = doc.metadata.copy() if doc.metadata else {}
+                    child_metadata.update({
+                        "id": child_id,  # 添加段落的唯一ID
+                        "source": doc.source,
+                        "type": "child",
+                        "parent_id": parent_id,
+                        "index": j + 1,
+                        "original_doc_id": doc.doc_id,
+                        "doc_hash": child_hash
+                    })
+
+                    child_segment = DocumentSegment(
+                        id=child_id,
+                        page_content=child_content,
+                        metadata=child_metadata
+                    )
+                    parent_segment.children.append(child_segment)
+                    logger.info(f"  子块 {j+1}: 长度 {len(child_content)} 字符，内容: {child_content[:30]}...")
+
+                # 先添加父文档到结果中
                 all_segments.append(parent_segment)
-        
-        return all_segments 
+
+                # 然后添加所有子块
+                for child_segment in parent_segment.children:
+                    all_segments.append(child_segment)
+
+        logger.info(f"文档分割完成，总共生成 {len(all_segments)} 个段落")
+        return all_segments

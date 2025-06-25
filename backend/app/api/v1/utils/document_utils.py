@@ -147,7 +147,7 @@ def create_split_rule(
 
 def format_preview_response(segments: List, cleaned_document: Document, doc_id: str = None) -> Dict[str, Any]:
     """
-    格式化预览响应数据
+    格式化预览响应数据，支持层级结构显示
 
     Args:
         segments: 分割后的段落列表
@@ -155,7 +155,7 @@ def format_preview_response(segments: List, cleaned_document: Document, doc_id: 
         doc_id: 文档ID，用于预览模式的子块查询
 
     Returns:
-        Dict: 格式化的响应数据
+        Dict: 格式化的响应数据，包含层级结构的segments
     """
     if not segments:
         return {
@@ -169,34 +169,59 @@ def format_preview_response(segments: List, cleaned_document: Document, doc_id: 
         doc_id = f"preview_{uuid.uuid4()}"
     # 如果已经提供了doc_id，直接使用（调用方已经确保格式正确）
 
-    # 使用与API方式一致的平铺结构格式化
-    result_segments = []
+    # 构建层级结构
+    parent_segments = {}  # 存储父段落
+    child_segments = {}   # 存储子段落，按parent_id分组
     children_content = []
 
-    # 直接处理所有段落，保持与API方式一致的平铺结构
+    # 第一步：分类父子段落
     for i, segment in enumerate(segments):
+        segment_type = segment.metadata.get("type", "unknown")
+        parent_id = segment.metadata.get("parent_id")
+
         segment_data = {
             "id": i,
             "content": segment.page_content,
             "start": segment.metadata.get("chunk_start", 0),
             "end": segment.metadata.get("chunk_end", len(segment.page_content)),
             "length": len(segment.page_content),
-            "type": segment.metadata.get("type", "unknown")
+            "type": segment_type,
+            "parent_id": parent_id
         }
-        result_segments.append(segment_data)
 
-        # 收集子段落内容
-        if segment.metadata.get("type") == "child":
+        if segment_type == "parent":
+            # 父段落
+            segment_id = segment.metadata.get("id", str(i))
+            parent_segments[segment_id] = segment_data
+            parent_segments[segment_id]["children"] = []  # 初始化子段落数组
+        elif segment_type == "child" and parent_id:
+            # 子段落
+            if parent_id not in child_segments:
+                child_segments[parent_id] = []
+            child_segments[parent_id].append(segment_data)
             children_content.append(segment.page_content)
 
-    logger.info(f"预览结果格式化完成，返回 {len(result_segments)} 个段落")
+    # 第二步：将子段落关联到父段落
+    for parent_id, children in child_segments.items():
+        if parent_id in parent_segments:
+            parent_segments[parent_id]["children"] = children
+
+    # 第三步：构建最终的层级结构数组
+    result_segments = list(parent_segments.values())
+
+    # 按索引排序以保持原有顺序
+    result_segments.sort(key=lambda x: x["id"])
+
+    logger.info(f"预览结果格式化完成，返回 {len(result_segments)} 个父段落，包含 {len(children_content)} 个子段落")
 
     return {
         "success": True,
         "preview_mode": True,  # 添加预览模式标识
         "doc_id": doc_id,  # 添加doc_id到响应中
-        "segments": result_segments,
-        "total_segments": len(result_segments),
+        "segments": result_segments,  # 现在是层级结构
+        "total_segments": len(segments),  # 总段落数（包括父子）
+        "parent_segments": len(result_segments),  # 父段落数
+        "child_segments": len(children_content),  # 子段落数
         "parentContent": cleaned_document.page_content,
         "childrenContent": children_content
     }

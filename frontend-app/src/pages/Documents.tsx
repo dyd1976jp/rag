@@ -26,6 +26,10 @@ const Documents: React.FC = () => {
   const [splitByParagraph, setSplitByParagraph] = useState(true);
   const [splitBySentence, setSplitBySentence] = useState(true);
 
+  // 段落详细预览相关状态
+  const [showSegmentPreview, setShowSegmentPreview] = useState(false);
+  const [previewSegmentId, setPreviewSegmentId] = useState<number | null>(null);
+
   const [collections, setCollections] = useState<DocumentCollection[]>([]);
   const [isAddingToCollection, setIsAddingToCollection] = useState(false);
   const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
@@ -571,10 +575,43 @@ const Documents: React.FC = () => {
                     onClose={() => {
                       setShowPreview(false);
                       setPreviewDocumentId('');
+                      setShowSegmentPreview(false);
+                      setPreviewSegmentId(null);
                     }}
                     onSegmentClick={(segmentId) => {
                       console.log('点击段落:', segmentId);
-                      // 可以在这里添加段落点击的处理逻辑
+                      // 显示段落详细预览
+                      setPreviewSegmentId(segmentId);
+                      setShowSegmentPreview(true);
+                    }}
+                    onPreviewDataReady={(docId, segments) => {
+                      console.log('预览数据准备完成:', { docId, segmentsCount: segments.length });
+                      setPreviewDocumentId(docId);
+                      // 转换segments格式以匹配PreviewSegment接口
+                      const formattedSegments = segments.map(segment => ({
+                        id: segment.id,
+                        content: segment.content,
+                        start: segment.start,
+                        end: segment.end,
+                        length: segment.length
+                      }));
+                      setPreviewSegments(formattedSegments);
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* 段落详细预览 */}
+              {showSegmentPreview && previewDocumentId && previewSegmentId !== null && (
+                <div className="border-t mt-6 pt-6">
+                  <h3 className="text-sm font-medium text-gray-700 mb-4">段落详细预览</h3>
+                  <DocumentPreview
+                    segments={previewSegments}
+                    documentId={previewDocumentId}
+                    initialSegmentId={previewSegmentId}
+                    onClose={() => {
+                      setShowSegmentPreview(false);
+                      setPreviewSegmentId(null);
                     }}
                   />
                 </div>

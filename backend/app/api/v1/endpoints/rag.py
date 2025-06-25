@@ -195,6 +195,22 @@ async def preview_document_split(
             message=f"文本分割预览失败: {str(e)}"
         )
 
+def _decode_separator(separator: str) -> str:
+    """
+    解码分隔符字符串，将转义字符转换为实际字符
+
+    Args:
+        separator: 可能包含转义字符的分隔符字符串
+
+    Returns:
+        str: 解码后的分隔符字符串
+    """
+    # 处理常见的转义字符
+    separator = separator.replace('\\n', '\n')
+    separator = separator.replace('\\t', '\t')
+    separator = separator.replace('\\r', '\r')
+    return separator
+
 @router.post("/documents/upload")
 async def upload_document(
     file: UploadFile = File(...),
@@ -222,8 +238,13 @@ async def upload_document(
     """
     logger.info(f"===== 文档上传请求开始 =====")
     logger.info(f"上传参数: 文件名={file.filename}, parent_chunk_size={parent_chunk_size}, parent_chunk_overlap={parent_chunk_overlap}, "
-               f"parent_separator={parent_separator}, child_chunk_size={child_chunk_size}, child_chunk_overlap={child_chunk_overlap}, child_separator={child_separator}, preview_only={preview_only}")
+               f"parent_separator={repr(parent_separator)}, child_chunk_size={child_chunk_size}, child_chunk_overlap={child_chunk_overlap}, child_separator={repr(child_separator)}, preview_only={preview_only}")
     logger.info(f"preview_only参数类型: {type(preview_only)}, 值: {preview_only}")
+
+    # 解码分隔符参数
+    parent_separator = _decode_separator(parent_separator)
+    child_separator = _decode_separator(child_separator)
+    logger.info(f"解码后分隔符: parent_separator={repr(parent_separator)}, child_separator={repr(child_separator)}")
     
     # 验证文件类型
     is_supported, file_ext = validate_file_type(file.filename)
@@ -404,8 +425,13 @@ async def batch_upload_documents(
             }
         )
     
-    logger.info(f"用户 {current_user.email} 批量上传 {len(files)} 个文件, 参数: parent_chunk_size={parent_chunk_size}, parent_chunk_overlap={parent_chunk_overlap}, parent_separator={parent_separator}, child_chunk_size={child_chunk_size}, child_chunk_overlap={child_chunk_overlap}, child_separator={child_separator}")
-    
+    logger.info(f"用户 {current_user.email} 批量上传 {len(files)} 个文件, 参数: parent_chunk_size={parent_chunk_size}, parent_chunk_overlap={parent_chunk_overlap}, parent_separator={repr(parent_separator)}, child_chunk_size={child_chunk_size}, child_chunk_overlap={child_chunk_overlap}, child_separator={repr(child_separator)}")
+
+    # 解码分隔符参数
+    parent_separator = _decode_separator(parent_separator)
+    child_separator = _decode_separator(child_separator)
+    logger.info(f"解码后分隔符: parent_separator={repr(parent_separator)}, child_separator={repr(child_separator)}")
+
     # 保存文件到临时位置
     upload_dir = "data/uploads"
     os.makedirs(upload_dir, exist_ok=True)

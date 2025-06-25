@@ -88,6 +88,7 @@ async def create_collection(
 async def get_document_preview(
     document_id: str,
     segment_id: int,
+    current_user: User = Depends(get_current_user),
     collection_service: DocumentCollectionService = Depends()
 ) -> DocumentPreviewResponse:
     """获取文档切片预览"""
@@ -220,6 +221,9 @@ async def get_document_preview(
             childrenContent=children_content
         )
 
+    except HTTPException:
+        # 重新抛出HTTP异常，保持原有的状态码
+        raise
     except Exception as e:
         logger.error(f"文档预览处理失败: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

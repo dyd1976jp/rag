@@ -190,6 +190,29 @@ export const getDocumentSplitterParams = async (documentId: string): Promise<Spl
   }
 };
 
+// 子段落数据类型
+export interface ChildSegment {
+  id: number;
+  content: string;
+  start: number;
+  end: number;
+  length: number;
+  type: string;
+  parent_id: string;
+}
+
+// 父段落数据类型（包含子段落）
+export interface ParentSegment {
+  id: number;
+  content: string;
+  start: number;
+  end: number;
+  length: number;
+  type: string;
+  parent_id?: string;
+  children: ChildSegment[];
+}
+
 // 完整文档预览API响应的数据类型
 export interface CompleteDocumentPreviewResponse {
   success: boolean;
@@ -197,25 +220,21 @@ export interface CompleteDocumentPreviewResponse {
   preview_mode: boolean;
   doc_id: string;
   total_segments: number;
-  segments: Array<{
-    id: number;
-    content: string;
-    start: number;
-    end: number;
-    length: number;
-  }>;
+  parent_segments: number;
+  child_segments: number;
+  segments: ParentSegment[];  // 现在是层级结构的父段落数组
   parentContent: string;
   childrenContent: string[];
 }
 
-// 完整文档预览API调用函数
+// 完整文档预览API调用函数（带调试信息）
 export const getCompleteDocumentPreview = async (
   file: File,
   chunkSize: number = 512,
   chunkOverlap: number = 50,
   splitByParagraph: boolean = true,
   splitBySentence: boolean = true
-): Promise<CompleteDocumentPreviewResponse> => {
+): Promise<CompleteDocumentPreviewResponse & { debugInfo?: any }> => {
   if (!file) {
     throw new Error('文件不能为空');
   }
@@ -225,30 +244,55 @@ export const getCompleteDocumentPreview = async (
     formData.append('file', file);
     formData.append('parent_chunk_size', chunkSize.toString());
     formData.append('parent_chunk_overlap', chunkOverlap.toString());
-    formData.append('parent_separator', '\n\n');
+    formData.append('parent_separator', '\\n\\n'); // 修复：使用转义字符串，与调试页面保持一致
     formData.append('child_chunk_size', Math.floor(chunkSize / 2).toString());
     formData.append('child_chunk_overlap', Math.floor(chunkOverlap / 4).toString());
-    formData.append('child_separator', '\n');
+    formData.append('child_separator', '\\n'); // 修复：使用转义字符串，与调试页面保持一致
     formData.append('preview_only', 'true'); // 设置为预览模式
+
+    // 记录请求参数用于调试
+    const requestParams = {
+      file: { name: file.name, size: file.size, type: file.type },
+      parent_chunk_size: chunkSize,
+      parent_chunk_overlap: chunkOverlap,
+      parent_separator: '\\n\\n', // 修复：与实际发送的参数保持一致
+      child_chunk_size: Math.floor(chunkSize / 2),
+      child_chunk_overlap: Math.floor(chunkOverlap / 4),
+      child_separator: '\\n', // 修复：与实际发送的参数保持一致
+      preview_only: 'true'
+    };
+
+    console.log('🔍 [调试] 发送文档预览请求:', requestParams);
 
     const response = await request<CompleteDocumentPreviewResponse>({
       url: '/rag/documents/upload',
       method: 'post',
-      data: formData,
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+      data: formData
+      // 注意：不要手动设置 Content-Type，让浏览器自动处理 FormData 的 Content-Type
+    });
+
+    console.log('🔍 [调试] 收到完整响应:', {
+      status: response.status,
+      headers: response.headers,
+      data: response.data
     });
 
     if (!response.data) {
       throw new Error('获取完整文档预览失败');
     }
 
-    if (!response.data.success) {
-      throw new Error(response.data.message || '获取完整文档预览失败');
-    }
+    // 添加调试信息到响应中
+    const responseWithDebug = {
+      ...response.data,
+      debugInfo: {
+        requestParams,
+        rawResponse: response.data,
+        responseHeaders: response.headers,
+        status: response.status
+      }
+    };
 
-    return response.data;
+    return responseWithDebug;
   } catch (error: any) {
     const errorMessage = error.response?.data?.message || error.message || '获取完整文档预览失败';
     throw new Error(errorMessage);

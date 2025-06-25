@@ -1,0 +1,1127 @@
+{
+  "doc_id": "preview_2e468245-3698-471b-86d7-8afdd42d46a0",
+  "created_at": "2025-06-23T22:22:26.312300",
+  "document": {
+    "page_content": "人工智能技术发展概述\n\n人工智能（Artificial Intelligence，简称AI）是计算机科学的一个重要分支，旨在创建能够模拟人类智能行为的系统和程序。自20世纪50年代诞生以来，人工智能经历了多次发展浪潮，如今已成为推动社会进步的重要技术力量。\n\n机器学习基础\n\n机器学习是人工智能的核心技术之一，它使计算机能够从数据中学习并做出预测或决策，而无需明确编程。机器学习主要分为三种类型：监督学习、无监督学习和强化学习。\n\n监督学习使用标记的训练数据来训练模型，使其能够对新的、未见过的数据进行预测。常见的监督学习算法包括线性回归、决策树、支持向量机和神经网络等。\n\n无监督学习处理没有标签的数据，目标是发现数据中的隐藏模式或结构。聚类分析、主成分分析和关联规则挖掘是无监督学习的典型应用。\n\n强化学习通过与环境的交互来学习最优策略，智能体通过试错的方式不断改进其行为。这种学习方式在游戏AI、机器人控制和自动驾驶等领域有广泛应用。\n\n深度学习革命\n\n深度学习是机器学习的一个子领域，使用多层神经网络来学习数据的复杂表示。深度学习在图像识别、自然语言处理、语音识别等领域取得了突破性进展。\n\n卷积神经网络（CNN）在计算机视觉任务中表现出色，能够自动学习图像的特征表示。循环神经网络（RNN）和长短期记忆网络（LSTM）则在处理序列数据方面具有优势。\n\nTransformer架构的出现彻底改变了自然语言处理领域。基于Transformer的模型如BERT、GPT系列在各种NLP任务中都取得了优异的性能。\n\n自然语言处理进展\n\n自然语言处理（NLP）是人工智能的重要应用领域，致力于让计算机理解和生成人类语言。近年来，大型语言模型的发展推动了NLP技术的快速进步。\n\n词嵌入技术如Word2Vec、GloVe等为文本提供了有效的数值表示方法。预训练语言模型通过在大规模文本语料上进行预训练，学习到了丰富的语言知识。\n\n机器翻译、文本摘要、问答系统、情感分析等NLP应用已经在实际场景中得到广泛部署，为人们的生活和工作带来了便利。\n\n计算机视觉应用\n\n计算机视觉旨在让计算机能够理解和解释视觉信息。深度学习的发展极大地推动了计算机视觉技术的进步。\n\n图像分类、目标检测、语义分割、人脸识别等任务在深度学习模型的帮助下达到了人类水平的性能。生成对抗网络（GAN）在图像生成、风格转换等创意应用中展现出巨大潜力。\n\n自动驾驶、医疗影像分析、安防监控等领域都受益于计算机视觉技术的发展，这些应用正在改变我们的生活方式。\n\n人工智能的挑战与未来\n\n尽管人工智能取得了巨大进展，但仍面临诸多挑战。数据隐私、算法偏见、可解释性、安全性等问题需要得到妥善解决。\n\n人工智能的发展也引发了关于就业、伦理、社会影响等方面的讨论。如何确保AI技术的发展能够造福全人类，是我们需要共同思考的重要问题。\n\n未来，人工智能将继续快速发展，通用人工智能（AGI）的实现可能会带来更加深刻的变革。我们需要在推动技术进步的同时，积极应对各种挑战，确保AI技术的健康发展。\n\n结语\n\n人工智能作为21世纪最重要的技术之一，正在深刻地改变着我们的世界。从机器学习到深度学习，从自然语言处理到计算机视觉，AI技术在各个领域都展现出了巨大的潜力。\n\n随着技术的不断进步和应用场景的不断扩展，人工智能将在未来发挥更加重要的作用。我们应该以开放、包容的态度拥抱这一技术革命，同时也要理性地面对其带来的挑战和风险。\n\n只有通过持续的研究、合理的监管和广泛的国际合作，我们才能确保人工智能技术真正造福人类，推动社会的可持续发展。",
+    "metadata": {
+      "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+      "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+      "dataset_id": "dev-test-admin-id",
+      "file_name": "test-document.txt",
+      "preview": true,
+      "created_by": "dev-test-admin-id",
+      "cleaned_at": "2025-06-23T22:22:26.309123"
+    }
+  },
+  "segments": [
+    {
+      "id": 0,
+      "page_content": "人工智能技术发展概述",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "0eea0e5a-6237-40e5-93fd-845efbb15f42",
+        "source": null,
+        "type": "child",
+        "parent_id": "0d46407a-bdeb-4b28-b345-a1e94d7a884c",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "d58275a792c134fe5f210316d8a5ec837873cd0d7921cef199c7ab8b64f320a5"
+      },
+      "type": "child"
+    },
+    {
+      "id": 1,
+      "page_content": "人工智能技术发展概述",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "0d46407a-bdeb-4b28-b345-a1e94d7a884c",
+        "source": null,
+        "type": "parent",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "d58275a792c134fe5f210316d8a5ec837873cd0d7921cef199c7ab8b64f320a5"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 2,
+      "page_content": "人工智能（Artificial Intelligence，简称AI）是计算机科学的一个重要分支，旨在创建能够模拟人类智能行为的系统和程序。自20世纪50年代诞生以来，人工智能经历了多次发展浪潮，如今已成为推动社会进步的重要技术力量。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "2eb4a0c5-8021-4cc9-b963-d65dd7fc3c32",
+        "source": null,
+        "type": "child",
+        "parent_id": "1ae59431-e1f0-4fe5-af24-3d4683875806",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "3c3a02ff7c1880d4ccd52a29605e2b693db764626ca42421299328896595ac38"
+      },
+      "type": "child"
+    },
+    {
+      "id": 3,
+      "page_content": "人工智能（Artificial Intelligence，简称AI）是计算机科学的一个重要分支，旨在创建能够模拟人类智能行为的系统和程序。自20世纪50年代诞生以来，人工智能经历了多次发展浪潮，如今已成为推动社会进步的重要技术力量。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "1ae59431-e1f0-4fe5-af24-3d4683875806",
+        "source": null,
+        "type": "parent",
+        "index": 2,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "3c3a02ff7c1880d4ccd52a29605e2b693db764626ca42421299328896595ac38"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 4,
+      "page_content": "机器学习基础",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "3a74b3d1-21a8-4946-a1da-433ca7e79100",
+        "source": null,
+        "type": "child",
+        "parent_id": "2c8908d0-2b0b-464e-af9f-9201c0bfd411",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "0ebe1d66f5a67dc0d75e549e0f1f0519651febdefb17e63a0610cf0d0c6f5b32"
+      },
+      "type": "child"
+    },
+    {
+      "id": 5,
+      "page_content": "机器学习基础",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "2c8908d0-2b0b-464e-af9f-9201c0bfd411",
+        "source": null,
+        "type": "parent",
+        "index": 3,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "0ebe1d66f5a67dc0d75e549e0f1f0519651febdefb17e63a0610cf0d0c6f5b32"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 6,
+      "page_content": "机器学习是人工智能的核心技术之一，它使计算机能够从数据中学习并做出预测或决策，而无需明确编程。机器学习主要分为三种类型：监督学习、无监督学习和强化学习。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "bfa814e9-b027-4629-9c8d-71d07d9c282f",
+        "source": null,
+        "type": "child",
+        "parent_id": "be086e3d-63b0-4a60-81a4-8eb8024281e0",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "c84f58df2efd74bcd94b40a1ebc50901acf66a40917eb0c0c0084664213e687e"
+      },
+      "type": "child"
+    },
+    {
+      "id": 7,
+      "page_content": "机器学习是人工智能的核心技术之一，它使计算机能够从数据中学习并做出预测或决策，而无需明确编程。机器学习主要分为三种类型：监督学习、无监督学习和强化学习。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "be086e3d-63b0-4a60-81a4-8eb8024281e0",
+        "source": null,
+        "type": "parent",
+        "index": 4,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "c84f58df2efd74bcd94b40a1ebc50901acf66a40917eb0c0c0084664213e687e"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 8,
+      "page_content": "监督学习使用标记的训练数据来训练模型，使其能够对新的、未见过的数据进行预测。常见的监督学习算法包括线性回归、决策树、支持向量机和神经网络等。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "925ecdd2-4db5-472f-a3bd-7da532aaed7e",
+        "source": null,
+        "type": "child",
+        "parent_id": "2bb76336-7733-4764-8d13-f51fc686aa49",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "43f55bc1098d746ef4cb3f78284b617fe335449a222d064043a510de3f7bc9f4"
+      },
+      "type": "child"
+    },
+    {
+      "id": 9,
+      "page_content": "监督学习使用标记的训练数据来训练模型，使其能够对新的、未见过的数据进行预测。常见的监督学习算法包括线性回归、决策树、支持向量机和神经网络等。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "2bb76336-7733-4764-8d13-f51fc686aa49",
+        "source": null,
+        "type": "parent",
+        "index": 5,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "43f55bc1098d746ef4cb3f78284b617fe335449a222d064043a510de3f7bc9f4"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 10,
+      "page_content": "无监督学习处理没有标签的数据，目标是发现数据中的隐藏模式或结构。聚类分析、主成分分析和关联规则挖掘是无监督学习的典型应用。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "270a028e-9943-4434-b096-151c0c890cbd",
+        "source": null,
+        "type": "child",
+        "parent_id": "ddf0a66b-d4f7-4d86-b3dc-c66f2aff1314",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "0a7269a0c37935840bf20120342462777de358616e2cdb1ddecb83bc5c0df900"
+      },
+      "type": "child"
+    },
+    {
+      "id": 11,
+      "page_content": "无监督学习处理没有标签的数据，目标是发现数据中的隐藏模式或结构。聚类分析、主成分分析和关联规则挖掘是无监督学习的典型应用。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "ddf0a66b-d4f7-4d86-b3dc-c66f2aff1314",
+        "source": null,
+        "type": "parent",
+        "index": 6,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "0a7269a0c37935840bf20120342462777de358616e2cdb1ddecb83bc5c0df900"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 12,
+      "page_content": "强化学习通过与环境的交互来学习最优策略，智能体通过试错的方式不断改进其行为。这种学习方式在游戏AI、机器人控制和自动驾驶等领域有广泛应用。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "bef84da4-234f-44f7-ad48-0762433b7c22",
+        "source": null,
+        "type": "child",
+        "parent_id": "3e26e735-29cf-4ebe-9f7a-a825752d8f0f",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "c176c93334374067f8a4459e2b161990a3efe79cbeeb8ad101c880149bd9e487"
+      },
+      "type": "child"
+    },
+    {
+      "id": 13,
+      "page_content": "强化学习通过与环境的交互来学习最优策略，智能体通过试错的方式不断改进其行为。这种学习方式在游戏AI、机器人控制和自动驾驶等领域有广泛应用。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "3e26e735-29cf-4ebe-9f7a-a825752d8f0f",
+        "source": null,
+        "type": "parent",
+        "index": 7,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "c176c93334374067f8a4459e2b161990a3efe79cbeeb8ad101c880149bd9e487"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 14,
+      "page_content": "深度学习革命",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "2d73bd9f-73a0-4a84-8cd4-d18544b89358",
+        "source": null,
+        "type": "child",
+        "parent_id": "9d5a5069-457e-4d25-9306-44f4b5b56a2d",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "aa565d1b0b7567933fe4fb1396a42d4af916f8c1052195d73cb47f5d44e48045"
+      },
+      "type": "child"
+    },
+    {
+      "id": 15,
+      "page_content": "深度学习革命",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "9d5a5069-457e-4d25-9306-44f4b5b56a2d",
+        "source": null,
+        "type": "parent",
+        "index": 8,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "aa565d1b0b7567933fe4fb1396a42d4af916f8c1052195d73cb47f5d44e48045"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 16,
+      "page_content": "深度学习是机器学习的一个子领域，使用多层神经网络来学习数据的复杂表示。深度学习在图像识别、自然语言处理、语音识别等领域取得了突破性进展。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "8e10f77a-1305-403e-9d53-47c2f3061b89",
+        "source": null,
+        "type": "child",
+        "parent_id": "b01b567a-8540-43da-87d5-8c78a93b34fd",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "1eedd0eb9ca04f82ba6c0ac8b55e7d554a861a2731f1a2c5a60009aa9e7f77bc"
+      },
+      "type": "child"
+    },
+    {
+      "id": 17,
+      "page_content": "深度学习是机器学习的一个子领域，使用多层神经网络来学习数据的复杂表示。深度学习在图像识别、自然语言处理、语音识别等领域取得了突破性进展。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "b01b567a-8540-43da-87d5-8c78a93b34fd",
+        "source": null,
+        "type": "parent",
+        "index": 9,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "1eedd0eb9ca04f82ba6c0ac8b55e7d554a861a2731f1a2c5a60009aa9e7f77bc"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 18,
+      "page_content": "卷积神经网络（CNN）在计算机视觉任务中表现出色，能够自动学习图像的特征表示。循环神经网络（RNN）和长短期记忆网络（LSTM）则在处理序列数据方面具有优势。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "b1cdf48f-fff2-4cbf-ae06-7d7b0e8123fd",
+        "source": null,
+        "type": "child",
+        "parent_id": "8c3eefc7-ed94-4bd8-95c6-9c2fcf435901",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "e2741537723b4646a78c76b2c3a9514b85dbe006b1cb19668725945dec8bf072"
+      },
+      "type": "child"
+    },
+    {
+      "id": 19,
+      "page_content": "卷积神经网络（CNN）在计算机视觉任务中表现出色，能够自动学习图像的特征表示。循环神经网络（RNN）和长短期记忆网络（LSTM）则在处理序列数据方面具有优势。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "8c3eefc7-ed94-4bd8-95c6-9c2fcf435901",
+        "source": null,
+        "type": "parent",
+        "index": 10,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "e2741537723b4646a78c76b2c3a9514b85dbe006b1cb19668725945dec8bf072"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 20,
+      "page_content": "Transformer架构的出现彻底改变了自然语言处理领域。基于Transformer的模型如BERT、GPT系列在各种NLP任务中都取得了优异的性能。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "ff5aace0-6e55-4c8d-8677-bec0f668735b",
+        "source": null,
+        "type": "child",
+        "parent_id": "5bfe4fd0-3e80-42ce-aff2-44ba18048bd5",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "40022d83c61b39809cb3194433424c42bd4e5dcd876f53cff1cbb4b4e81bcb3d"
+      },
+      "type": "child"
+    },
+    {
+      "id": 21,
+      "page_content": "Transformer架构的出现彻底改变了自然语言处理领域。基于Transformer的模型如BERT、GPT系列在各种NLP任务中都取得了优异的性能。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "5bfe4fd0-3e80-42ce-aff2-44ba18048bd5",
+        "source": null,
+        "type": "parent",
+        "index": 11,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "40022d83c61b39809cb3194433424c42bd4e5dcd876f53cff1cbb4b4e81bcb3d"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 22,
+      "page_content": "自然语言处理进展",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "6bcd60da-659f-4969-847e-070f03d02bc5",
+        "source": null,
+        "type": "child",
+        "parent_id": "dbcdd4e8-6334-4193-8959-90afd7df55f0",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "193bff7080f3b32ffe69bb1055585c3ec46e55905852b4a170a7ca9905eafa8b"
+      },
+      "type": "child"
+    },
+    {
+      "id": 23,
+      "page_content": "自然语言处理进展",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "dbcdd4e8-6334-4193-8959-90afd7df55f0",
+        "source": null,
+        "type": "parent",
+        "index": 12,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "193bff7080f3b32ffe69bb1055585c3ec46e55905852b4a170a7ca9905eafa8b"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 24,
+      "page_content": "自然语言处理（NLP）是人工智能的重要应用领域，致力于让计算机理解和生成人类语言。近年来，大型语言模型的发展推动了NLP技术的快速进步。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "95afcbae-115d-44bb-a975-52758f1d5b9a",
+        "source": null,
+        "type": "child",
+        "parent_id": "7550305c-cc93-4d00-919d-5f0204434e76",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "6b5d581e411b1de4cf384d3aff3a8ae55ea37643a1e3a9d4e5340bea9567d655"
+      },
+      "type": "child"
+    },
+    {
+      "id": 25,
+      "page_content": "自然语言处理（NLP）是人工智能的重要应用领域，致力于让计算机理解和生成人类语言。近年来，大型语言模型的发展推动了NLP技术的快速进步。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "7550305c-cc93-4d00-919d-5f0204434e76",
+        "source": null,
+        "type": "parent",
+        "index": 13,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "6b5d581e411b1de4cf384d3aff3a8ae55ea37643a1e3a9d4e5340bea9567d655"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 26,
+      "page_content": "词嵌入技术如Word2Vec、GloVe等为文本提供了有效的数值表示方法。预训练语言模型通过在大规模文本语料上进行预训练，学习到了丰富的语言知识。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "d4a43319-9a94-4670-a35f-04d31d3a2add",
+        "source": null,
+        "type": "child",
+        "parent_id": "9d3c8a24-d038-44fb-90d3-87cd5ae12b9c",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "45a8fba81d95fbd3cf59aaee8a98e70d43b25e7ee8fdaca7b8af7cdb1b80c217"
+      },
+      "type": "child"
+    },
+    {
+      "id": 27,
+      "page_content": "词嵌入技术如Word2Vec、GloVe等为文本提供了有效的数值表示方法。预训练语言模型通过在大规模文本语料上进行预训练，学习到了丰富的语言知识。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "9d3c8a24-d038-44fb-90d3-87cd5ae12b9c",
+        "source": null,
+        "type": "parent",
+        "index": 14,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "45a8fba81d95fbd3cf59aaee8a98e70d43b25e7ee8fdaca7b8af7cdb1b80c217"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 28,
+      "page_content": "机器翻译、文本摘要、问答系统、情感分析等NLP应用已经在实际场景中得到广泛部署，为人们的生活和工作带来了便利。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "829cde56-c5e7-43fc-a6f0-0dfe12f307e6",
+        "source": null,
+        "type": "child",
+        "parent_id": "160c0543-2d11-47c5-a15d-a12eb45c7475",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "335e32af17562773beec26bf949238d2cc7501d65838ec8d87cc6a98ff5e6673"
+      },
+      "type": "child"
+    },
+    {
+      "id": 29,
+      "page_content": "机器翻译、文本摘要、问答系统、情感分析等NLP应用已经在实际场景中得到广泛部署，为人们的生活和工作带来了便利。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "160c0543-2d11-47c5-a15d-a12eb45c7475",
+        "source": null,
+        "type": "parent",
+        "index": 15,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "335e32af17562773beec26bf949238d2cc7501d65838ec8d87cc6a98ff5e6673"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 30,
+      "page_content": "计算机视觉应用",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "feb8a302-1333-4b43-9bbe-97b766cc86fa",
+        "source": null,
+        "type": "child",
+        "parent_id": "e7bc0698-945e-4d5b-b1bc-f6b1969df3aa",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "d3e8dcdaf02fabfc8ff5c7e9b67b3f75b117a69587826a5bfed637631234939e"
+      },
+      "type": "child"
+    },
+    {
+      "id": 31,
+      "page_content": "计算机视觉应用",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "e7bc0698-945e-4d5b-b1bc-f6b1969df3aa",
+        "source": null,
+        "type": "parent",
+        "index": 16,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "d3e8dcdaf02fabfc8ff5c7e9b67b3f75b117a69587826a5bfed637631234939e"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 32,
+      "page_content": "计算机视觉旨在让计算机能够理解和解释视觉信息。深度学习的发展极大地推动了计算机视觉技术的进步。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "f33e918f-0e50-47dd-9ce4-e611c5691d60",
+        "source": null,
+        "type": "child",
+        "parent_id": "b046638e-6226-43c2-b585-4ab2db3135ca",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "7d08bafcbfbb8984e6a45c4cc6bd61dc89583e46294c9c17096226ac1c480556"
+      },
+      "type": "child"
+    },
+    {
+      "id": 33,
+      "page_content": "计算机视觉旨在让计算机能够理解和解释视觉信息。深度学习的发展极大地推动了计算机视觉技术的进步。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "b046638e-6226-43c2-b585-4ab2db3135ca",
+        "source": null,
+        "type": "parent",
+        "index": 17,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "7d08bafcbfbb8984e6a45c4cc6bd61dc89583e46294c9c17096226ac1c480556"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 34,
+      "page_content": "图像分类、目标检测、语义分割、人脸识别等任务在深度学习模型的帮助下达到了人类水平的性能。生成对抗网络（GAN）在图像生成、风格转换等创意应用中展现出巨大潜力。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "632bb459-55d7-4800-a8d4-76ccaa11462b",
+        "source": null,
+        "type": "child",
+        "parent_id": "dcfe7e03-112a-4fc6-ba55-a469630aa7c1",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "bb27e05cfa26284e60de249548c3ec76a6ff064df08fa1eda85ed98a4f182761"
+      },
+      "type": "child"
+    },
+    {
+      "id": 35,
+      "page_content": "图像分类、目标检测、语义分割、人脸识别等任务在深度学习模型的帮助下达到了人类水平的性能。生成对抗网络（GAN）在图像生成、风格转换等创意应用中展现出巨大潜力。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "dcfe7e03-112a-4fc6-ba55-a469630aa7c1",
+        "source": null,
+        "type": "parent",
+        "index": 18,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "bb27e05cfa26284e60de249548c3ec76a6ff064df08fa1eda85ed98a4f182761"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 36,
+      "page_content": "自动驾驶、医疗影像分析、安防监控等领域都受益于计算机视觉技术的发展，这些应用正在改变我们的生活方式。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "244d1043-a5f9-4ad9-af84-74fac9fde46d",
+        "source": null,
+        "type": "child",
+        "parent_id": "5dfa0e40-0bdd-4399-9ab3-f68687edf246",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "14350dafa312a5a259c1b47bd5f76838bbf564ca9a8982772532c3cda2166f25"
+      },
+      "type": "child"
+    },
+    {
+      "id": 37,
+      "page_content": "自动驾驶、医疗影像分析、安防监控等领域都受益于计算机视觉技术的发展，这些应用正在改变我们的生活方式。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "5dfa0e40-0bdd-4399-9ab3-f68687edf246",
+        "source": null,
+        "type": "parent",
+        "index": 19,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "14350dafa312a5a259c1b47bd5f76838bbf564ca9a8982772532c3cda2166f25"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 38,
+      "page_content": "人工智能的挑战与未来",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "f01171f7-327a-4b3d-8ab1-8916c3774450",
+        "source": null,
+        "type": "child",
+        "parent_id": "ffd24b8e-d8ca-457c-aee1-e4e1040e31ba",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "dcc7610ea1f155d525efa98e89bb97d11f4a0b58d42890a5b11c079e17fb7d0c"
+      },
+      "type": "child"
+    },
+    {
+      "id": 39,
+      "page_content": "人工智能的挑战与未来",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "ffd24b8e-d8ca-457c-aee1-e4e1040e31ba",
+        "source": null,
+        "type": "parent",
+        "index": 20,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "dcc7610ea1f155d525efa98e89bb97d11f4a0b58d42890a5b11c079e17fb7d0c"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 40,
+      "page_content": "尽管人工智能取得了巨大进展，但仍面临诸多挑战。数据隐私、算法偏见、可解释性、安全性等问题需要得到妥善解决。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "de53e90c-248c-4ba5-a440-57a76a8a9713",
+        "source": null,
+        "type": "child",
+        "parent_id": "5576d84e-b9c2-4664-ab13-82dd5637ba0c",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "320f75cbb07b05afdea9c2a83ccdd7e04e5ebd2f19ca89dd90209e41342f2581"
+      },
+      "type": "child"
+    },
+    {
+      "id": 41,
+      "page_content": "尽管人工智能取得了巨大进展，但仍面临诸多挑战。数据隐私、算法偏见、可解释性、安全性等问题需要得到妥善解决。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "5576d84e-b9c2-4664-ab13-82dd5637ba0c",
+        "source": null,
+        "type": "parent",
+        "index": 21,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "320f75cbb07b05afdea9c2a83ccdd7e04e5ebd2f19ca89dd90209e41342f2581"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 42,
+      "page_content": "人工智能的发展也引发了关于就业、伦理、社会影响等方面的讨论。如何确保AI技术的发展能够造福全人类，是我们需要共同思考的重要问题。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "9ebe6a98-508a-4f9b-ab88-3d0824e3fab6",
+        "source": null,
+        "type": "child",
+        "parent_id": "154c70b7-18a0-4733-b127-098b1aea6bf5",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "c17fc9591c001ff17171895c51c47858942b746dbcd494341a13fc04b9f53172"
+      },
+      "type": "child"
+    },
+    {
+      "id": 43,
+      "page_content": "人工智能的发展也引发了关于就业、伦理、社会影响等方面的讨论。如何确保AI技术的发展能够造福全人类，是我们需要共同思考的重要问题。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "154c70b7-18a0-4733-b127-098b1aea6bf5",
+        "source": null,
+        "type": "parent",
+        "index": 22,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "c17fc9591c001ff17171895c51c47858942b746dbcd494341a13fc04b9f53172"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 44,
+      "page_content": "未来，人工智能将继续快速发展，通用人工智能（AGI）的实现可能会带来更加深刻的变革。我们需要在推动技术进步的同时，积极应对各种挑战，确保AI技术的健康发展。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "2bb9ae03-22c9-4945-ace9-1792c27384fa",
+        "source": null,
+        "type": "child",
+        "parent_id": "15b2a91e-453d-49d8-97cb-3c379c1379e0",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "598c6400b2f94a05128fa8128c0f002f7ae0375c0521920fff12d1dae208339c"
+      },
+      "type": "child"
+    },
+    {
+      "id": 45,
+      "page_content": "未来，人工智能将继续快速发展，通用人工智能（AGI）的实现可能会带来更加深刻的变革。我们需要在推动技术进步的同时，积极应对各种挑战，确保AI技术的健康发展。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "15b2a91e-453d-49d8-97cb-3c379c1379e0",
+        "source": null,
+        "type": "parent",
+        "index": 23,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "598c6400b2f94a05128fa8128c0f002f7ae0375c0521920fff12d1dae208339c"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 46,
+      "page_content": "结语",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "1c19bb12-91eb-4c7a-aee6-69fef3d4e22b",
+        "source": null,
+        "type": "child",
+        "parent_id": "b6e3a5e6-c0cc-4b62-8ed6-984a696522fa",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "4c79dee34596921a322524e75ff9dced03f3e1e6f4e40da0fa0d45531ad21514"
+      },
+      "type": "child"
+    },
+    {
+      "id": 47,
+      "page_content": "结语",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "b6e3a5e6-c0cc-4b62-8ed6-984a696522fa",
+        "source": null,
+        "type": "parent",
+        "index": 24,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "4c79dee34596921a322524e75ff9dced03f3e1e6f4e40da0fa0d45531ad21514"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 48,
+      "page_content": "人工智能作为21世纪最重要的技术之一，正在深刻地改变着我们的世界。从机器学习到深度学习，从自然语言处理到计算机视觉，AI技术在各个领域都展现出了巨大的潜力。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "230af808-4ea6-4c0f-8f6f-033ba6294a35",
+        "source": null,
+        "type": "child",
+        "parent_id": "bda092a6-c119-4221-9035-c888bebe39b0",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "5da12887a0431c8992c4aad20a249f8e3a2232b4523372cfd03a92a51e99be45"
+      },
+      "type": "child"
+    },
+    {
+      "id": 49,
+      "page_content": "人工智能作为21世纪最重要的技术之一，正在深刻地改变着我们的世界。从机器学习到深度学习，从自然语言处理到计算机视觉，AI技术在各个领域都展现出了巨大的潜力。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "bda092a6-c119-4221-9035-c888bebe39b0",
+        "source": null,
+        "type": "parent",
+        "index": 25,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "5da12887a0431c8992c4aad20a249f8e3a2232b4523372cfd03a92a51e99be45"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 50,
+      "page_content": "随着技术的不断进步和应用场景的不断扩展，人工智能将在未来发挥更加重要的作用。我们应该以开放、包容的态度拥抱这一技术革命，同时也要理性地面对其带来的挑战和风险。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "88c59456-7f91-460d-beac-81a14c715a17",
+        "source": null,
+        "type": "child",
+        "parent_id": "0b7a6a81-4d2d-4b95-8ad0-91b4d0321960",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "827342ba12bdee8f67c18548bfd9b6c6ce6fd1fcd45f80d32d1f6387a43e3a57"
+      },
+      "type": "child"
+    },
+    {
+      "id": 51,
+      "page_content": "随着技术的不断进步和应用场景的不断扩展，人工智能将在未来发挥更加重要的作用。我们应该以开放、包容的态度拥抱这一技术革命，同时也要理性地面对其带来的挑战和风险。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "0b7a6a81-4d2d-4b95-8ad0-91b4d0321960",
+        "source": null,
+        "type": "parent",
+        "index": 26,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "827342ba12bdee8f67c18548bfd9b6c6ce6fd1fcd45f80d32d1f6387a43e3a57"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 52,
+      "page_content": "只有通过持续的研究、合理的监管和广泛的国际合作，我们才能确保人工智能技术真正造福人类，推动社会的可持续发展。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "b2c62bf0-98dc-476d-b358-f6e313d26b6b",
+        "source": null,
+        "type": "child",
+        "parent_id": "758dbc93-ecdf-43c4-830e-ff1ea356adfc",
+        "index": 1,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "eab31d1f46570b64fab6914884040a78620ce21553882f8782e87425f1470bc7"
+      },
+      "type": "child"
+    },
+    {
+      "id": 53,
+      "page_content": "只有通过持续的研究、合理的监管和广泛的国际合作，我们才能确保人工智能技术真正造福人类，推动社会的可持续发展。",
+      "metadata": {
+        "doc_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "document_id": "2e468245-3698-471b-86d7-8afdd42d46a0",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test-document.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T22:22:26.309123",
+        "id": "758dbc93-ecdf-43c4-830e-ff1ea356adfc",
+        "source": null,
+        "type": "parent",
+        "index": 27,
+        "original_doc_id": "ae019f88-4099-46a5-a1c1-b2035650d1a9",
+        "doc_hash": "eab31d1f46570b64fab6914884040a78620ce21553882f8782e87425f1470bc7"
+      },
+      "type": "parent"
+    }
+  ],
+  "parent_count": 27,
+  "child_count": 27
+}

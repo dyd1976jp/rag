@@ -36,6 +36,7 @@ interface DocumentPreviewProps {
   segments: PreviewSegment[];
   documentId: string;
   onClose: () => void;
+  initialSegmentId?: number; // 初始选中的段落ID
 }
 
 interface PreviewData {
@@ -53,7 +54,7 @@ interface PreviewState {
 const MAX_RETRY_COUNT = 3;
 const RETRY_DELAY = 1000; // 1秒
 
-const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId, onClose }) => {
+const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId, onClose, initialSegmentId }) => {
   // 添加切割参数状态
   const [splitterParams, setSplitterParams] = useState<SplitterParams>({
     chunkSize: 512,
@@ -156,12 +157,15 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
 
       // 检查API响应是否成功
       if (!preview.success) {
-        throw new Error(preview.message || '获取预览数据失败');
+        const errorMsg = preview.message || '获取预览数据失败';
+        console.error('API响应失败:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       // 验证返回的数据
       if (!preview.parentContent && !preview.childrenContent?.length) {
-        throw new Error('未获取到有效的预览内容');
+        console.warn('API返回的预览数据为空:', preview);
+        throw new Error('未获取到有效的预览内容，可能是预览数据已过期或段落不存在');
       }
 
       setPreviewState({
@@ -218,12 +222,18 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
     await loadPreviewWithRetry(segmentId);
   }, [selectedSegment, previewState.error, loadPreviewWithRetry]);
 
-  // 组件挂载时验证props
+  // 组件挂载时验证props并自动选择初始段落
   useEffect(() => {
     if (!documentId) {
       console.error('DocumentPreview: documentId不能为空');
     }
-  }, [documentId]);
+
+    // 如果指定了初始段落ID，自动选择并加载
+    if (initialSegmentId !== undefined && initialSegmentId !== null) {
+      console.log('自动选择初始段落:', initialSegmentId);
+      handleSegmentClick(initialSegmentId);
+    }
+  }, [documentId, initialSegmentId, handleSegmentClick]);
 
   return (
     <div className="mt-6">

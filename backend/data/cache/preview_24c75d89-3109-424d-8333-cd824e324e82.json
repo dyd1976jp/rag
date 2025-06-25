@@ -1,0 +1,266 @@
+{
+  "doc_id": "preview_24c75d89-3109-424d-8333-cd824e324e82",
+  "created_at": "2025-06-25T19:53:26.012520",
+  "document": {
+    "page_content": "这是一个包含中文字符的测试文档。\n\n它用于测试UTF-8编码问题的修复。\n\n第一段：介绍内容\n这里包含一些中文字符：你好世界！\n\n第二段：详细说明\n测试各种特殊字符：©®™€£¥\n\n第三段：总结内容\n这个文件名包含中文字符，用于测试文件上传时的编码处理。\n\n测试内容足够长，以确保分割功能正常工作。\n这里添加更多内容来测试分割算法。\n每个段落都应该被正确处理。",
+    "metadata": {
+      "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+      "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+      "dataset_id": "dev-test-admin-id",
+      "file_name": "初赛训练数据集.txt",
+      "preview": true,
+      "created_by": "dev-test-admin-id",
+      "cleaned_at": "2025-06-25T19:53:26.010006"
+    }
+  },
+  "segments": [
+    {
+      "id": 0,
+      "page_content": "这是一个包含中文字符的测试文档。",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "59c92185-06a8-4501-b939-6cb20430c16c",
+        "source": null,
+        "type": "child",
+        "parent_id": "21553dab-ac6b-4efb-99b2-96ab5f6bff1f",
+        "index": 1,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "594237a860045e0afa40308516d601a54b11c490c70f226dfd799d97bd1c19d8"
+      },
+      "type": "child"
+    },
+    {
+      "id": 1,
+      "page_content": "这是一个包含中文字符的测试文档。",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "21553dab-ac6b-4efb-99b2-96ab5f6bff1f",
+        "source": null,
+        "type": "parent",
+        "index": 1,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "594237a860045e0afa40308516d601a54b11c490c70f226dfd799d97bd1c19d8"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 2,
+      "page_content": "它用于测试UTF-8编码问题的修复。",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "30975860-d2e4-4d21-a2b7-274bde134fc4",
+        "source": null,
+        "type": "child",
+        "parent_id": "01ed8020-3495-42d3-8f9a-89ef862c7e6f",
+        "index": 1,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "0b67f57b251efbece80b052a588057b1f7d6c40d7cc484d5a508cb69809bb59c"
+      },
+      "type": "child"
+    },
+    {
+      "id": 3,
+      "page_content": "它用于测试UTF-8编码问题的修复。",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "01ed8020-3495-42d3-8f9a-89ef862c7e6f",
+        "source": null,
+        "type": "parent",
+        "index": 2,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "0b67f57b251efbece80b052a588057b1f7d6c40d7cc484d5a508cb69809bb59c"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 4,
+      "page_content": "第一段：介绍内容\n这里包含一些中文字符：你好世界！",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "1f3023b6-cedb-4a99-bb9f-cbb448e82291",
+        "source": null,
+        "type": "child",
+        "parent_id": "b51549dd-d67f-49af-8a6d-31d9adc34cb4",
+        "index": 1,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "ce603c458c8b86e869bb020455c0664249a7fa75661f14f688d6e6772780790c"
+      },
+      "type": "child"
+    },
+    {
+      "id": 5,
+      "page_content": "第一段：介绍内容\n这里包含一些中文字符：你好世界！",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "b51549dd-d67f-49af-8a6d-31d9adc34cb4",
+        "source": null,
+        "type": "parent",
+        "index": 3,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "ce603c458c8b86e869bb020455c0664249a7fa75661f14f688d6e6772780790c"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 6,
+      "page_content": "第二段：详细说明\n测试各种特殊字符：©®™€£¥",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "c05a6804-5005-40e4-8d29-dea1f20918ae",
+        "source": null,
+        "type": "child",
+        "parent_id": "35f44aab-06ce-46fd-91cc-9499292d80ef",
+        "index": 1,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "cd2e66f62c2240a977c21aa03bb5713043002c7ccd4f71ae33b6740374249cd4"
+      },
+      "type": "child"
+    },
+    {
+      "id": 7,
+      "page_content": "第二段：详细说明\n测试各种特殊字符：©®™€£¥",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "35f44aab-06ce-46fd-91cc-9499292d80ef",
+        "source": null,
+        "type": "parent",
+        "index": 4,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "cd2e66f62c2240a977c21aa03bb5713043002c7ccd4f71ae33b6740374249cd4"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 8,
+      "page_content": "第三段：总结内容\n这个文件名包含中文字符，用于测试文件上传时的编码处理。",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "699edb8b-a161-4feb-a34c-2084a0ed0cb6",
+        "source": null,
+        "type": "child",
+        "parent_id": "25fb2c22-d820-492e-bb15-7a8e4a974131",
+        "index": 1,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "36fd26c078353d37918cd9392fca5b07bd5c7c2b8bac1ca84806f80775810257"
+      },
+      "type": "child"
+    },
+    {
+      "id": 9,
+      "page_content": "第三段：总结内容\n这个文件名包含中文字符，用于测试文件上传时的编码处理。",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "25fb2c22-d820-492e-bb15-7a8e4a974131",
+        "source": null,
+        "type": "parent",
+        "index": 5,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "36fd26c078353d37918cd9392fca5b07bd5c7c2b8bac1ca84806f80775810257"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 10,
+      "page_content": "测试内容足够长，以确保分割功能正常工作。\n这里添加更多内容来测试分割算法。\n每个段落都应该被正确处理。",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "728fd070-d32f-474e-a6db-034def0ab6c3",
+        "source": null,
+        "type": "child",
+        "parent_id": "11dfad72-6641-4d3a-b5c4-1ec98eaa560b",
+        "index": 1,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "69458661917af15f224431bff41288c0c50a14535d73c9e84c14f8ca02474e13"
+      },
+      "type": "child"
+    },
+    {
+      "id": 11,
+      "page_content": "测试内容足够长，以确保分割功能正常工作。\n这里添加更多内容来测试分割算法。\n每个段落都应该被正确处理。",
+      "metadata": {
+        "doc_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "document_id": "24c75d89-3109-424d-8333-cd824e324e82",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "初赛训练数据集.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-25T19:53:26.010006",
+        "id": "11dfad72-6641-4d3a-b5c4-1ec98eaa560b",
+        "source": null,
+        "type": "parent",
+        "index": 6,
+        "original_doc_id": "0589cff8-d5e1-428c-bc6d-2dda4b4971e1",
+        "doc_hash": "69458661917af15f224431bff41288c0c50a14535d73c9e84c14f8ca02474e13"
+      },
+      "type": "parent"
+    }
+  ],
+  "parent_count": 6,
+  "child_count": 6
+}

@@ -1,0 +1,519 @@
+{
+  "doc_id": "preview_f7cd0b6b-f799-4091-b444-f1f68e40473f",
+  "created_at": "2025-06-23T21:40:21.641035",
+  "document": {
+    "page_content": "第一章 系统概述\n本系统是一个基于RAG技术的智能问答系统。\n\n第二章 技术架构\n系统采用微服务架构设计。\n前端使用React框架开发。\n后端使用FastAPI框架。\n\n第三章 核心功能\n1. 文档上传和处理\n2. 智能分块切割\n3. 向量化存储\n4. 语义检索\n5. 智能问答\n\n第四章 部署指南\n系统支持Docker容器化部署。\n可以在云端或本地环境运行。\n\n第五章 使用说明\n用户可以通过Web界面上传文档。\n系统会自动进行文档分析和处理。\n用户可以通过自然语言提问。",
+    "metadata": {
+      "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+      "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+      "dataset_id": "dev-test-admin-id",
+      "file_name": "test_document_final.txt",
+      "preview": true,
+      "created_by": "dev-test-admin-id",
+      "cleaned_at": "2025-06-23T21:40:21.640013"
+    }
+  },
+  "segments": [
+    {
+      "id": 0,
+      "page_content": "第一章 系统概述",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "e5fad257-b010-4ea1-b110-6e872987b7f2",
+        "source": null,
+        "type": "child",
+        "parent_id": "4f2be3e9-3f80-4baa-a901-466b3d3a7ba6",
+        "index": 1,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "be6511c354adad0c311015928b8f27f1cee62e8e9103fd2a15e81a4ef2a222f4"
+      },
+      "type": "child"
+    },
+    {
+      "id": 1,
+      "page_content": "本系统是一个基于RAG技术的智能问答系统。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "3dc8bb50-7e63-4b10-8430-a464d9adc518",
+        "source": null,
+        "type": "child",
+        "parent_id": "4f2be3e9-3f80-4baa-a901-466b3d3a7ba6",
+        "index": 2,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "9a86406ee9cb2fb2bc0e0ac21d9d5e71ff78fda3cec51425779f5d64b17b203a"
+      },
+      "type": "child"
+    },
+    {
+      "id": 2,
+      "page_content": "第一章 系统概述\n本系统是一个基于RAG技术的智能问答系统。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "4f2be3e9-3f80-4baa-a901-466b3d3a7ba6",
+        "source": null,
+        "type": "parent",
+        "index": 1,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "f8d5eab402945d92ecf2523e7678d5a160f44f735e6a2a287a6a35990fbce9c9"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 3,
+      "page_content": "第二章 技术架构",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "9ddd8abc-9d70-46a9-bc41-49c16296d711",
+        "source": null,
+        "type": "child",
+        "parent_id": "081c4776-8d13-4af3-8b5c-56e4f3d86fc4",
+        "index": 1,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "988a05b78ad39e4b76f4eacc3a041a491f210b9db430f145501f55610d8b91eb"
+      },
+      "type": "child"
+    },
+    {
+      "id": 4,
+      "page_content": "系统采用微服务架构设计。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "429526fe-ff43-4b74-a82b-9f5c30070f65",
+        "source": null,
+        "type": "child",
+        "parent_id": "081c4776-8d13-4af3-8b5c-56e4f3d86fc4",
+        "index": 2,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "658146d6cd3540342d07b04537baca3e196b77aedf287a9d8ffea67c2238bbed"
+      },
+      "type": "child"
+    },
+    {
+      "id": 5,
+      "page_content": "前端使用React框架开发。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "b0902c8f-f6f2-4311-b148-0285dea729a3",
+        "source": null,
+        "type": "child",
+        "parent_id": "081c4776-8d13-4af3-8b5c-56e4f3d86fc4",
+        "index": 3,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "6bad9bdd6cb83151b65c32eb04011dd964107f83c7a40eb9f7393d9481c629d0"
+      },
+      "type": "child"
+    },
+    {
+      "id": 6,
+      "page_content": "后端使用FastAPI框架。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "b67a7513-0b42-4dd5-abc1-3d82611c31a1",
+        "source": null,
+        "type": "child",
+        "parent_id": "081c4776-8d13-4af3-8b5c-56e4f3d86fc4",
+        "index": 4,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "91bfeaed16dc71974564ee1d0ffa4a385435facf5622f43ac6927f306a42980d"
+      },
+      "type": "child"
+    },
+    {
+      "id": 7,
+      "page_content": "第二章 技术架构\n系统采用微服务架构设计。\n前端使用React框架开发。\n后端使用FastAPI框架。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "081c4776-8d13-4af3-8b5c-56e4f3d86fc4",
+        "source": null,
+        "type": "parent",
+        "index": 2,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "95824a6f224bc3609e7c9417c3b9aca384068539743e4fcd74bff83c4939f915"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 8,
+      "page_content": "第三章 核心功能",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "c95b114a-738d-42aa-ac32-38f2795aa847",
+        "source": null,
+        "type": "child",
+        "parent_id": "7155f295-144f-4727-9496-5983e6780209",
+        "index": 1,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "59b6ee88f4f5a368bd5aaed2b5ac1845ed6a777e99fe57279cf0ca920fcd8f49"
+      },
+      "type": "child"
+    },
+    {
+      "id": 9,
+      "page_content": "1. 文档上传和处理",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "c7e3a315-1737-43e2-9e9d-9dd571b66f3a",
+        "source": null,
+        "type": "child",
+        "parent_id": "7155f295-144f-4727-9496-5983e6780209",
+        "index": 2,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "d38226921412e58247de887d26fc90631b9cce881fdfefd7600d3e8f76ed8a59"
+      },
+      "type": "child"
+    },
+    {
+      "id": 10,
+      "page_content": "2. 智能分块切割",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "ab816684-3707-4129-8d8e-12c99f4c0097",
+        "source": null,
+        "type": "child",
+        "parent_id": "7155f295-144f-4727-9496-5983e6780209",
+        "index": 3,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "c749e93b327f08120a978cb44318c3176a92db847cadb31128cdaa9895b393a2"
+      },
+      "type": "child"
+    },
+    {
+      "id": 11,
+      "page_content": "3. 向量化存储",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "1a04816e-ba45-4372-932b-e5e8c22dc9f1",
+        "source": null,
+        "type": "child",
+        "parent_id": "7155f295-144f-4727-9496-5983e6780209",
+        "index": 4,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "8133c14d10d16049854b0ecc8a22ee76b6ea816f8514fa56a423dc97e6c6bb31"
+      },
+      "type": "child"
+    },
+    {
+      "id": 12,
+      "page_content": "4. 语义检索",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "3c97102e-4e04-4238-90ee-6915856c9f0a",
+        "source": null,
+        "type": "child",
+        "parent_id": "7155f295-144f-4727-9496-5983e6780209",
+        "index": 5,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "b7de73b7d7eb32a91fc29ffaae4d63fcd6af5bd95956fc063054c021cbab23d1"
+      },
+      "type": "child"
+    },
+    {
+      "id": 13,
+      "page_content": "5. 智能问答",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "9f07aaa3-1942-401f-8665-dc9195f20fed",
+        "source": null,
+        "type": "child",
+        "parent_id": "7155f295-144f-4727-9496-5983e6780209",
+        "index": 6,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "c78e01e053c5138754330f158ef4aa1a3831d847b65697e216d5170f8169ed41"
+      },
+      "type": "child"
+    },
+    {
+      "id": 14,
+      "page_content": "第三章 核心功能\n1. 文档上传和处理\n2. 智能分块切割\n3. 向量化存储\n4. 语义检索\n5. 智能问答",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "7155f295-144f-4727-9496-5983e6780209",
+        "source": null,
+        "type": "parent",
+        "index": 3,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "afa6fe2ee4347205c70213b82237f1132b9a35dc4d314a49413c7a130f36e7a8"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 15,
+      "page_content": "第四章 部署指南",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "bcabf0f7-720b-49b1-9bdc-91542ff7453a",
+        "source": null,
+        "type": "child",
+        "parent_id": "4e8a085e-918d-4700-b9e3-74e221139804",
+        "index": 1,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "b0d5f19b10b659c9e0810cd4c35181c41e1e934856ebc7776f199665ec5f8d3a"
+      },
+      "type": "child"
+    },
+    {
+      "id": 16,
+      "page_content": "系统支持Docker容器化部署。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "840a82b8-9675-4036-97f7-a842002a8d0e",
+        "source": null,
+        "type": "child",
+        "parent_id": "4e8a085e-918d-4700-b9e3-74e221139804",
+        "index": 2,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "2677ddb317b4b76ddcf1486df35683532a2831bb37b1635916201d13fe7f9581"
+      },
+      "type": "child"
+    },
+    {
+      "id": 17,
+      "page_content": "可以在云端或本地环境运行。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "a3a63ba0-7c4f-41fb-b30c-249aa2a62dc6",
+        "source": null,
+        "type": "child",
+        "parent_id": "4e8a085e-918d-4700-b9e3-74e221139804",
+        "index": 3,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "f6df9dd5b6f6c1f0cae9f4d23e89af27849c08f1d22bc6c9d50e7219a968cb7b"
+      },
+      "type": "child"
+    },
+    {
+      "id": 18,
+      "page_content": "第四章 部署指南\n系统支持Docker容器化部署。\n可以在云端或本地环境运行。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "4e8a085e-918d-4700-b9e3-74e221139804",
+        "source": null,
+        "type": "parent",
+        "index": 4,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "f64853e92d9526882e5bd9e2fc7691b2297fc694d548f690a7fb127e2225083e"
+      },
+      "type": "parent"
+    },
+    {
+      "id": 19,
+      "page_content": "第五章 使用说明",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "b4922429-0e4c-42bc-a207-36e821ff8a9a",
+        "source": null,
+        "type": "child",
+        "parent_id": "b0cd2293-023e-4d68-8e0e-5184b1a1bd50",
+        "index": 1,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "2036045f4b50a3c053d34c4d75be84c08e615039b21b50064f2168a47ca731ba"
+      },
+      "type": "child"
+    },
+    {
+      "id": 20,
+      "page_content": "用户可以通过Web界面上传文档。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "9839cfb3-7f9e-4826-b2c8-9499b9b14a3f",
+        "source": null,
+        "type": "child",
+        "parent_id": "b0cd2293-023e-4d68-8e0e-5184b1a1bd50",
+        "index": 2,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "30b6b208c9236c07f0774b67bedf5b022e3b88f048164b649e225131f6270ea6"
+      },
+      "type": "child"
+    },
+    {
+      "id": 21,
+      "page_content": "系统会自动进行文档分析和处理。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "f714686e-63e3-4b95-9fa4-e2b9532030ad",
+        "source": null,
+        "type": "child",
+        "parent_id": "b0cd2293-023e-4d68-8e0e-5184b1a1bd50",
+        "index": 3,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "d429f7d53e269c0e6e133b5780608dca8ec8ae96e221c43d7bbb88b481329389"
+      },
+      "type": "child"
+    },
+    {
+      "id": 22,
+      "page_content": "用户可以通过自然语言提问。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "02fd8ffa-649b-4d82-a3fa-bc002f13adc7",
+        "source": null,
+        "type": "child",
+        "parent_id": "b0cd2293-023e-4d68-8e0e-5184b1a1bd50",
+        "index": 4,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "617a042b6f1c96e5284d9c86d9accc28e568cf747f74bf66551d1c8ec524a822"
+      },
+      "type": "child"
+    },
+    {
+      "id": 23,
+      "page_content": "第五章 使用说明\n用户可以通过Web界面上传文档。\n系统会自动进行文档分析和处理。\n用户可以通过自然语言提问。",
+      "metadata": {
+        "doc_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "document_id": "f7cd0b6b-f799-4091-b444-f1f68e40473f",
+        "dataset_id": "dev-test-admin-id",
+        "file_name": "test_document_final.txt",
+        "preview": true,
+        "created_by": "dev-test-admin-id",
+        "cleaned_at": "2025-06-23T21:40:21.640013",
+        "id": "b0cd2293-023e-4d68-8e0e-5184b1a1bd50",
+        "source": null,
+        "type": "parent",
+        "index": 5,
+        "original_doc_id": "3b87ce72-1090-4634-87f9-ff9456424586",
+        "doc_hash": "460892241410c5fe9475ec544528ba363d0b2c15f4706325cfa2e7d50f72b759"
+      },
+      "type": "parent"
+    }
+  ],
+  "parent_count": 5,
+  "child_count": 19
+}
