@@ -170,32 +170,46 @@ def format_preview_response(segments: List, cleaned_document: Document, doc_id: 
     # 如果已经提供了doc_id，直接使用（调用方已经确保格式正确）
 
     # 构建层级结构
-    parent_segments = {}  # 存储父段落
+    parent_segments = {}  # 存储父段落，按parent_id索引
     child_segments = {}   # 存储子段落，按parent_id分组
     children_content = []
+    parent_counter = 0    # 父块连续ID计数器
 
-    # 第一步：分类父子段落
+    # 第一步：分类父子段落，为父块分配连续ID
     for i, segment in enumerate(segments):
         segment_type = segment.metadata.get("type", "unknown")
         parent_id = segment.metadata.get("parent_id")
 
-        segment_data = {
-            "id": i,
-            "content": segment.page_content,
-            "start": segment.metadata.get("chunk_start", 0),
-            "end": segment.metadata.get("chunk_end", len(segment.page_content)),
-            "length": len(segment.page_content),
-            "type": segment_type,
-            "parent_id": parent_id
-        }
-
         if segment_type == "parent":
-            # 父段落
+            # 父段落：分配连续的ID
+            segment_data = {
+                "id": parent_counter,  # 使用连续的父块ID
+                "content": segment.page_content,
+                "start": segment.metadata.get("chunk_start", 0),
+                "end": segment.metadata.get("chunk_end", len(segment.page_content)),
+                "length": len(segment.page_content),
+                "type": segment_type,
+                "parent_id": parent_id
+            }
+
+            # 使用原始的segment ID作为key来关联子块
             segment_id = segment.metadata.get("id", str(i))
             parent_segments[segment_id] = segment_data
             parent_segments[segment_id]["children"] = []  # 初始化子段落数组
+            parent_counter += 1  # 递增父块计数器
+
         elif segment_type == "child" and parent_id:
-            # 子段落
+            # 子段落：保持原始索引作为ID
+            segment_data = {
+                "id": i,  # 子块保持原始索引
+                "content": segment.page_content,
+                "start": segment.metadata.get("chunk_start", 0),
+                "end": segment.metadata.get("chunk_end", len(segment.page_content)),
+                "length": len(segment.page_content),
+                "type": segment_type,
+                "parent_id": parent_id
+            }
+
             if parent_id not in child_segments:
                 child_segments[parent_id] = []
             child_segments[parent_id].append(segment_data)
@@ -209,7 +223,7 @@ def format_preview_response(segments: List, cleaned_document: Document, doc_id: 
     # 第三步：构建最终的层级结构数组
     result_segments = list(parent_segments.values())
 
-    # 按索引排序以保持原有顺序
+    # 按父块ID排序以保持正确顺序
     result_segments.sort(key=lambda x: x["id"])
 
     logger.info(f"预览结果格式化完成，返回 {len(result_segments)} 个父段落，包含 {len(children_content)} 个子段落")

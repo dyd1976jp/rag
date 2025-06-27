@@ -217,6 +217,9 @@ class DocumentSplitter:
             
             # 2. 处理每个段落
             for i, para in enumerate(paragraphs):
+                # 父块编号（独立序列）
+                parent_number = i + 1
+
                 # 创建父文档
                 parent_id = str(uuid.uuid4())
                 parent_segment = DocumentSegment(
@@ -225,12 +228,13 @@ class DocumentSplitter:
                     metadata={
                         "source": doc.source,
                         "type": "parent",
-                        "index": i + 1,
+                        "index": i + 1,  # 保持原有的index字段兼容性
+                        "parent_number": parent_number,  # 新增父块编号
                         "original_doc_id": doc.doc_id
                     }
                 )
                 all_segments.append(parent_segment)
-                
+
                 # 如果段落较长，创建子文档
                 if len(para) > rule.subchunk_max_tokens:
                     child_splitter = FixedRecursiveCharacterTextSplitter(
@@ -239,9 +243,14 @@ class DocumentSplitter:
                         fixed_separator=rule.subchunk_separator
                     )
                     child_texts = child_splitter.split_text(para)
-                    
+
                     for j, child_text in enumerate(child_texts):
                         child_id = str(uuid.uuid4())
+
+                        # 子块编号（每个父块内部重新开始）
+                        child_number = j + 1
+                        combined_number = f"{parent_number}-{child_number}"
+
                         child_segment = DocumentSegment(
                             id=child_id,
                             page_content=child_text,
@@ -249,7 +258,10 @@ class DocumentSplitter:
                                 "source": doc.source,
                                 "type": "child",
                                 "parent_id": parent_id,
-                                "index": j + 1,
+                                "index": j + 1,  # 保持原有的index字段兼容性
+                                "parent_number": parent_number,  # 父块编号
+                                "child_number": child_number,  # 子块编号（父块内独立）
+                                "combined_number": combined_number,  # 组合编号格式
                                 "original_doc_id": doc.doc_id
                             }
                         )
@@ -274,7 +286,10 @@ class QADocumentSplitter(DocumentSplitter):
             for i, (question, answer) in enumerate(matches):
                 if not question.strip() or not answer.strip():
                     continue
-                    
+
+                # QA编号（独立序列）
+                qa_number = i + 1
+
                 # 创建问答片段
                 qa_id = str(uuid.uuid4())
                 qa_segment = DocumentSegment(
@@ -283,7 +298,8 @@ class QADocumentSplitter(DocumentSplitter):
                     metadata={
                         "source": doc.source,
                         "type": "qa",
-                        "index": i + 1,
+                        "index": i + 1,  # 保持原有的index字段兼容性
+                        "qa_number": qa_number,  # 新增QA编号
                         "question": question.strip(),
                         "answer": answer.strip(),
                         "original_doc_id": doc.doc_id
@@ -332,13 +348,17 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                 parent_id = str(uuid.uuid4())
                 parent_hash = hashlib.sha256(parent_content.encode()).hexdigest()
 
+                # 父块编号（独立序列）
+                parent_number = i + 1
+
                 # 继承原始文档的所有元数据
                 parent_metadata = doc.metadata.copy() if doc.metadata else {}
                 parent_metadata.update({
                     "id": parent_id,  # 添加段落的唯一ID
                     "source": doc.source,
                     "type": "parent",
-                    "index": i + 1,
+                    "index": i + 1,  # 保持原有的index字段兼容性
+                    "parent_number": parent_number,  # 新增父块编号
                     "original_doc_id": doc.doc_id,
                     "doc_hash": parent_hash
                 })
@@ -383,6 +403,10 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                     child_id = str(uuid.uuid4())
                     child_hash = hashlib.sha256(child_content.encode()).hexdigest()
 
+                    # 子块编号（每个父块内部重新开始）
+                    child_number = j + 1
+                    combined_number = f"{parent_number}-{child_number}"
+
                     # 继承原始文档的所有元数据
                     child_metadata = doc.metadata.copy() if doc.metadata else {}
                     child_metadata.update({
@@ -390,7 +414,10 @@ class ParentChildDocumentSplitter(DocumentSplitter):
                         "source": doc.source,
                         "type": "child",
                         "parent_id": parent_id,
-                        "index": j + 1,
+                        "index": j + 1,  # 保持原有的index字段兼容性
+                        "parent_number": parent_number,  # 父块编号
+                        "child_number": child_number,  # 子块编号（父块内独立）
+                        "combined_number": combined_number,  # 组合编号格式
                         "original_doc_id": doc.doc_id,
                         "doc_hash": child_hash
                     })

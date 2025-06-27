@@ -81,6 +81,7 @@ data/db/milvus/*
 # Uploaded files
 data/uploads/*
 uploads/
+cache/
 
 # Embeddings
 data/embeddings/*

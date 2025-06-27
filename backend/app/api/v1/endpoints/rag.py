@@ -153,26 +153,64 @@ async def preview_document_split(
                 message="文档分割后未产生有效内容"
             )
 
-        # 格式化预览结果
-        result_segments = []
+        # 格式化预览结果 - 使用与format_preview_response相同的逻辑确保父块ID连续
+        parent_segments = {}  # 存储父段落，按parent_id索引
+        child_segments = {}   # 存储子段落，按parent_id分组
         children_content = []
+        parent_counter = 0    # 父块连续ID计数器
 
+        # 第一步：分类父子段落，为父块分配连续ID
         for i, segment in enumerate(segments):
-            segment_data = {
-                "id": i,
-                "content": segment.page_content,
-                "start": segment.metadata.get("chunk_start", 0),
-                "end": segment.metadata.get("chunk_end", len(segment.page_content)),
-                "length": len(segment.page_content),
-                "type": segment.metadata.get("type", "unknown")
-            }
-            result_segments.append(segment_data)
+            segment_type = segment.metadata.get("type", "unknown")
+            parent_id = segment.metadata.get("parent_id")
 
-            # 收集子段落内容
-            if segment.metadata.get("type") == "child":
+            if segment_type == "parent":
+                # 父段落：分配连续的ID
+                segment_data = {
+                    "id": parent_counter,  # 使用连续的父块ID
+                    "content": segment.page_content,
+                    "start": segment.metadata.get("chunk_start", 0),
+                    "end": segment.metadata.get("chunk_end", len(segment.page_content)),
+                    "length": len(segment.page_content),
+                    "type": segment_type
+                }
+
+                # 使用原始的segment ID作为key来关联子块
+                segment_id = segment.metadata.get("id", str(i))
+                parent_segments[segment_id] = segment_data
+                parent_counter += 1  # 递增父块计数器
+
+            elif segment_type == "child" and parent_id:
+                # 子段落：保持原始索引作为ID
+                segment_data = {
+                    "id": i,  # 子块保持原始索引
+                    "content": segment.page_content,
+                    "start": segment.metadata.get("chunk_start", 0),
+                    "end": segment.metadata.get("chunk_end", len(segment.page_content)),
+                    "length": len(segment.page_content),
+                    "type": segment_type
+                }
+
+                if parent_id not in child_segments:
+                    child_segments[parent_id] = []
+                child_segments[parent_id].append(segment_data)
                 children_content.append(segment.page_content)
 
-        logger.info(f"预览结果格式化完成，返回 {len(result_segments)} 个段落")
+        # 第二步：构建最终的段落列表（平铺结构，用于兼容现有API）
+        result_segments = []
+
+        # 添加所有父段落
+        for segment in parent_segments.values():
+            result_segments.append(segment)
+
+        # 添加所有子段落
+        for child_list in child_segments.values():
+            result_segments.extend(child_list)
+
+        # 按ID排序以保持正确顺序
+        result_segments.sort(key=lambda x: x["id"])
+
+        logger.info(f"预览结果格式化完成，返回 {len(result_segments)} 个段落（父块ID已修复为连续）")
 
         return DocumentSplitPreviewResponse(
             success=True,
