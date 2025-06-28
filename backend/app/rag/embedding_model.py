@@ -16,15 +16,16 @@ class EmbeddingModel:
     """嵌入模型类"""
 
     def __init__(self):
-        # 从环境变量获取配置
-        self.model_name = os.environ.get("EMBEDDING_MODEL", "text-embedding-nomic-embed-text-v1.5")
-        self.api_base = os.environ.get("EMBEDDING_API_BASE", "http://192.168.1.30:1234")
+        # 从主配置模块获取配置
+        from ..core.config import settings
+        self.model_name = settings.RAG_EMBEDDING_MODEL
+        self.api_base = settings.RAG_EMBEDDING_API_BASE
 
         # 批处理配置
-        self.max_batch_size = int(os.environ.get("EMBEDDING_MAX_BATCH_SIZE", "20"))
-        self.max_retries = int(os.environ.get("EMBEDDING_MAX_RETRIES", "3"))
-        self.retry_delay = int(os.environ.get("EMBEDDING_RETRY_DELAY", "5"))
-        self.timeout = int(os.environ.get("EMBEDDING_TIMEOUT", "30"))
+        self.max_batch_size = settings.BATCH_SIZE
+        self.max_retries = settings.RAG_MAX_RETRIES
+        self.retry_delay = settings.RAG_RETRY_INTERVAL
+        self.timeout = 30  # 嵌入模型超时时间
 
         # 缓存向量维度，避免重复API调用
         self._dimension_cache = None

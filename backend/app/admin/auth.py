@@ -8,12 +8,12 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from pydantic import BaseModel
-import os
+from ..core.config import settings
 
-# 配置
-SECRET_KEY = os.environ.get("ADMIN_SECRET_KEY", "dev_secret_key_for_rag_admin_please_change_in_production")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ADMIN_TOKEN_EXPIRE_MINUTES", "30"))
+# 配置 - 从主配置模块获取
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = 30  # 管理员token过期时间较短
 
 # 密码处理
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

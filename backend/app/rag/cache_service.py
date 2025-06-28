@@ -1,9 +1,9 @@
 import json
 import redis
 import logging
-import os
 from typing import Optional, List, Dict, Any
 from .document_processor import Document
+from ..core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -11,18 +11,18 @@ class CacheService:
     def __init__(self, config: Dict[str, Any] = None):
         """
         初始化缓存服务
-        
+
         Args:
-            config: 缓存配置，如果未提供则从环境变量读取
+            config: 缓存配置，如果未提供则从主配置模块读取
         """
-        # 从环境变量读取配置，如果未提供
+        # 从主配置模块读取配置，如果未提供
         if config is None:
             config = {
-                "host": os.environ.get("REDIS_HOST", "localhost"),
-                "port": int(os.environ.get("REDIS_PORT", "6379")),
-                "db": int(os.environ.get("REDIS_DB", "0")),
-                "key_prefix": os.environ.get("REDIS_KEY_PREFIX", "rag_cache:"),
-                "expiry": int(os.environ.get("REDIS_CACHE_EXPIRY", "3600"))
+                "host": "localhost",  # Redis主机
+                "port": 6379,        # Redis端口
+                "db": 0,             # Redis数据库
+                "key_prefix": "rag_cache:",  # 缓存键前缀
+                "expiry": settings.CACHE_TTL  # 从主配置获取缓存过期时间
             }
         
         try:

@@ -2,6 +2,33 @@
 
 本指南提供了在RAG系统中编写和维护测试的详细说明和最佳实践。
 
+**最后更新**: 2024-06-27 - 测试代码重构完成
+
+## 📋 最新更新 (2024-06-27)
+
+### 测试代码重构完成
+我们已完成了大规模的测试代码重构，主要改进包括：
+
+1. **统一测试结构**：
+   - 创建了新的重构测试文件：`test_document_splitter.py`、`test_document_processing.py`、`test_llm_discovery.py`、`test_discovery_api.py`
+   - 扩展了现有的`test_api_endpoints.py`文件
+
+2. **Shell脚本转换**：
+   - 将`curl_test.sh`和`final_test.sh`转换为Python Pytest测试
+   - 提高了测试的可维护性和集成度
+
+3. **命名规范统一**：
+   - 所有新测试使用`test_should_<expected_behavior>_when_<condition>()`格式
+   - 提供清晰的测试意图表达
+
+4. **文档完善**：
+   - 所有测试类和函数都包含详细的Docstrings
+   - 添加了测试场景说明和预期结果
+
+5. **重复文件清理**：
+   - 删除了已合并的重复测试文件
+   - 备份位置：`temp/deleted-tests-backup/`
+
 ## 🎯 测试原则
 
 ### 1. 测试金字塔

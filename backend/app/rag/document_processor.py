@@ -21,11 +21,12 @@ class DocumentProcessor:
     """
     def __init__(self):
         """初始化文档处理器"""
-        self.max_content_length = int(os.environ.get("DOC_MAX_CONTENT_LENGTH", "100000"))
-        self.min_content_length = int(os.environ.get("DOC_MIN_CONTENT_LENGTH", "10"))
-        self.cache_enabled = os.environ.get("DOC_CACHE_ENABLED", "true").lower() == "true"
+        from ..core.config import settings
+        self.max_content_length = 100000  # 最大内容长度
+        self.min_content_length = 10      # 最小内容长度
+        self.cache_enabled = True         # 启用缓存
         self.use_cache = self.cache_enabled  # 为了向后兼容，添加这个别名
-        self.cache_dir = os.environ.get("DOC_CACHE_DIR", "data/cache")
+        self.cache_dir = "data/cache"     # 缓存目录
 
         # 初始化停用词和标点符号翻译器
         self.stop_words = set(['的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这'])

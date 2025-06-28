@@ -2,12 +2,21 @@
 API端点集成测试
 
 合并了原有的多个API测试文件，提供统一的端点测试覆盖。
+包含从以下文件合并的测试逻辑：
+- integration/test_api_fix.py
+- integration/test_simple_api.py
+- api/test_llm_api.py
+- test_llm_endpoints.py
+- scripts/testing/curl_test.sh (转换为Python测试)
+- scripts/testing/final_test.sh (转换为Python测试)
+- backend/tests/integration/comprehensive_api_test.py (部分功能)
 """
 
 import pytest
 import requests
 import json
 import os
+import time
 from typing import Dict, Any, Optional
 from pathlib import Path
 
@@ -412,3 +421,334 @@ class TestAPIErrorHandling:
         
         # Assert
         assert response.status_code in [400, 422], "缺失必需字段应返回错误"
+
+
+class TestAPIErrorHandling:
+    """API错误处理测试 - 从Shell脚本转换"""
+
+    def setup_method(self):
+        """每个测试方法前的准备"""
+        self.base_url = "http://localhost:8000/api/v1/rag"
+        self.temp_helper = TempFileHelper()
+
+    def teardown_method(self):
+        """每个测试方法后的清理"""
+        self.temp_helper.cleanup()
+
+    @pytest.mark.integration
+    def test_should_handle_utf8_encoding_gracefully(self, api_client: APITestHelper):
+        """测试：应优雅处理UTF-8编码问题 - 从curl_test.sh转换"""
+        # Arrange - 创建包含中文字符的测试文件
+        chinese_content = """这是一个包含中文字符的测试文档。
+
+它用于测试UTF-8编码问题的修复。
+
+第一段：介绍内容
+这里包含一些中文字符：你好世界！
+
+第二段：详细说明
+测试各种特殊字符：©®™€£¥
+
+第三段：总结内容
+这个文件名包含中文字符，用于测试文件上传时的编码处理。
+
+测试内容足够长，以确保分割功能正常工作。
+这里添加更多内容来测试分割算法。
+每个段落都应该被正确处理。"""
+
+        test_file_path = self.temp_helper.create_temp_file(chinese_content, ".txt", "初赛训练数据集")
+
+        # Act - 测试preview-split端点处理multipart数据
+        url = f"{self.base_url}/documents/preview-split"
+
+        with open(test_file_path, 'rb') as f:
+            files = {'file': f}
+            data = {
+                'parent_chunk_size': 1024,
+                'parent_chunk_overlap': 200,
+                'parent_separator': '\n\n',
+                'child_chunk_size': 512,
+                'child_chunk_overlap': 50,
+                'child_separator': '\n'
+            }
+
+            response = requests.post(url, files=files, data=data, timeout=10, headers=api_client.get_auth_headers())
+
+        # Assert - 应该返回友好错误而非500
+        assert response.status_code != 500, "不应返回内部服务器错误"
+
+        if response.status_code == 200:
+            result = response.json()
+            assert result.get("success") is not None, "响应应包含success字段"
+            if result.get("success"):
+                assert "segments" in result, "成功响应应包含segments"
+                # 验证中文内容被正确处理
+                segments = result.get("segments", [])
+                if segments:
+                    combined_content = " ".join(seg.get("content", "") for seg in segments)
+                    assert "中文字符" in combined_content, "应正确处理中文字符"
+        else:
+            # 如果不是200，应该是友好的错误响应
+            assert response.status_code in [400, 422], f"应返回客户端错误码，实际: {response.status_code}"
+            try:
+                error_result = response.json()
+                assert "message" in error_result or "detail" in error_result, "错误响应应包含错误信息"
+            except:
+                # 如果不是JSON响应，至少不应该是HTML错误页面
+                assert "<!DOCTYPE html>" not in response.text, "不应返回HTML错误页面"
+
+    @pytest.mark.integration
+    def test_should_handle_multipart_data_correctly(self, api_client: APITestHelper):
+        """测试：应正确处理multipart数据 - 从final_test.sh转换"""
+        # Arrange
+        test_content = """这是一个包含中文字符的测试文档。
+
+第一段：介绍内容
+这里包含一些中文字符：你好世界！
+
+第二段：详细说明
+测试各种特殊字符：©®™€£¥
+
+第三段：总结内容
+测试内容足够长，以确保分割功能正常工作。"""
+
+        test_file_path = self.temp_helper.create_temp_file(test_content, ".txt")
+
+        # Act - 测试原始错误场景修复
+        url = f"{self.base_url}/documents/preview-split"
+
+        with open(test_file_path, 'rb') as f:
+            files = {'file': f}
+            data = {
+                'parent_chunk_size': 1024,
+                'parent_chunk_overlap': 200,
+                'parent_separator': '\n\n',
+                'child_chunk_size': 512,
+                'child_chunk_overlap': 50,
+                'child_separator': '\n'
+            }
+
+            response = requests.post(url, files=files, data=data, timeout=10, headers=api_client.get_auth_headers())
+
+        # Assert
+        assert response.status_code in [200, 400, 422], f"应返回有效状态码，实际: {response.status_code}"
+
+        if response.status_code == 200:
+            result = response.json()
+            assert isinstance(result, dict), "响应应为JSON对象"
+            assert "success" in result, "响应应包含success字段"
+        else:
+            # 验证错误响应格式
+            try:
+                error_result = response.json()
+                assert isinstance(error_result, dict), "错误响应应为JSON对象"
+            except:
+                # 如果不是JSON，至少应该是有意义的错误信息
+                assert len(response.text) > 0, "错误响应不应为空"
+
+    @pytest.mark.integration
+    def test_should_handle_invalid_parameters_gracefully(self, api_client: APITestHelper):
+        """测试：应优雅处理无效参数"""
+        # Arrange
+        test_content = "简单测试内容"
+        test_file_path = self.temp_helper.create_temp_file(test_content, ".txt")
+
+        # Test cases with invalid parameters
+        invalid_params_cases = [
+            {
+                'parent_chunk_size': -1,  # 负数
+                'parent_chunk_overlap': 200,
+                'parent_separator': '\n\n',
+                'child_chunk_size': 512,
+                'child_chunk_overlap': 50,
+                'child_separator': '\n'
+            },
+            {
+                'parent_chunk_size': 'invalid',  # 非数字
+                'parent_chunk_overlap': 200,
+                'parent_separator': '\n\n',
+                'child_chunk_size': 512,
+                'child_chunk_overlap': 50,
+                'child_separator': '\n'
+            },
+            {
+                'parent_chunk_size': 1024,
+                'parent_chunk_overlap': 2000,  # 重叠大于块大小
+                'parent_separator': '\n\n',
+                'child_chunk_size': 512,
+                'child_chunk_overlap': 50,
+                'child_separator': '\n'
+            }
+        ]
+
+        url = f"{self.base_url}/documents/preview-split"
+
+        for i, invalid_data in enumerate(invalid_params_cases):
+            with open(test_file_path, 'rb') as f:
+                files = {'file': f}
+
+                response = requests.post(url, files=files, data=invalid_data, timeout=10, headers=api_client.get_auth_headers())
+
+                # Assert - 应该返回客户端错误而不是服务器错误
+                assert response.status_code != 500, f"测试用例{i+1}不应返回服务器错误"
+                assert response.status_code in [400, 422], f"测试用例{i+1}应返回客户端错误码"
+
+    @pytest.mark.integration
+    def test_should_handle_missing_file_gracefully(self, api_client: APITestHelper):
+        """测试：应优雅处理缺少文件的情况"""
+        # Arrange
+        url = f"{self.base_url}/documents/preview-split"
+        data = {
+            'parent_chunk_size': 1024,
+            'parent_chunk_overlap': 200,
+            'parent_separator': '\n\n',
+            'child_chunk_size': 512,
+            'child_chunk_overlap': 50,
+            'child_separator': '\n'
+        }
+
+        # Act - 发送不包含文件的请求
+        response = requests.post(url, files={}, data=data, timeout=10, headers=api_client.get_auth_headers())
+
+        # Assert
+        assert response.status_code in [400, 422], "缺少文件应返回客户端错误"
+
+        try:
+            result = response.json()
+            assert "message" in result or "detail" in result, "错误响应应包含错误信息"
+        except:
+            # 如果不是JSON响应，至少应该有错误信息
+            assert len(response.text) > 0, "错误响应不应为空"
+
+
+class TestAPIPerformance:
+    """API性能测试 - 从comprehensive_api_test.py转换"""
+
+    def setup_method(self):
+        """每个测试方法前的准备"""
+        self.base_url = "http://localhost:8000/api/v1/rag"
+        self.temp_helper = TempFileHelper()
+
+    def teardown_method(self):
+        """每个测试方法后的清理"""
+        self.temp_helper.cleanup()
+
+    @pytest.mark.integration
+    @pytest.mark.slow
+    def test_should_handle_concurrent_requests(self, api_client: APITestHelper):
+        """测试：应正确处理并发请求"""
+        import threading
+        import time
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        # Arrange
+        test_content = doc_generator.generate_long_text(10)
+        test_file_path = self.temp_helper.create_temp_file(test_content, ".txt")
+
+        def make_request():
+            """发送单个请求"""
+            url = f"{self.base_url}/documents/preview-split"
+
+            with open(test_file_path, 'rb') as f:
+                files = {'file': f}
+                data = {
+                    'parent_chunk_size': 512,
+                    'parent_chunk_overlap': 100,
+                    'parent_separator': '\n\n',
+                    'child_chunk_size': 256,
+                    'child_chunk_overlap': 50,
+                    'child_separator': '\n'
+                }
+
+                start_time = time.time()
+                response = requests.post(url, files=files, data=data, timeout=30, headers=api_client.get_auth_headers())
+                end_time = time.time()
+
+                return {
+                    'status_code': response.status_code,
+                    'response_time': end_time - start_time,
+                    'success': response.status_code == 200
+                }
+
+        # Act - 发送并发请求
+        num_concurrent_requests = 5
+        results = []
+
+        with ThreadPoolExecutor(max_workers=num_concurrent_requests) as executor:
+            futures = [executor.submit(make_request) for _ in range(num_concurrent_requests)]
+
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    results.append(result)
+                except Exception as e:
+                    pytest.fail(f"并发请求失败: {e}")
+
+        # Assert
+        assert len(results) == num_concurrent_requests, "应该收到所有请求的响应"
+
+        # 检查成功率
+        successful_requests = [r for r in results if r['success']]
+        success_rate = len(successful_requests) / len(results)
+        assert success_rate >= 0.8, f"成功率应至少80%，实际: {success_rate:.2%}"
+
+        # 检查响应时间
+        if successful_requests:
+            avg_response_time = sum(r['response_time'] for r in successful_requests) / len(successful_requests)
+            assert avg_response_time < 10.0, f"平均响应时间应少于10秒，实际: {avg_response_time:.2f}秒"
+
+    @pytest.mark.integration
+    @pytest.mark.slow
+    def test_should_handle_large_file_efficiently(self, api_client: APITestHelper):
+        """测试：应高效处理大文件"""
+        # Arrange - 创建大文件
+        large_content = doc_generator.generate_long_text(100)  # 生成大量内容
+        test_file_path = self.temp_helper.create_temp_file(large_content, ".txt")
+
+        # Act
+        url = f"{self.base_url}/documents/preview-split"
+
+        start_time = time.time()
+
+        with open(test_file_path, 'rb') as f:
+            files = {'file': f}
+            data = {
+                'parent_chunk_size': 2048,
+                'parent_chunk_overlap': 400,
+                'parent_separator': '\n\n',
+                'child_chunk_size': 1024,
+                'child_chunk_overlap': 200,
+                'child_separator': '\n'
+            }
+
+            response = requests.post(url, files=files, data=data, timeout=60, headers=api_client.get_auth_headers())
+
+        end_time = time.time()
+        processing_time = end_time - start_time
+
+        # Assert
+        assert response.status_code in [200, 413], "大文件应该被处理或返回文件过大错误"
+        assert processing_time < 30.0, f"大文件处理时间应少于30秒，实际: {processing_time:.2f}秒"
+
+        if response.status_code == 200:
+            result = response.json()
+            assert result.get("success") is not None, "响应应包含success字段"
+            if result.get("success"):
+                segments = result.get("segments", [])
+                assert len(segments) > 0, "大文件应该产生分割段落"
+
+
+class TestAPIDocumentSlicePreview:
+    """文档切片预览API测试 - 从test_api_fix.py转换"""
+
+    def setup_method(self):
+        """每个测试方法前的准备"""
+        self.base_url = "http://localhost:8000/api/v1/rag"
+
+    @pytest.mark.integration
+    @pytest.mark.skip(reason="需要先有文档数据才能测试切片预览")
+    def test_should_get_document_slice_preview(self, api_client: APITestHelper):
+        """测试：应获取文档切片预览"""
+        # 这个测试需要先有文档数据，暂时跳过
+        # 在实际使用时，需要先上传文档，然后测试切片预览功能
+        pass

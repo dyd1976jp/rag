@@ -7,12 +7,12 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__f
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymilvus import connections, Collection, FieldSchema, CollectionSchema, DataType, utility
-from database.config.settings import settings
+from app.core.config import settings
 
 async def init_mongodb():
     """初始化MongoDB连接和集合"""
     client = AsyncIOMotorClient(settings.MONGODB_URL)
-    db = client[settings.MONGODB_DB_NAME]
+    db = client[settings.MONGODB_DB]
     
     # 创建索引
     await db.documents.create_index("title")

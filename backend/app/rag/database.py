@@ -23,19 +23,19 @@ class MongoDBManager:
         self.chunks_collection = db["chunks"]
         self.documents_collection = db["documents"]
         
-        # 连接到MongoDB
+        # 使用新的连接管理器
         try:
-            self.client = MongoClient(os.environ.get("MONGODB_URI", "mongodb://localhost:27017"))
-            self.db = self.client[os.environ.get("MONGODB_DB", "rag_chat")]
-            
+            from ..db.connections.mongodb import mongodb_manager
+            self.db = mongodb_manager.get_sync_database()
+
             # 获取集合
             self.segments_collection: Collection = self.db.document_segments
             self.chunks_collection: Collection = self.db.child_chunks
-            
+
             # 创建索引
             self._create_indexes()
-            
-            logger.info(f"MongoDB连接成功: {os.environ.get('MONGODB_URI', 'mongodb://localhost:27017')}")
+
+            logger.info("MongoDB连接成功（使用新的连接管理器）")
         except Exception as e:
             logger.error(f"MongoDB连接失败: {str(e)}")
             raise

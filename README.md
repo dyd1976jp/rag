@@ -12,13 +12,19 @@ RAG-Chat是一个基于检索增强生成（Retrieval-Augmented Generation, RAG�
 
 ### 后端依赖
 - Python 3.8+
-- MongoDB
-- Milvus 向量数据库
+- MongoDB 5.0+
+- Milvus 向量数据库 2.3+
 - OpenAI API 或兼容的本地模型API
 
 ### 前端依赖
-- Node.js 14+
+- Node.js 16+
 - npm 或 yarn
+
+### 开发工具
+- pytest (测试框架)
+- black (代码格式化)
+- flake8 (代码检查)
+- mypy (类型检查)
 
 ## 安装说明
 
@@ -65,12 +71,39 @@ docker run -d --name milvus-standalone -p 19530:19530 -p 9091:9091 milvusdb/milv
 
 ### 5. 配置环境变量
 
-在backend目录下创建.env文件：
+根据您的环境复制对应的配置文件：
 
+```bash
+# 开发环境
+cp .env.development .env
+
+# 测试环境
+cp .env.test .env
+
+# 生产环境
+cp .env.production .env
 ```
-MONGODB_URI=mongodb://localhost:27017/ragchat
+
+然后编辑.env文件，配置必要的参数：
+
+```bash
+# 环境配置
+APP_ENV=development
+
+# 数据库配置
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DB=ragchat_dev
+
+# Milvus配置
+MILVUS_HOST=localhost
+MILVUS_PORT=19530
+
+# AI模型配置
 OPENAI_API_KEY=your_api_key_here
-EMBEDDING_API_BASE=http://your_embedding_model_url:port
+LOCAL_MODEL_URL=http://localhost:1234
+
+# 安全配置
+SECRET_KEY=your-secret-key-here-at-least-32-characters
 ```
 
 ## 运行系统
@@ -197,21 +230,42 @@ npm run dev
 RAG-chat/
 ├── backend/                    # 后端API服务
 │   ├── app/                   # 应用核心代码
+│   │   ├── core/              # 核心配置和基础设施
+│   │   │   ├── config.py      # 统一配置管理
+│   │   │   ├── paths.py       # 路径配置
+│   │   │   └── security.py    # 安全相关
+│   │   ├── db/                # 数据库层
+│   │   │   ├── connections/   # 数据库连接管理
+│   │   │   │   ├── mongodb.py # MongoDB连接管理器
+│   │   │   │   └── milvus.py  # Milvus连接管理器
+│   │   │   ├── repositories/  # 数据访问层（仓储模式）
+│   │   │   └── session.py     # 统一会话管理
+│   │   ├── models/            # 数据模型层
+│   │   ├── services/          # 业务逻辑层
+│   │   ├── api/               # API层
+│   │   ├── rag/               # RAG专用模块
+│   │   └── utils/             # 通用工具
 │   ├── tests/                 # 测试文件
-│   │   ├── integration/       # 集成测试（包含从根目录移动的test_*.py文件）
+│   │   ├── integration/       # 集成测试（Python版本）
 │   │   ├── unit/              # 单元测试
+│   │   ├── performance/       # 性能测试
 │   │   └── utils/             # 测试工具
-│   ├── debug/                 # 调试文件（包含从根目录移动的debug_*.py文件）
 │   ├── requirements.txt       # 生产依赖
 │   └── requirements-dev.txt   # 开发依赖
 ├── frontend-app/              # 主应用前端
 ├── frontend-admin/            # 管理后台前端
+├── scripts/                   # 管理脚本
+│   ├── database/              # 数据库管理脚本
+│   ├── testing/               # 测试脚本（Python版本）
+│   ├── deployment/            # 部署脚本
+│   └── tools/                 # 开发工具脚本
 ├── data/                      # 数据存储目录
-├── docs/                      # 项目文档
-│   ├── api/                   # API文档
-│   ├── development/           # 开发文档
-│   ├── testing/               # 测试文档
-│   └── fixes/                 # 修复记录（包含从根目录移动的*_REPORT.md文件）
+├── temp/                      # 临时文件和备份
+├── .github/workflows/         # CI/CD配置
+├── .env.development           # 开发环境配置
+├── .env.test                  # 测试环境配置
+├── .env.production            # 生产环境配置
+└── docs/                      # 项目文档
 ├── scripts/                   # 自动化脚本
 ├── logs/                      # 日志文件
 ├── temp/                      # 临时文件（包含从根目录移动的测试HTML和JSON文件）
@@ -220,10 +274,65 @@ RAG-chat/
 └── README.md                  # 项目说明
 ```
 
+## 测试
+
+项目采用现代化的Python测试策略，支持单元测试、集成测试和性能测试。
+
+### 运行测试
+
+```bash
+# 运行所有测试
+python scripts/testing/run_tests.py --type all
+
+# 运行单元测试
+python scripts/testing/run_tests.py --type unit
+
+# 运行集成测试
+python scripts/testing/run_tests.py --type integration
+
+# 运行覆盖率测试（目标70%以上）
+python scripts/testing/run_tests.py --type coverage
+
+# 详细输出
+python scripts/testing/run_tests.py --verbose
+```
+
+### 使用pytest直接运行
+
+```bash
+cd backend
+
+# 运行所有测试
+pytest
+
+# 运行特定测试
+pytest tests/integration/test_api_endpoints_comprehensive.py -v
+
+# 运行带覆盖率的测试
+pytest --cov=app --cov-report=html
+```
+
+### CI/CD
+
+项目配置了GitHub Actions自动化测试，支持：
+- 多Python版本测试（3.8-3.11）
+- 自动化依赖安装
+- 数据库服务自动部署
+- 测试覆盖率报告
+- 代码质量检查
+
 ## 项目文档
 
 - [项目规划文档](PLANNING.md) - 详细的技术架构和开发规划
 - [任务清单](TASK.md) - 开发进度和任务管理
 - [API文档](docs/api/README.md) - 完整的API接口文档
 - [开发文档](docs/development/README.md) - 开发指南和工作流程
-- [修复记录](docs/fixes/) - 各种问题修复的详细记录
+- [修复记录](temp/) - 各种问题修复的详细记录
+
+## 开发指南
+
+详细的开发指南请参考 [docs/README.md](docs/README.md)。
+
+## 许可证
+
+本项目采用 MIT 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
