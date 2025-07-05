@@ -1,5 +1,11 @@
 import request from '../utils/request';
 import { DocumentCollection, DocumentCollectionCreate, DocumentCollectionUpdate } from '../types/documentCollection';
+import {
+  createPreviewFormData,
+  createRequestParams,
+  createUploadConfig,
+  UPLOAD_MODES
+} from '../utils/documentUploadConfig';
 
 // 后端API响应的数据结构
 interface CollectionResponse {
@@ -120,6 +126,8 @@ interface DocumentSlicePreviewResponse {
     start: number;
     end: number;
     length: number;
+    type: string;  // 段落类型(parent/child)
+    children: any[];  // 子段落列表
   }>;
   total_segments: number;
 }
@@ -240,27 +248,18 @@ export const getCompleteDocumentPreview = async (
   }
 
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('parent_chunk_size', chunkSize.toString());
-    formData.append('parent_chunk_overlap', chunkOverlap.toString());
-    formData.append('parent_separator', '\\n\\n'); // 修复：使用转义字符串，与调试页面保持一致
-    formData.append('child_chunk_size', Math.floor(chunkSize / 2).toString());
-    formData.append('child_chunk_overlap', Math.floor(chunkOverlap / 4).toString());
-    formData.append('child_separator', '\\n'); // 修复：使用转义字符串，与调试页面保持一致
-    formData.append('preview_only', 'true'); // 设置为预览模式
+    // 使用新的配置系统创建 FormData
+    const formData = createPreviewFormData(file, chunkSize, chunkOverlap);
 
-    // 记录请求参数用于调试
-    const requestParams = {
-      file: { name: file.name, size: file.size, type: file.type },
-      parent_chunk_size: chunkSize,
-      parent_chunk_overlap: chunkOverlap,
-      parent_separator: '\\n\\n', // 修复：与实际发送的参数保持一致
-      child_chunk_size: Math.floor(chunkSize / 2),
-      child_chunk_overlap: Math.floor(chunkOverlap / 4),
-      child_separator: '\\n', // 修复：与实际发送的参数保持一致
-      preview_only: 'true'
-    };
+    // 创建调试用的请求参数对象
+    const config = createUploadConfig(
+      {
+        parent_chunk_size: chunkSize,
+        parent_chunk_overlap: chunkOverlap
+      },
+      UPLOAD_MODES.PREVIEW
+    );
+    const requestParams = createRequestParams(file, config);
 
     console.log('🔍 [调试] 发送文档预览请求:', requestParams);
 
@@ -293,6 +292,29 @@ export const getCompleteDocumentPreview = async (
     };
 
     return responseWithDebug;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message || '获取完整文档预览失败';
+    throw new Error(errorMessage);
+  }
+};
+
+// 获取文档的完整层级预览（从数据库或缓存读取）
+export const getDocumentCompletePreview = async (documentId: string): Promise<CompleteDocumentPreviewResponse> => {
+  if (!documentId) {
+    throw new Error('文档ID不能为空');
+  }
+
+  try {
+    const response = await request<CompleteDocumentPreviewResponse>({
+      url: `/rag/collections/${documentId}/complete-preview`,
+      method: 'get'
+    });
+
+    if (!response.data) {
+      throw new Error('获取完整文档预览失败');
+    }
+
+    return response.data;
   } catch (error: any) {
     const errorMessage = error.response?.data?.message || error.message || '获取完整文档预览失败';
     throw new Error(errorMessage);

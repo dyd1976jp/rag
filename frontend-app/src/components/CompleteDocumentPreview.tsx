@@ -174,8 +174,8 @@ const CompleteDocumentPreview: React.FC<CompleteDocumentPreviewProps> = ({
             key={`${parentId}-${index}`}
             className={`p-2 border rounded cursor-pointer transition-colors text-sm
               ${selectedSegment === child.id
-                ? 'border-blue-400 bg-blue-25'
-                : 'hover:bg-gray-25 border-gray-150'
+                ? 'border-blue-400 bg-blue-50'
+                : 'hover:bg-gray-50 border-gray-200'
               }`}
             onClick={() => handleSegmentClick(child.id)}
           >

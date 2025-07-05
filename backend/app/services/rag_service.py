@@ -14,7 +14,10 @@ from app.rag import (
     embedding_model
 )
 from app.rag.document_processor import Document
-from app.db.mongodb import mongodb
+from app.rag.hierarchical_processor import hierarchical_processor
+from app.rag.hierarchical_retriever import hierarchical_retriever
+from app.rag.models import HierarchicalSplittingConfig
+from app.db.connections.mongodb import mongodb_manager
 from datetime import datetime, timezone
 from ..core.paths import (
     UPLOADS_DIR,
@@ -37,6 +40,15 @@ class RAGService:
 
         # 索引相关配置
         self.vector_collection_name = os.environ.get("RAG_VECTOR_COLLECTION", "rag_documents")
+        
+        # 层次化处理配置
+        self.enable_hierarchical_processing = os.environ.get("ENABLE_HIERARCHICAL_RAG", "true").lower() == "true"
+        self.hierarchical_config = HierarchicalSplittingConfig(
+            parent_mode=os.environ.get("HIERARCHICAL_PARENT_MODE", "paragraph"),
+            parent_chunk_size=int(os.environ.get("HIERARCHICAL_PARENT_CHUNK_SIZE", "1000")),
+            child_chunk_size=int(os.environ.get("HIERARCHICAL_CHILD_CHUNK_SIZE", "300")),
+            index_child_chunks_only=os.environ.get("HIERARCHICAL_INDEX_CHILD_ONLY", "true").lower() == "true"
+        )
 
         # 确保上传目录存在
         os.makedirs(self.upload_dir, exist_ok=True)
@@ -46,6 +58,7 @@ class RAGService:
 
         logger.info(f"初始化RAG服务: 文档集合={self.collection_name}, 向量集合={self.vector_collection_name}")
         logger.info(f"批处理配置: 批次大小={self.batch_size}")
+        logger.info(f"层次化处理: enabled={self.enable_hierarchical_processing}, config={self.hierarchical_config.dict()}")
 
     def _get_rag_components(self):
         """动态获取RAG组件，确保获取最新的初始化状态"""
@@ -64,6 +77,21 @@ class RAGService:
             'embedding_model': embedding_model
         }
     
+    async def _get_database(self):
+        """获取数据库连接"""
+        return await mongodb_manager.get_async_database()
+
+    async def _ensure_mongodb_connection(self) -> bool:
+        """确保MongoDB连接可用"""
+        try:
+            db = await self._get_database()
+            # 测试连接
+            await db.command('ping')
+            return True
+        except Exception as e:
+            logger.error(f"MongoDB连接检查失败: {str(e)}")
+            return False
+
     async def setup_indexes(self):
         """应用启动时调用此方法来设置索引"""
         await self._setup_mongodb_indexes()
@@ -71,13 +99,41 @@ class RAGService:
     async def _setup_mongodb_indexes(self):
         """创建必要的MongoDB索引"""
         try:
+            # 获取数据库连接
+            db = await self._get_database()
+
             # 确保文档集合存在并创建索引
-            await mongodb.db[self.collection_name].create_index("id", unique=True)
-            await mongodb.db[self.collection_name].create_index("user_id")
-            await mongodb.db[self.collection_name].create_index("document_id")
-            await mongodb.db[self.collection_name].create_index("file_name")
-            await mongodb.db[self.collection_name].create_index("status")
-            
+            await db[self.collection_name].create_index("id", unique=True)
+            await db[self.collection_name].create_index("user_id")
+            await db[self.collection_name].create_index("document_id")
+            await db[self.collection_name].create_index("file_name")
+            await db[self.collection_name].create_index("status")
+
+            # 层次化存储的索引
+            if self.enable_hierarchical_processing:
+                # 父段落索引
+                await db["document_segments"].create_index("id", unique=True)
+                await db["document_segments"].create_index([
+                    ("document_id", 1),
+                    ("position", 1)
+                ])
+                await db["document_segments"].create_index("dataset_id")
+                await db["document_segments"].create_index("hit_count")
+
+                # 子块索引
+                await db["child_chunks"].create_index("id", unique=True)
+                await db["child_chunks"].create_index([
+                    ("segment_id", 1),
+                    ("position", 1)
+                ])
+                await db["child_chunks"].create_index([
+                    ("index_node_id", 1),
+                    ("dataset_id", 1)
+                ])
+                await db["child_chunks"].create_index("document_id")
+
+                logger.info("层次化存储MongoDB索引创建成功")
+
             logger.info(f"MongoDB索引创建成功: 集合={self.collection_name}")
         except Exception as e:
             logger.error(f"创建MongoDB索引失败: {str(e)}")
@@ -204,6 +260,13 @@ class RAGService:
             if split_by_sentence is not None:
                 doc_info["split_by_sentence"] = split_by_sentence
             
+            # 检查MongoDB连接
+            if not await self._ensure_mongodb_connection():
+                return {
+                    "success": False,
+                    "message": "数据库连接失败，无法处理文档"
+                }
+
             await mongodb.db[self.collection_name].insert_one(doc_info)
             
             # 根据文件类型处理文档
@@ -528,6 +591,365 @@ class RAGService:
                 "success": False,
                 "message": f"处理文档失败: {str(e)}"
             }
+
+    async def process_document_hierarchical(
+        self, 
+        file_path: str, 
+        file_name: str, 
+        user_id: str,
+        config: Optional[HierarchicalSplittingConfig] = None
+    ) -> Dict[str, Any]:
+        """
+        使用层次化架构处理文档
+        
+        Args:
+            file_path: 文件路径
+            file_name: 文件名
+            user_id: 用户ID
+            config: 层次化分割配置
+            
+        Returns:
+            处理结果
+        """
+        try:
+            start_time = datetime.now()
+            
+            # 检查RAG服务是否可用
+            if not self._check_rag_available():
+                return {
+                    "success": False,
+                    "message": "RAG服务不可用，请确保Milvus和嵌入模型服务已启动"
+                }
+            
+            # 使用提供的配置或默认配置
+            processing_config = config or self.hierarchical_config
+            
+            # 生成文档ID
+            doc_id = str(uuid.uuid4())
+            dataset_id = user_id
+            
+            logger.info(f"开始层次化处理文档: {doc_id}, 文件: {file_name}")
+            
+            # 获取文件大小和限制配置
+            file_size = os.path.getsize(file_path)
+            max_file_size = int(os.environ.get("MAX_FILE_SIZE", "104857600"))  # 默认100MB
+            
+            if file_size > max_file_size:
+                return {
+                    "success": False,
+                    "message": f"文件大小({file_size/1024/1024:.2f}MB)超过限制({max_file_size/1024/1024:.2f}MB)"
+                }
+            
+            # 检查MongoDB连接
+            if not await self._ensure_mongodb_connection():
+                return {
+                    "success": False,
+                    "message": "数据库连接失败，无法处理文档"
+                }
+            
+            # 记录文档基本信息
+            doc_info = {
+                "id": doc_id,
+                "file_name": file_name,
+                "user_id": user_id,
+                "dataset_id": dataset_id,
+                "created_at": datetime.now(timezone.utc),
+                "status": "processing",
+                "file_size": file_size,
+                "processing_method": "hierarchical",
+                "hierarchical_config": processing_config.dict()
+            }
+            
+            db = await self._get_database()
+            await db[self.collection_name].insert_one(doc_info)
+            
+            # 加载和预处理文档
+            components = self._get_rag_components()
+            pdf_processor = components['pdf_processor']
+            document_processor = components['document_processor']
+            
+            # 根据文件类型处理文档
+            if file_name.lower().endswith('.pdf'):
+                document = pdf_processor.process_pdf(file_path, {
+                    "doc_id": doc_id,
+                    "document_id": doc_id,  # Required by validate_document
+                    "file_name": file_name,
+                    "created_by": user_id,
+                    "dataset_id": dataset_id
+                })
+            else:
+                # 处理文本文件
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                document = Document(
+                    page_content=content,
+                    doc_id=doc_id,  # Set the doc_id attribute directly
+                    metadata={
+                        "doc_id": doc_id,
+                        "document_id": doc_id,  # Required by validate_document
+                        "file_name": file_name,
+                        "created_by": user_id,
+                        "dataset_id": dataset_id
+                    }
+                )
+            
+            # 验证和清洗文档
+            if not document_processor.validate_document(document):
+                db = await self._get_database()
+                await db[self.collection_name].update_one(
+                    {"id": doc_id},
+                    {"$set": {"status": "failed", "error": "文档验证失败"}}
+                )
+                return {
+                    "success": False,
+                    "message": "文档验证失败，请检查格式和内容"
+                }
+            
+            cleaned_document = document_processor.clean_document(document)
+            
+            # 使用层次化处理器处理文档
+            hierarchical_processor.config = processing_config
+            hierarchy_result = await hierarchical_processor.process_document_with_hierarchy(
+                cleaned_document, dataset_id, doc_id
+            )
+            
+            if not hierarchy_result["success"]:
+                db = await self._get_database()
+                await db[self.collection_name].update_one(
+                    {"id": doc_id},
+                    {"$set": {"status": "failed", "error": hierarchy_result.get("error", "层次化处理失败")}}
+                )
+                return hierarchy_result
+            
+            # 获取子块用于向量索引
+            logger.info(f"尝试获取文档层次结构，doc_id: {doc_id}")
+            hierarchy_info = await hierarchical_processor.get_document_hierarchy(doc_id)
+            if not hierarchy_info:
+                logger.error(f"无法获取文档 {doc_id} 的层次结构")
+                # 检查数据库中是否存在相关数据
+                db = await self._get_database()
+                segments_count = await db["document_segments"].count_documents({"document_id": doc_id})
+                chunks_count = await db["child_chunks"].count_documents({"document_id": doc_id})
+                logger.error(f"数据库检查 - 父段落数量: {segments_count}, 子块数量: {chunks_count}")
+
+                await db[self.collection_name].update_one(
+                    {"id": doc_id},
+                    {"$set": {"status": "failed", "error": f"无法获取层次结构 - 父段落: {segments_count}, 子块: {chunks_count}"}}
+                )
+                return {
+                    "success": False,
+                    "message": f"无法获取层次结构 - 父段落: {segments_count}, 子块: {chunks_count}"
+                }
+            else:
+                logger.info(f"成功获取层次结构: {hierarchy_info['total_segments']} 个父段落, {hierarchy_info['total_chunks']} 个子块")
+            
+            # 如果配置为仅索引子块，则只处理子块
+            if processing_config.index_child_chunks_only:
+                # 获取所有子块
+                all_child_chunks = []
+                for chunks in hierarchy_info["child_chunks_by_segment"].values():
+                    for chunk_doc in chunks:
+                        # 转换为HierarchicalChildChunk对象
+                        from app.rag.models import HierarchicalChildChunk
+                        chunk = HierarchicalChildChunk(**chunk_doc)
+                        all_child_chunks.append(chunk)
+                
+                # 转换为Document对象用于向量索引
+                index_documents = hierarchical_processor.get_child_chunks_for_vector_indexing(all_child_chunks)
+                
+                # 向量化和索引
+                await self._index_documents_to_vector_store(index_documents, doc_id)
+            
+            # 更新文档状态
+            processing_time = (datetime.now() - start_time).total_seconds()
+            db = await self._get_database()
+            await db[self.collection_name].update_one(
+                {"id": doc_id},
+                {"$set": {
+                    "status": "ready",
+                    "segments_count": hierarchy_result["parent_segments_count"],
+                    "chunks_count": hierarchy_result["child_chunks_count"],
+                    "processing_time": processing_time,
+                    "processing_details": {
+                        "end_time": datetime.now(timezone.utc),
+                        "hierarchical_processing": True,
+                        "config": processing_config.dict()
+                    }
+                }}
+            )
+            
+            return {
+                "success": True,
+                "doc_id": doc_id,
+                "parent_segments_count": hierarchy_result["parent_segments_count"],
+                "child_chunks_count": hierarchy_result["child_chunks_count"],
+                "processing_time": processing_time,
+                "message": "层次化文档处理成功"
+            }
+            
+        except Exception as e:
+            logger.error(f"层次化处理文档失败: {str(e)}", exc_info=True)
+            
+            # 更新状态为失败
+            if 'doc_id' in locals():
+                try:
+                    db = await self._get_database()
+                    await db[self.collection_name].update_one(
+                        {"id": doc_id},
+                        {"$set": {"status": "failed", "error": str(e)}}
+                    )
+                except Exception as update_error:
+                    logger.error(f"更新文档状态失败: {str(update_error)}")
+            
+            return {
+                "success": False,
+                "message": f"层次化处理文档失败: {str(e)}"
+            }
+
+    async def _index_documents_to_vector_store(
+        self, 
+        documents: List[Document], 
+        doc_id: str
+    ) -> None:
+        """将文档索引到向量存储"""
+        try:
+            components = self._get_rag_components()
+            retrieval_service = components['retrieval_service']
+            embedding_model = components['embedding_model']
+            
+            # 确保向量集合存在
+            dimension = embedding_model.get_dimension()
+            retrieval_service.vector_store.create_collection(self.vector_collection_name, dimension)
+            
+            # 批量处理文档
+            batch_size = self.batch_size
+            for i in range(0, len(documents), batch_size):
+                batch_docs = documents[i:i + batch_size]
+                
+                # 生成嵌入向量
+                contents = [doc.page_content for doc in batch_docs]
+                embeddings = embedding_model.embed_documents(contents)
+                
+                # 插入向量存储
+                retrieval_service.vector_store.insert(batch_docs, embeddings)
+                
+                logger.info(f"已索引批次 {i//batch_size + 1}, 文档数: {len(batch_docs)}")
+            
+            logger.info(f"文档 {doc_id} 的向量索引完成，总计 {len(documents)} 个文档")
+            
+        except Exception as e:
+            logger.error(f"向量索引失败: {str(e)}", exc_info=True)
+            raise
+
+    async def search_documents_hierarchical(
+        self,
+        query: str,
+        user_id: str,
+        top_k: int = 3,
+        search_all: bool = False,
+        score_threshold: float = 0.0,
+        enable_parent_context: bool = True
+    ) -> Dict[str, Any]:
+        """
+        使用层次化架构搜索文档
+        
+        Args:
+            query: 查询文本
+            user_id: 用户ID (作为数据集ID)
+            top_k: 返回结果数量
+            search_all: 是否搜索所有用户的文档
+            score_threshold: 分数阈值
+            enable_parent_context: 是否启用父段落上下文
+            
+        Returns:
+            搜索结果
+        """
+        try:
+            # 检查RAG服务是否可用
+            if not self._check_rag_available():
+                return {
+                    "success": False,
+                    "message": "RAG服务不可用，请确保Milvus和嵌入模型服务已启动",
+                    "results": []
+                }
+            
+            start_time = datetime.now()
+            
+            # 初始化层次化检索器
+            components = self._get_rag_components()
+            hierarchical_retriever.vector_store = components['retrieval_service'].vector_store
+            hierarchical_retriever.embedding_model = components['embedding_model']
+            
+            # 执行层次化检索
+            results = await hierarchical_retriever.retrieve_with_parent_context(
+                query=query,
+                dataset_id=None if search_all else user_id,
+                top_k=top_k,
+                score_threshold=score_threshold,
+                enable_parent_context=enable_parent_context
+            )
+            
+            search_time = (datetime.now() - start_time).total_seconds()
+            
+            # 转换为API友好格式
+            formatted_results = []
+            for result in results:
+                child_chunk = result.get("child_chunk")
+                parent_segment = result.get("parent_segment")
+                
+                formatted_result = {
+                    "content": child_chunk.get("content", "") if child_chunk else "",
+                    "score": result.get("combined_score", 0.0),
+                    "metadata": {
+                        "chunk_id": child_chunk.get("id") if child_chunk else None,
+                        "chunk_position": child_chunk.get("position", 0) if child_chunk else 0,
+                        "chunk_word_count": child_chunk.get("word_count", 0) if child_chunk else 0
+                    }
+                }
+                
+                # 添加父段落信息
+                if parent_segment and enable_parent_context:
+                    formatted_result["parent_context"] = {
+                        "segment_id": parent_segment.get("id"),
+                        "content": parent_segment.get("content", ""),
+                        "position": parent_segment.get("position", 0),
+                        "word_count": parent_segment.get("word_count", 0),
+                        "child_count": parent_segment.get("child_count", 0)
+                    }
+                    
+                    # 如果有多个相关子块，添加其他子块信息
+                    if "child_chunks" in result:
+                        child_chunks = result["child_chunks"]
+                        if len(child_chunks) > 1:
+                            formatted_result["related_chunks"] = [
+                                {
+                                    "id": chunk.get("id"),
+                                    "content": chunk.get("content", "")[:100] + "...",  # 截取前100字符
+                                    "position": chunk.get("position", 0),
+                                    "score": chunk.get("score", 0.0)
+                                }
+                                for chunk in child_chunks[1:]  # 排除第一个（主要结果）
+                            ]
+                
+                formatted_results.append(formatted_result)
+            
+            return {
+                "success": True,
+                "message": f"找到 {len(formatted_results)} 个相关结果",
+                "results": formatted_results,
+                "search_time": search_time,
+                "query": query,
+                "hierarchical_search": True,
+                "enable_parent_context": enable_parent_context
+            }
+            
+        except Exception as e:
+            logger.error(f"层次化搜索失败: {str(e)}", exc_info=True)
+            return {
+                "success": False,
+                "message": f"层次化搜索失败: {str(e)}",
+                "results": []
+            }
     
     async def search_documents(
         self,
@@ -714,13 +1136,13 @@ class RAGService:
             query = {"id": doc_id}
             if user_id:
                 query["user_id"] = user_id
-                
+
             doc = await mongodb.db[self.collection_name].find_one(query)
             if doc:
                 doc["_id"] = str(doc["_id"])
                 if isinstance(doc.get("created_at"), datetime):
                     doc["created_at"] = doc["created_at"].isoformat()
-                    
+
                 # 获取向量存储统计信息
                 try:
                     vector_stats = retrieval_service.vector_store.get_stats()
@@ -730,12 +1152,37 @@ class RAGService:
                     }
                 except Exception as stats_error:
                     logger.warning(f"获取向量统计信息失败: {str(stats_error)}")
-                    
+
                 return doc
             return None
         except Exception as e:
             logger.error(f"获取文档详情失败: {str(e)}")
             return None
+
+    async def get_document_segments(self, doc_id: str) -> List[Document]:
+        """获取文档的所有段落"""
+        try:
+            # 检查RAG服务是否可用
+            if not self._check_rag_available():
+                logger.warning("RAG服务不可用，无法获取文档段落")
+                return []
+
+            # 获取RAG组件
+            components = self._get_rag_components()
+            retrieval_service = components['retrieval_service']
+
+            # 从向量存储中获取文档的所有段落
+            segments = retrieval_service.vector_store.get_documents_by_doc_id(doc_id)
+
+            # 按段落索引排序
+            segments.sort(key=lambda x: x.metadata.get("index", 0))
+
+            logger.info(f"获取文档 {doc_id} 的 {len(segments)} 个段落")
+            return segments
+
+        except Exception as e:
+            logger.error(f"获取文档段落失败: {str(e)}")
+            return []
     
     async def delete_document(self, doc_id: str, user_id: str, is_admin: bool = False) -> Dict[str, Any]:
         """
@@ -921,17 +1368,20 @@ class RAGService:
         file_name: str,
         user_id: str,
         segments: List[Document],
-        dataset_id: Optional[str] = None
+        dataset_id: Optional[str] = None,
+        original_content: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         保存处理后的文档段落到向量存储
-        
+
         Args:
             doc_id: 文档ID
             file_name: 文件名
             user_id: 用户ID
             segments: 文档段落列表
-            
+            dataset_id: 数据集ID
+            original_content: 原始文档内容
+
         Returns:
             处理结果
         """
@@ -943,28 +1393,57 @@ class RAGService:
                     "message": "RAG服务不可用，请确保Milvus和嵌入模型服务已启动"
                 }
 
+            # 检查MongoDB连接
+            if not await self._ensure_mongodb_connection():
+                return {
+                    "success": False,
+                    "message": "数据库连接失败，无法保存文档"
+                }
+
             # 获取RAG组件
             components = self._get_rag_components()
             retrieval_service = components['retrieval_service']
             embedding_model = components['embedding_model']
 
+            # 从segments中重建原始内容（如果没有提供original_content）
+            if original_content is None and segments:
+                # 尝试从segments的metadata中获取原始内容
+                # 或者合并所有parent segments的内容
+                parent_segments = [seg for seg in segments if seg.metadata.get("type") == "parent"]
+                if parent_segments:
+                    original_content = "\n\n".join([seg.page_content for seg in parent_segments])
+                else:
+                    # 如果没有parent segments，使用所有segments
+                    original_content = "\n\n".join([seg.page_content for seg in segments])
+
             # 保存文档信息到MongoDB
             doc_info = {
                 "id": doc_id,
                 "file_name": file_name,
+                "filename": file_name,  # 添加filename字段以保持兼容性
                 "user_id": user_id,
                 "dataset_id": dataset_id or user_id,  # 如果没有指定dataset_id，使用user_id
+                "content": original_content or "",  # 添加原始文档内容
+                "metadata": {
+                    "segments_count": len(segments),
+                    "content_length": len(original_content) if original_content else 0,
+                    "processing_method": "rag_service"
+                },
                 "segments_count": len(segments),
                 "status": "processing",
                 "created_at": datetime.now(timezone.utc),
                 "updated_at": datetime.now(timezone.utc)
             }
-            
+
+            logger.info(f"准备保存文档到MongoDB: doc_id={doc_id}, collection={self.collection_name}")
+
             # 先删除可能存在的旧文档
             await mongodb.db[self.collection_name].delete_one({"id": doc_id})
-            
+            logger.info(f"已删除可能存在的旧文档: {doc_id}")
+
             # 插入新文档
-            await mongodb.db[self.collection_name].insert_one(doc_info)
+            insert_result = await mongodb.db[self.collection_name].insert_one(doc_info)
+            logger.info(f"文档插入成功: doc_id={doc_id}, mongodb_id={insert_result.inserted_id}")
             
             # 获取嵌入向量维度并确保集合存在
             try:

@@ -34,9 +34,6 @@ cd frontend-app
 npm install
 cd ..
 
-echo "安装管理后台前端依赖..."
-cd frontend-admin
-npm install
-cd ..
+
 
 echo "初始化完成，现在可以运行 ./start.sh 启动系统。" 

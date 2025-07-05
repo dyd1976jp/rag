@@ -7,6 +7,7 @@
       "start": 0,
       "end": 45,
       "length": 45,
+      "type": "parent",
       "children": [
         {
           "id": "0_0",
@@ -30,6 +31,7 @@
       "start": 46,
       "end": 78,
       "length": 32,
+      "type": "parent",
       "children": [
         {
           "id": "1_0",

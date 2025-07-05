@@ -136,7 +136,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[str] = [
         "http://localhost:3000",  # 兼容旧配置
         "http://localhost:5173",  # frontend-app (Vite默认端口)
-        "http://localhost:5174",  # frontend-admin (Vite默认端口)
+
         "http://localhost:3001",  # 备用前端端口
     ]
 

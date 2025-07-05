@@ -1,0 +1,61 @@
+{
+  "timestamp": 1751633142.290138,
+  "test_file": "data/uploads/初赛训练数据集.txt",
+  "frontend_result": {
+    "success": true,
+    "message": "文档切割预览生成成功",
+    "total_segments": 6,
+    "parent_segments": 6,
+    "child_segments": 11,
+    "parent_content_length": 180,
+    "children_content_count": 11,
+    "has_special_chars": true,
+    "special_chars_found": [
+      "©",
+      "®",
+      "™",
+      "€",
+      "£",
+      "¥"
+    ],
+    "test_mode": "frontend",
+    "timestamp": 1751633142.278549
+  },
+  "curl_result": {
+    "success": true,
+    "message": "文档切割预览生成成功",
+    "total_segments": 6,
+    "parent_segments": 6,
+    "child_segments": 11,
+    "parent_content_length": 180,
+    "children_content_count": 11,
+    "has_special_chars": true,
+    "special_chars_found": [
+      "©",
+      "®",
+      "™",
+      "€",
+      "£",
+      "¥"
+    ],
+    "test_mode": "curl",
+    "timestamp": 1751633142.29002
+  },
+  "consistency_check": {
+    "success_status": true,
+    "total_segments": true,
+    "parent_segments": true,
+    "child_segments": true,
+    "content_length": true,
+    "children_count": true,
+    "special_chars_presence": true,
+    "special_chars_match": true
+  },
+  "summary": {
+    "overall_consistency": true,
+    "consistency_score": 1.0,
+    "passed_checks": 8,
+    "total_checks": 8,
+    "fix_successful": true
+  }
+}

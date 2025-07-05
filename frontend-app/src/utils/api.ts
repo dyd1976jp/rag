@@ -3,8 +3,8 @@
  * 用于处理与后端API的交互
  */
 
-// API基础URL
-const API_BASE_URL = '/api/v1';
+// API基础URL - 使用环境变量或默认相对路径
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 // 通用请求方法
 const fetchAPI = async (

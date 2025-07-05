@@ -7,6 +7,7 @@
 import os
 import logging
 import shutil
+import time
 import uuid
 from typing import Dict, Any, List, Optional
 from datetime import datetime
@@ -145,29 +146,48 @@ def create_split_rule(
     )
 
 
-def format_preview_response(segments: List, cleaned_document: Document, doc_id: str = None) -> Dict[str, Any]:
+def format_unified_response(segments: List, cleaned_document: Document, doc_id: str = None, preview_mode: bool = True) -> Dict[str, Any]:
     """
-    格式化预览响应数据，支持层级结构显示
+    统一的文档切割响应格式化函数
+
+    此函数用于统一预览模式和保存模式的API响应格式，确保用户体验的一致性。
+    无论是预览还是保存，都返回相同格式的详细切割结果。
 
     Args:
         segments: 分割后的段落列表
         cleaned_document: 清洗后的文档
-        doc_id: 文档ID，用于预览模式的子块查询
+        doc_id: 文档ID
+        preview_mode: 是否为预览模式
 
     Returns:
-        Dict: 格式化的响应数据，包含层级结构的segments
+        Dict: 统一格式的响应数据，包含完整的文档切割详情
     """
-    if not segments:
-        return {
-            "success": False,
-            "message": "文档分割后未产生有效内容"
-        }
-
-    # 如果没有提供doc_id，生成一个临时ID用于预览
+    # 如果没有提供doc_id，生成一个临时ID
     if not doc_id:
         import uuid
-        doc_id = f"preview_{uuid.uuid4()}"
-    # 如果已经提供了doc_id，直接使用（调用方已经确保格式正确）
+        doc_id = f"preview_{uuid.uuid4()}" if preview_mode else str(uuid.uuid4())
+
+    # 处理空段落的情况
+    if not segments:
+        return {
+            "success": True,
+            "message": "文档切割预览生成成功" if preview_mode else "文档切割处理成功",
+            "preview_mode": preview_mode,
+            "doc_id": doc_id,
+            "total_segments": 0,
+            "parent_segments": 0,
+            "child_segments": 0,
+            "parentContent": cleaned_document.page_content,
+            "childrenContent": [],
+            "segments": [],
+            "document_overview": {
+                "title": cleaned_document.metadata.get("title", "未命名文档"),
+                "total_length": len(cleaned_document.page_content),
+                "total_segments": 0,
+                "parent_segments": 0,
+                "child_segments": 0
+            }
+        }
 
     # 构建层级结构
     parent_segments = {}  # 存储父段落，按parent_id索引
@@ -175,70 +195,188 @@ def format_preview_response(segments: List, cleaned_document: Document, doc_id: 
     children_content = []
     parent_counter = 0    # 父块连续ID计数器
 
-    # 第一步：分类父子段落，为父块分配连续ID
-    for i, segment in enumerate(segments):
-        segment_type = segment.metadata.get("type", "unknown")
+    # 分析段落层级关系
+    for segment in segments:
+        segment_type = segment.metadata.get("type", "parent")
         parent_id = segment.metadata.get("parent_id")
 
-        if segment_type == "parent":
-            # 父段落：分配连续的ID
-            segment_data = {
-                "id": parent_counter,  # 使用连续的父块ID
+        if segment_type == "parent" or parent_id is None:
+            # 这是父段落
+            # 获取段落ID，优先使用id属性，如果没有则使用doc_id，最后使用计数器
+            segment_id = getattr(segment, 'id', None) or getattr(segment, 'doc_id', None) or segment.metadata.get("doc_id", str(parent_counter))
+
+            parent_segments[segment_id] = {
+                "id": parent_counter,  # 使用连续的ID
+                "original_id": segment_id,  # 保留原始ID用于查找
                 "content": segment.page_content,
                 "start": segment.metadata.get("chunk_start", 0),
                 "end": segment.metadata.get("chunk_end", len(segment.page_content)),
                 "length": len(segment.page_content),
-                "type": segment_type,
-                "parent_id": parent_id
+                "type": "parent",
+                "children": []
             }
 
-            # 使用原始的segment ID作为key来关联子块
-            segment_id = segment.metadata.get("id", str(i))
-            parent_segments[segment_id] = segment_data
-            parent_segments[segment_id]["children"] = []  # 初始化子段落数组
-            parent_counter += 1  # 递增父块计数器
+            # 处理父文档的子文档（如果存在）
+            if hasattr(segment, 'children') and segment.children:
+                child_segments[segment_id] = []
+                for child_doc in segment.children:
+                    child_segments[segment_id].append({
+                        "id": len(children_content),  # 子段落的全局ID
+                        "content": child_doc.page_content,
+                        "start": 0,  # 子文档的起始位置
+                        "end": len(child_doc.page_content),
+                        "length": len(child_doc.page_content),
+                        "type": "child",
+                        "parent_id": segment_id
+                    })
+                    # 添加到全局子内容列表
+                    children_content.append(child_doc.page_content)
 
-        elif segment_type == "child" and parent_id:
-            # 子段落：保持原始索引作为ID
-            segment_data = {
-                "id": i,  # 子块保持原始索引
-                "content": segment.page_content,
-                "start": segment.metadata.get("chunk_start", 0),
-                "end": segment.metadata.get("chunk_end", len(segment.page_content)),
-                "length": len(segment.page_content),
-                "type": segment_type,
-                "parent_id": parent_id
-            }
-
+            parent_counter += 1
+        elif segment_type == "child" and parent_id is not None:
+            # 这是独立的子段落（通过parent_id关联到父段落）
             if parent_id not in child_segments:
                 child_segments[parent_id] = []
-            child_segments[parent_id].append(segment_data)
+
+            child_segments[parent_id].append({
+                "id": len(children_content),  # 子段落的全局ID
+                "content": segment.page_content,
+                "start": segment.metadata.get("chunk_start", 0),
+                "end": segment.metadata.get("chunk_end", len(segment.page_content)),
+                "length": len(segment.page_content),
+                "type": "child",
+                "parent_id": parent_id
+            })
+            # 添加到全局子内容列表
             children_content.append(segment.page_content)
 
-    # 第二步：将子段落关联到父段落
-    for parent_id, children in child_segments.items():
-        if parent_id in parent_segments:
-            parent_segments[parent_id]["children"] = children
+    # 将子段落关联到父段落
+    result_segments = []
+    for original_parent_id, parent_info in parent_segments.items():
+        # 添加子段落到父段落
+        if original_parent_id in child_segments:
+            parent_info["children"] = child_segments[original_parent_id]
 
-    # 第三步：构建最终的层级结构数组
-    result_segments = list(parent_segments.values())
+        result_segments.append(parent_info)
 
-    # 按父块ID排序以保持正确顺序
+    # 按ID排序以保持正确顺序
     result_segments.sort(key=lambda x: x["id"])
 
-    logger.info(f"预览结果格式化完成，返回 {len(result_segments)} 个父段落，包含 {len(children_content)} 个子段落")
-
-    return {
+    # 构建统一的响应格式
+    response = {
         "success": True,
-        "preview_mode": True,  # 添加预览模式标识
-        "doc_id": doc_id,  # 添加doc_id到响应中
-        "segments": result_segments,  # 现在是层级结构
-        "total_segments": len(segments),  # 总段落数（包括父子）
-        "parent_segments": len(result_segments),  # 父段落数
-        "child_segments": len(children_content),  # 子段落数
-        "parentContent": cleaned_document.page_content,
-        "childrenContent": children_content
+        "message": "文档切割预览生成成功" if preview_mode else "文档切割处理成功",
+        "preview_mode": preview_mode,
+        "doc_id": doc_id,
+        # 统计信息
+        "total_segments": len(segments),
+        "parent_segments": len(result_segments),
+        "child_segments": len(children_content),
+        # 详细内容 - 确保字段名与前端期望一致
+        "parentContent": cleaned_document.page_content,  # 保持原有格式：完整文档内容
+        "childrenContent": children_content,  # 所有子块内容列表
+        "segments": result_segments,  # 层级结构的段落数组
+        # 保留原有的document_overview结构以保持向后兼容
+        "document_overview": {
+            "title": cleaned_document.metadata.get("title", "未命名文档"),
+            "total_length": len(cleaned_document.page_content),
+            "total_segments": len(segments),
+            "parent_segments": len(result_segments),
+            "child_segments": len(children_content)
+        }
     }
+
+    return response
+
+
+def format_enhanced_preview_response(
+    segments: List,
+    cleaned_document: Document,
+    doc_id: str = None,
+    processing_stats: Dict[str, Any] = None
+) -> Dict[str, Any]:
+    """
+    增强的预览响应格式化函数
+
+    提供更智能的预览内容优化和详细的处理统计信息
+    修复：确保与传统处理器的响应格式完全一致
+
+    Args:
+        segments: 分割后的段落列表
+        cleaned_document: 清洗后的文档
+        doc_id: 文档ID
+        processing_stats: 处理统计信息
+
+    Returns:
+        Dict: 增强的预览响应数据
+    """
+    # 修复：使用统一的响应格式化函数确保一致性
+    response = format_unified_response(segments, cleaned_document, doc_id, preview_mode=True)
+
+    # 添加增强的预览信息
+    preview_info = {
+        "is_optimized": True,
+        "optimization_applied": [],
+        "content_analysis": {},
+        "quality_metrics": {}
+    }
+
+    # 内容分析
+    total_content_length = len(cleaned_document.page_content)
+    avg_segment_length = total_content_length / len(segments) if segments else 0
+
+    preview_info["content_analysis"] = {
+        "total_length": total_content_length,
+        "avg_segment_length": int(avg_segment_length),
+        "language_detected": "zh" if any('\u4e00' <= char <= '\u9fff' for char in cleaned_document.page_content[:100]) else "en",
+        "estimated_reading_time": int(total_content_length / 500)  # 假设每分钟500字
+    }
+
+    # 质量指标
+    non_empty_segments = [s for s in segments if s.page_content.strip()]
+    preview_info["quality_metrics"] = {
+        "segment_quality_score": len(non_empty_segments) / len(segments) if segments else 0,
+        "content_density": total_content_length / len(segments) if segments else 0,
+        "structure_preserved": True
+    }
+
+    # 检查是否应用了优化
+    truncated_segments = sum(1 for s in segments if s.metadata.get("content_truncated", False))
+    if truncated_segments > 0:
+        preview_info["optimization_applied"].append("content_truncation")
+        preview_info["truncated_segments"] = truncated_segments
+
+    children_truncated = sum(1 for s in segments if s.metadata.get("children_truncated", False))
+    if children_truncated > 0:
+        preview_info["optimization_applied"].append("children_limitation")
+        preview_info["children_truncated_segments"] = children_truncated
+
+    # 添加处理统计信息
+    if processing_stats:
+        preview_info["processing_stats"] = processing_stats
+
+    # 更新响应
+    response["preview_info"] = preview_info
+    response["message"] = "增强预览生成成功"
+
+    return response
+
+
+def format_preview_response(segments: List, cleaned_document: Document, doc_id: str = None) -> Dict[str, Any]:
+    """
+    格式化文档切割预览响应数据 - 向后兼容函数
+
+    此函数现在调用统一的响应格式化函数，保持向后兼容性。
+
+    Args:
+        segments: 分割后的段落列表
+        cleaned_document: 清洗后的文档
+        doc_id: 文档ID，用于预览模式的子块查询
+
+    Returns:
+        Dict: 格式化的响应数据，包含完整文档的切割概览
+    """
+    return format_unified_response(segments, cleaned_document, doc_id, preview_mode=True)
 
 
 def cleanup_temp_file(file_path: str) -> None:

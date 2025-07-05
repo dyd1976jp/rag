@@ -3,9 +3,9 @@ import uuid
 from datetime import datetime, timezone
 import json
 import httpx
-from app.db.mongodb import mongodb
-from app.models.llm import LLM
-from app.schemas.llm import LLMCreate, LLMUpdate
+from ..db.mongodb import mongodb
+from ..models.llm import LLM
+from ..schemas.llm import LLMCreate, LLMUpdate
 from bson.objectid import ObjectId
 import logging
 

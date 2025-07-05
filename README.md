@@ -1,6 +1,22 @@
 # RAG-Chat 系统
 
-RAG-Chat是一个基于检索增强生成（Retrieval-Augmented Generation, RAG）技术的聊天系统，能够利用用户上传的知识库文档进行智能回答。
+RAG-Chat是一个基于检索增强生成（Retrieval-Augmented Generation, RAG）技术的智能聊天系统，采用现代化的微服务架构和依赖注入设计模式，支持多种文档格式的上传、处理和智能问答。
+
+## 🚀 架构特性
+
+### 核心架构
+- **🏗️ 模块化设计**: 采用FastAPI依赖注入(DI)和组件化架构
+- **📦 组件化RAG**: 可插拔的RAG组件（Loader、Splitter、Embedder、Retriever、Generator、Pipeline）
+- **🐳 容器化部署**: Docker多阶段构建，支持开发/测试/生产环境
+- **🔄 CI/CD流程**: 自动化测试、代码质量检查、安全扫描和部署
+- **📈 监控告警**: Prometheus + Grafana监控体系
+
+### 技术栈
+- **后端**: FastAPI + Python 3.10 + Pydantic
+- **数据库**: MongoDB + Milvus向量数据库 + Redis缓存
+- **AI模型**: OpenAI GPT + Embedding模型
+- **前端**: React + TypeScript + TailwindCSS
+- **部署**: Docker + Nginx + GitHub Actions
 
 ## 文档导航
 
@@ -8,25 +24,111 @@ RAG-Chat是一个基于检索增强生成（Retrieval-Augmented Generation, RAG�
 - [项目文档](docs/README.md) - 开发文档和工作流程指南
 - [测试文档](docs/testing/README.md) - 测试相关说明和指南
 
-## 系统要求
+## 🛠️ 系统要求
 
 ### 后端依赖
-- Python 3.8+
+- Python 3.10+
 - MongoDB 5.0+
 - Milvus 向量数据库 2.3+
+- Redis 6.0+
 - OpenAI API 或兼容的本地模型API
 
 ### 前端依赖
-- Node.js 16+
+- Node.js 18+
 - npm 或 yarn
 
 ### 开发工具
 - pytest (测试框架)
 - black (代码格式化)
-- flake8 (代码检查)
+- ruff (快速代码检查)
 - mypy (类型检查)
+- pre-commit (Git钩子)
 
-## 安装说明
+### 部署工具
+- Docker & Docker Compose
+- Nginx (反向代理)
+- GitHub Actions (CI/CD)
+
+## 🏗️ 架构设计
+
+### 依赖注入架构
+系统采用FastAPI的依赖注入机制，实现了松耦合的组件化设计：
+
+```python
+# 统一的依赖提供者
+from app.dependencies import (
+    get_rag_pipeline,
+    get_document_loader,
+    get_text_splitter,
+    get_embedder,
+    get_retriever,
+    get_generator
+)
+
+# API路由中使用依赖注入
+@router.post("/documents/upload")
+async def upload_document(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    rag_pipeline: IRagPipeline = Depends(get_rag_pipeline)
+):
+    return await rag_pipeline.process_document(file.filename, current_user.id)
+```
+
+### RAG组件化设计
+RAG流程被拆分为独立的可配置组件：
+
+- **DocumentLoader**: 支持多种文档格式加载
+- **TextSplitter**: 智能文本分割和块管理
+- **Embedder**: 向量嵌入生成（支持OpenAI/本地模型）
+- **Retriever**: 基于Milvus的高性能向量检索
+- **Generator**: LLM答案生成（支持多种模型）
+- **RagPipeline**: 流程编排和管理
+
+### 容器化部署架构
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Nginx Proxy   │    │   Frontend App  │    │  Frontend Admin │
+│   (Port 80/443) │    │   (Port 3000)   │    │   (Port 3001)   │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+         ┌─────────────────────────────────────────────────────┐
+         │              RAG Backend API                        │
+         │              (Port 8000)                           │
+         └─────────────────────────────────────────────────────┘
+                                 │
+    ┌────────────────┬───────────┼───────────┬────────────────┐
+    │                │           │           │                │
+┌───▼───┐    ┌──────▼──┐    ┌───▼───┐   ┌──▼──┐    ┌────────▼────────┐
+│MongoDB│    │ Milvus  │    │ Redis │   │Etcd │    │ Monitoring      │
+│       │    │ Vector  │    │ Cache │   │     │    │ (Prometheus +   │
+│       │    │   DB    │    │       │   │     │    │  Grafana)       │
+└───────┘    └─────────┘    └───────┘   └─────┘    └─────────────────┘
+```
+
+## 📦 安装说明
+
+### 方式一：Docker Compose（推荐）
+
+```bash
+# 克隆仓库
+git clone https://github.com/yourusername/RAG-chat.git
+cd RAG-chat
+
+# 复制环境配置
+cp .env.example .env
+# 编辑 .env 文件，填入必要的配置（如OpenAI API Key）
+
+# 启动开发环境
+docker-compose up -d
+
+# 启动生产环境
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### 方式二：手动安装
 
 ### 1. 克隆仓库
 ```bash
@@ -53,11 +155,7 @@ cd frontend-app
 npm install
 ```
 
-#### 管理后台前端
-```bash
-cd frontend-admin
-npm install
-```
+
 
 ### 4. 运行Milvus（必需）
 
@@ -123,7 +221,6 @@ SECRET_KEY=your-secret-key-here-at-least-32-characters
 启动后，系统将自动在后台运行：
 - **后端API服务**: http://localhost:8000
 - **主应用**: http://localhost:5173
-- **管理后台**: http://localhost:5174
 
 ### 手动启动（单独控制）
 
@@ -143,24 +240,15 @@ cd frontend-app
 npm run dev
 ```
 
-**启动管理后台**
-```bash
-cd frontend-admin
-npm run dev
-```
+
 
 ### 3. 访问系统
 
 - **主应用**: http://localhost:5173
-- **管理后台**: http://localhost:5174
 
-### 管理员登录
+### 用户登录
 
-访问管理后台后，使用以下默认凭据登录：
-- **用户名**: admin
-- **密码**: adminpassword
-
-⚠️ **注意**: 在生产环境中，请修改默认密码以提高安全性。
+访问主应用后，可以注册新用户或使用现有账户登录。
 
 ## 使用指南
 
@@ -190,7 +278,7 @@ npm run dev
 
 2. **依赖问题**
    - 确保已安装所有必要的依赖：`pip install -r backend/requirements.txt`
-   - 前端依赖：`cd frontend-app && npm install` 和 `cd frontend-admin && npm install`
+   - 前端依赖：`cd frontend-app && npm install`
 
 3. **权限问题**
    - 确保脚本有执行权限：`chmod +x scripts/start.sh scripts/stop.sh`
@@ -253,7 +341,6 @@ RAG-chat/
 │   ├── requirements.txt       # 生产依赖
 │   └── requirements-dev.txt   # 开发依赖
 ├── frontend-app/              # 主应用前端
-├── frontend-admin/            # 管理后台前端
 ├── scripts/                   # 管理脚本
 │   ├── database/              # 数据库管理脚本
 │   ├── testing/               # 测试脚本（Python版本）

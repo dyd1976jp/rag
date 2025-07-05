@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { DocumentCollection } from '../types/documentCollection';
 import { Document } from '../utils/types';
 import * as documentCollectionApi from '../api/documentCollections';
+import { createUploadFormDataForUpload } from '../utils/documentUploadConfig';
 
 const DocumentCollectionDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -69,13 +70,8 @@ const DocumentCollectionDetail: React.FC = () => {
       setUploading(true);
       setError('');
       
-      // 创建 FormData
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('chunk_size', '512');
-      formData.append('chunk_overlap', '50');
-      formData.append('split_by_paragraph', 'true');
-      formData.append('split_by_sentence', 'true');
+      // 使用新的配置系统创建上传用的 FormData
+      const formData = createUploadFormDataForUpload(file);
 
       // 上传文件
       const response = await fetch('/api/v1/rag/documents/upload', {

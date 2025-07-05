@@ -33,6 +33,7 @@ class PDFProcessor:
                 # 如果传入的是元数据字典，创建新的Document对象
                 return Document(
                     page_content=text,
+                    doc_id=document.get("doc_id"),  # Set doc_id attribute from metadata
                     metadata=document
                 )
             
@@ -51,6 +52,7 @@ class PDFProcessor:
             # 创建文档对象
             document = Document(
                 page_content=text,
+                doc_id=metadata.get("doc_id"),  # Set doc_id attribute from metadata
                 metadata=metadata
             )
             

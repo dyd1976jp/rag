@@ -14,7 +14,7 @@
 
 #### 系统架构
 - **前后端分离架构**
-  - 前端：React + TypeScript + TailwindCSS（主应用 + 管理后台）
+  - 前端：React + TypeScript + TailwindCSS（主应用）
   - 后端：FastAPI + Python 3.10
   - 数据层：MongoDB + Milvus向量数据库
 
@@ -23,6 +23,614 @@
   - Docker容器化支持
   - 支持单机/集群部署
   - 基于shell脚本的自动化部署
+
+## 文件存储位置规划
+
+### 1. 目录结构规划
+
+#### 1.1 根目录结构
+```
+RAG-chat/                           # 项目根目录
+├── README.md                       # 项目主要说明文档
+├── PLANNING.md                     # 项目规划文档（本文件）
+├── TASK.md                         # 任务管理文档
+├── pyproject.toml                  # Python项目配置文件
+├── docker-compose.yml              # Docker开发环境配置
+├── docker-compose.prod.yml         # Docker生产环境配置
+├── Dockerfile                      # Docker镜像构建文件
+├── .env.example                    # 环境变量示例文件
+├── .gitignore                      # Git忽略文件配置
+├── backend/                        # 后端应用目录
+├── frontend-app/                   # 前端应用目录
+├── data/                           # 数据存储目录
+├── docs/                           # 项目文档目录
+├── scripts/                        # 脚本工具目录
+├── tests/                          # 根级测试目录（如有需要）
+├── temp/                           # 临时文件目录
+├── logs/                           # 日志文件目录
+├── monitoring/                     # 监控配置目录
+├── nginx/                          # Nginx配置目录
+├── examples/                       # 示例代码目录
+└── 参考项目/                       # 参考项目目录
+```
+
+#### 1.2 后端目录结构（backend/）
+```
+backend/
+├── README.md                       # 后端说明文档
+├── pyproject.toml                  # 后端项目配置
+├── requirements.txt                # 生产环境依赖
+├── requirements-dev.txt            # 开发环境依赖
+├── app/                            # 应用核心代码
+│   ├── __init__.py
+│   ├── main.py                     # FastAPI应用入口
+│   ├── dependencies.py             # 依赖注入
+│   ├── core/                       # 核心配置模块
+│   │   ├── __init__.py
+│   │   ├── config.py               # 应用配置
+│   │   ├── security.py             # 安全配置
+│   │   └── paths.py                # 路径配置
+│   ├── api/                        # API路由模块
+│   │   ├── __init__.py
+│   │   ├── router.py               # 主路由
+│   │   ├── auth/                   # 认证相关API
+│   │   ├── admin/                  # 管理员API
+│   │   └── v1/                     # API版本1
+│   ├── models/                     # 数据模型
+│   │   ├── __init__.py
+│   │   ├── user.py                 # 用户模型
+│   │   └── ...
+│   ├── schemas/                    # Pydantic模式
+│   │   ├── __init__.py
+│   │   └── ...
+│   ├── services/                   # 业务逻辑服务
+│   │   ├── __init__.py
+│   │   ├── auth/                   # 认证服务
+│   │   ├── llm/                    # LLM服务
+│   │   └── user/                   # 用户服务
+│   ├── rag/                        # RAG核心模块
+│   │   ├── __init__.py
+│   │   ├── components/             # RAG组件
+│   │   ├── interfaces.py           # 接口定义
+│   │   └── ...
+│   ├── db/                         # 数据库模块
+│   │   ├── __init__.py
+│   │   ├── session.py              # 数据库会话
+│   │   └── ...
+│   └── utils/                      # 工具函数
+├── database/                       # 数据库相关
+│   ├── __init__.py
+│   ├── config/                     # 数据库配置
+│   ├── models/                     # 数据库模型
+│   └── scripts/                    # 数据库脚本
+├── tests/                          # 后端测试
+│   ├── __init__.py
+│   ├── conftest.py                 # pytest配置
+│   ├── unit/                       # 单元测试
+│   ├── integration/                # 集成测试
+│   ├── performance/                # 性能测试
+│   ├── fixtures/                   # 测试夹具
+│   ├── mocks/                      # 模拟对象
+│   ├── data/                       # 测试数据
+│   ├── utils/                      # 测试工具
+│   └── scripts/                    # 测试脚本
+├── scripts/                        # 后端专用脚本
+├── data/                           # 后端数据文件
+├── debug/                          # 调试文件
+├── reports/                        # 测试报告
+├── htmlcov/                        # 覆盖率报告
+└── coverage.json                   # 覆盖率数据
+```
+
+#### 1.3 前端目录结构（frontend-app/）
+```
+frontend-app/
+├── README.md                       # 前端说明文档
+├── package.json                    # Node.js项目配置
+├── package-lock.json               # 依赖锁定文件
+├── tsconfig.json                   # TypeScript配置
+├── tsconfig.node.json              # Node.js TypeScript配置
+├── vite.config.ts                  # Vite构建配置
+├── tailwind.config.js              # TailwindCSS配置
+├── postcss.config.js               # PostCSS配置
+├── index.html                      # HTML入口文件
+├── public/                         # 静态资源
+│   ├── favicon.ico
+│   └── ...
+├── src/                            # 源代码
+│   ├── main.tsx                    # 应用入口
+│   ├── App.tsx                     # 主应用组件
+│   ├── components/                 # 可复用组件
+│   ├── pages/                      # 页面组件
+│   ├── hooks/                      # 自定义Hooks
+│   ├── services/                   # API服务
+│   ├── utils/                      # 工具函数
+│   ├── types/                      # TypeScript类型定义
+│   ├── styles/                     # 样式文件
+│   └── assets/                     # 资源文件
+├── dist/                           # 构建输出目录
+└── node_modules/                   # Node.js依赖
+```
+
+#### 1.4 数据目录结构（data/）
+```
+data/
+├── README.md                       # 数据目录说明
+├── raw/                            # 原始数据
+│   ├── documents/                  # 原始文档
+│   └── datasets/                   # 原始数据集
+├── processed/                      # 处理后数据
+│   ├── uploads/                    # 上传文件处理结果
+│   ├── vectors/                    # 向量数据
+│   ├── embeddings/                 # 嵌入数据
+│   ├── cache/                      # 缓存数据
+│   ├── splitter_cache/             # 分割器缓存
+│   ├── exports/                    # 导出数据
+│   └── results/                    # 处理结果
+├── uploads/                        # 用户上传文件
+├── exports/                        # 数据导出
+├── cache/                          # 系统缓存
+│   └── splitter/                   # 分割器缓存
+├── temp/                           # 临时数据
+├── test_data/                      # 测试数据
+├── db/                             # 数据库文件
+│   ├── mongodb/                    # MongoDB数据
+│   ├── milvus/                     # Milvus数据
+│   └── chroma/                     # ChromaDB数据
+├── vectors/                        # 向量存储
+├── embeddings/                     # 嵌入存储
+├── results/                        # 结果存储
+├── splitter_cache/                 # 分割缓存
+└── chroma/                         # ChromaDB存储
+```
+
+#### 1.5 文档目录结构（docs/）
+```
+docs/
+├── README.md                       # 文档目录说明
+├── API_REFERENCE.md                # API参考文档
+├── ARCHITECTURE.md                 # 架构文档
+├── CODE_QUALITY.md                 # 代码质量标准
+├── DEPENDENCIES.md                 # 依赖管理文档
+├── api/                            # API文档
+│   ├── README.md
+│   ├── API_DOCUMENTATION.md        # API详细文档
+│   ├── API_DOCUMENTATION_SUMMARY.md
+│   ├── ENDPOINT_UNIFICATION.md     # 端点统一文档
+│   └── api_endpoints_summary.json  # API端点摘要
+├── development/                    # 开发文档
+│   ├── README.md
+│   ├── CONTRIBUTING.md             # 贡献指南
+│   ├── DEVLOG.md                   # 开发日志
+│   ├── WORKFLOW.md                 # 工作流程
+│   ├── TASKS.md                    # 任务管理
+│   ├── TASK_TEMPLATE.md            # 任务模板
+│   └── debugging/                  # 调试文档
+├── deployment/                     # 部署文档
+│   └── STARTUP_GUIDE.md            # 启动指南
+├── testing/                        # 测试文档
+│   ├── README.md
+│   └── api_test_report.md          # API测试报告
+├── fixes/                          # 修复文档
+│   ├── fix_summary.md              # 修复摘要
+│   ├── utf8_encoding_fix.md        # UTF-8编码修复
+│   └── ...                         # 其他修复文档
+├── github_templates/               # GitHub模板
+│   └── ISSUE_TEMPLATE/             # Issue模板
+├── implementation_summary.md       # 实现摘要
+└── parent_child_numbering_system.md # 父子编号系统
+```
+
+#### 1.6 脚本目录结构（scripts/）
+```
+scripts/
+├── README.md                       # 脚本目录说明
+├── backend/                        # 后端脚本
+│   ├── README.md
+│   ├── create_admin.py             # 创建管理员
+│   ├── migrate_collections.py      # 集合迁移
+│   └── verify_milvus_fixes.py      # Milvus修复验证
+├── database/                       # 数据库脚本
+│   ├── README.md
+│   ├── __init__.py
+│   ├── init_db.py                  # 数据库初始化
+│   ├── init_db.sh                  # 数据库初始化脚本
+│   ├── initialize_milvus.py        # Milvus初始化
+│   ├── check_stored_data.py        # 检查存储数据
+│   ├── export_documents.py         # 导出文档
+│   ├── inspect_vectors.py          # 检查向量
+│   └── rebuild_collection.py       # 重建集合
+├── deployment/                     # 部署脚本
+│   ├── README.md
+│   ├── restart_backend.sh          # 重启后端
+│   └── restart_backend_with_init.sh # 重启并初始化
+├── setup/                          # 安装脚本
+│   ├── README.md
+│   └── initialize.sh               # 项目初始化
+├── testing/                        # 测试脚本
+│   ├── README.md
+│   ├── run_tests.py                # 运行测试
+│   ├── test_api_endpoints.sh       # API端点测试
+│   ├── test_document_upload.sh     # 文档上传测试
+│   ├── test_document_upload_detailed.sh # 详细上传测试
+│   ├── test_endpoint_consistency.sh # 端点一致性测试
+│   └── test_utf8_fix.sh            # UTF-8修复测试
+└── tools/                          # 工具脚本
+    ├── README.md
+    ├── api_summary.py              # API摘要生成
+    ├── code_quality_check.py       # 代码质量检查
+    ├── generate_api_docs.py        # API文档生成
+    ├── fix_symlinks.sh             # 修复符号链接
+    ├── validate_symlinks.sh        # 验证符号链接
+    ├── sync_github_templates.sh    # 同步GitHub模板
+    └── weekly_maintenance_check.sh # 周维护检查
+```
+
+#### 1.7 其他目录结构
+```
+temp/                               # 临时文件目录
+├── config_backup/                  # 配置备份
+├── data_backup/                    # 数据备份
+├── requirements-backup/            # 依赖备份
+├── tests-backup/                   # 测试备份
+├── deleted-tests-backup/           # 已删除测试备份
+├── shell_tests_backup/             # Shell测试备份
+├── tests-backup-20250627-215030/   # 时间戳备份
+└── temp/                           # 临时子目录
+
+logs/                               # 日志目录
+├── app/                            # 应用日志
+├── services/                       # 服务日志
+├── tests/                          # 测试日志
+├── maintenance/                    # 维护日志
+└── app.log                         # 主应用日志
+
+monitoring/                         # 监控配置
+├── prometheus.yml                  # Prometheus配置
+└── alert_rules.yml                 # 告警规则
+
+nginx/                              # Nginx配置
+├── nginx.conf                      # 开发环境配置
+└── nginx.prod.conf                 # 生产环境配置
+
+examples/                           # 示例代码
+├── parent_child_numbering_demo.py  # 父子编号示例
+└── unified_document_api_demo.py    # 统一文档API示例
+
+参考项目/                           # 参考项目目录
+└── (参考项目文件)                  # 开发参考资料
+```
+
+### 2. 文件分类规则
+
+#### 2.1 源代码文件组织
+- **按功能模块组织**：
+  - `backend/app/api/` - API路由和端点
+  - `backend/app/services/` - 业务逻辑服务
+  - `backend/app/rag/` - RAG核心功能
+  - `backend/app/models/` - 数据模型定义
+  - `backend/app/schemas/` - API数据模式
+
+- **按文件类型组织**：
+  - `.py` - Python源代码文件
+  - `.ts/.tsx` - TypeScript/React文件
+  - `.js/.jsx` - JavaScript/React文件
+  - `.html` - HTML模板文件
+  - `.css/.scss` - 样式文件
+
+#### 2.2 配置文件统一存放
+- **根级配置文件**：
+  - `pyproject.toml` - Python项目配置
+  - `docker-compose.yml` - Docker开发配置
+  - `docker-compose.prod.yml` - Docker生产配置
+  - `.env.example` - 环境变量示例
+
+- **应用级配置文件**：
+  - `backend/app/core/config.py` - 后端应用配置
+  - `frontend-app/package.json` - 前端项目配置
+  - `frontend-app/vite.config.ts` - 前端构建配置
+
+- **服务配置文件**：
+  - `nginx/nginx.conf` - Nginx配置
+  - `monitoring/prometheus.yml` - 监控配置
+
+#### 2.3 测试文件与源代码对应关系
+- **测试文件位置**：
+  - `backend/tests/` - 后端测试根目录
+  - `backend/tests/unit/` - 单元测试
+  - `backend/tests/integration/` - 集成测试
+  - `backend/tests/performance/` - 性能测试
+
+- **测试文件命名对应**：
+  - 源文件：`backend/app/services/auth/auth.py`
+  - 测试文件：`backend/tests/unit/services/auth/test_auth.py`
+  - 集成测试：`backend/tests/integration/test_auth_integration.py`
+
+#### 2.4 文档文件分类和存放规则
+- **API文档**：`docs/api/` - API相关文档
+- **开发文档**：`docs/development/` - 开发指南和流程
+- **部署文档**：`docs/deployment/` - 部署和运维文档
+- **修复文档**：`docs/fixes/` - 问题修复记录
+- **测试文档**：`docs/testing/` - 测试相关文档
+
+#### 2.5 数据文件管理
+- **原始数据**：`data/raw/` - 未处理的原始数据
+- **处理数据**：`data/processed/` - 经过处理的数据
+- **上传文件**：`data/uploads/` - 用户上传的文件
+- **缓存数据**：`data/cache/` - 系统缓存文件
+- **临时数据**：`data/temp/` - 临时处理文件
+- **测试数据**：`data/test_data/` - 测试专用数据
+
+#### 2.6 临时文件和日志文件管理
+- **临时文件**：
+  - `temp/` - 根级临时文件
+  - `temp/config_backup/` - 配置备份
+  - `temp/data_backup/` - 数据备份
+  - `temp/tests-backup/` - 测试备份
+
+- **日志文件**：
+  - `logs/app/` - 应用日志
+  - `logs/services/` - 服务日志
+  - `logs/tests/` - 测试日志
+  - `logs/maintenance/` - 维护日志
+
+### 3. 命名规范
+
+#### 3.1 文件和目录命名约定
+- **目录命名**：
+  - 使用小写字母和下划线：`user_service/`
+  - 复数形式用于集合：`models/`, `services/`, `tests/`
+  - 单数形式用于单一概念：`config/`, `core/`
+
+- **Python文件命名**：
+  - 模块文件：`user_service.py`
+  - 测试文件：`test_user_service.py`
+  - 配置文件：`config.py`, `settings.py`
+  - 初始化文件：`__init__.py`
+
+- **前端文件命名**：
+  - 组件文件：`UserProfile.tsx` (PascalCase)
+  - 工具文件：`apiClient.ts` (camelCase)
+  - 样式文件：`user-profile.css` (kebab-case)
+  - 类型文件：`types.ts`, `interfaces.ts`
+
+#### 3.2 不同类型文件的命名模式
+- **API路由文件**：
+  - `auth.py` - 认证相关路由
+  - `user.py` - 用户相关路由
+  - `admin.py` - 管理员路由
+
+- **服务文件**：
+  - `auth_service.py` - 认证服务
+  - `user_service.py` - 用户服务
+  - `llm_service.py` - LLM服务
+
+- **模型文件**：
+  - `user.py` - 用户模型
+  - `document.py` - 文档模型
+  - `collection.py` - 集合模型
+
+- **测试文件**：
+  - `test_auth.py` - 认证测试
+  - `test_user_service.py` - 用户服务测试
+  - `test_integration.py` - 集成测试
+
+#### 3.3 版本控制和备份文件命名规则
+- **备份文件**：
+  - 时间戳格式：`backup-YYYYMMDD-HHMMSS/`
+  - 功能描述：`config_backup/`, `data_backup/`
+  - 版本号：`v1.0.0-backup/`
+
+- **临时文件**：
+  - 调试文件：`debug_*.py`, `test_*.py`
+  - 临时脚本：`temp_*.py`, `fix_*.py`
+  - 验证文件：`verify_*.py`, `check_*.py`
+
+### 4. 具体实施计划
+
+#### 4.1 当前需要移动或重组的文件清单
+
+##### 4.1.1 根目录清理（高优先级）
+**需要移动的文件**：
+- `create_admin.py` → `scripts/backend/create_admin.py` ✅ 已完成
+- `init_db.py` → `scripts/database/init_db.py` ✅ 已完成
+- `init_db.sh` → `scripts/database/init_db.sh` ✅ 已完成
+- `initialize.sh` → `scripts/setup/initialize.sh` ✅ 已完成
+- `restart_backend.sh` → `scripts/deployment/restart_backend.sh` ✅ 已完成
+- `restart_backend_with_init.sh` → `scripts/deployment/restart_backend_with_init.sh` ✅ 已完成
+
+**需要移动的测试和调试文件**：
+- `test_*.py` → `temp/` 或删除（如已过时）
+- `debug_*.html` → `temp/`
+- `fix_*.py` → `temp/`
+- `*_fix_*.txt` → `temp/`
+- `*.json` (API响应文件) → `temp/`
+
+**需要保留的根目录文件**：
+- `README.md` - 项目主文档
+- `PLANNING.md` - 项目规划文档
+- `TASK.md` - 任务管理文档
+- `pyproject.toml` - Python项目配置
+- `docker-compose.yml` - Docker配置
+- `docker-compose.prod.yml` - 生产环境配置
+- `Dockerfile` - Docker镜像配置
+
+##### 4.1.2 重复文件处理（中优先级）
+**需要合并或删除的重复文件**：
+- `htmlcov/` (根目录) → 删除，保留 `backend/htmlcov/`
+- `coverage.xml` (根目录) → 删除，保留 `backend/coverage.json`
+- 重复的测试文件 → 合并到 `backend/tests/`
+
+##### 4.1.3 配置文件统一（中优先级）
+**需要检查和统一的配置**：
+- 环境变量配置：创建 `.env.example`
+- 依赖管理：统一使用 `pyproject.toml`
+- 测试配置：统一到 `backend/tests/pytest.ini`
+
+#### 4.2 文件移动的优先级和顺序
+
+##### 第一阶段：根目录清理（立即执行）
+1. **移动脚本文件** ✅ 已完成
+   - 所有 `.sh` 和 `.py` 脚本文件移动到 `scripts/` 对应子目录
+
+2. **移动测试和调试文件**
+   - 临时测试文件移动到 `temp/`
+   - 过时的调试文件移动到 `temp/` 或删除
+
+3. **清理重复文件**
+   - 删除根目录的重复覆盖率报告
+   - 合并重复的配置文件
+
+##### 第二阶段：目录结构优化（1-2天内）
+1. **优化后端目录结构**
+   - 确保 `backend/app/` 结构符合规范
+   - 整理 `backend/tests/` 目录结构
+   - 清理 `backend/debug/` 目录
+
+2. **优化数据目录结构**
+   - 整理 `data/` 子目录
+   - 清理过时的缓存文件
+   - 备份重要数据文件
+
+##### 第三阶段：文档和配置整理（3-5天内）
+1. **文档结构优化**
+   - 整理 `docs/` 目录结构
+   - 更新过时的文档内容
+   - 统一文档格式
+
+2. **配置管理优化**
+   - 创建统一的环境配置
+   - 优化Docker配置
+   - 统一依赖管理
+
+#### 4.3 需要保留的历史文件处理方式
+
+##### 4.3.1 备份策略
+- **重要配置备份**：`temp/config_backup/`
+- **数据文件备份**：`temp/data_backup/`
+- **测试文件备份**：`temp/tests-backup/`
+- **历史版本备份**：`temp/tests-backup-YYYYMMDD-HHMMSS/`
+
+##### 4.3.2 历史文件分类
+- **保留文件**：
+  - 包含重要业务逻辑的调试文件
+  - 有参考价值的测试文件
+  - 重要的修复记录文件
+
+- **归档文件**：
+  - 移动到 `temp/` 目录
+  - 添加时间戳标记
+  - 保留6个月后考虑删除
+
+- **删除文件**：
+  - 明确过时的临时文件
+  - 重复的配置文件
+  - 空的或无用的测试文件
+
+### 5. 文件组织执行标准
+
+#### 5.1 新文件创建规则
+- **源代码文件**：
+  - 后端Python文件：必须放在 `backend/app/` 对应功能目录
+  - 前端TypeScript文件：必须放在 `frontend-app/src/` 对应功能目录
+  - 测试文件：必须放在 `backend/tests/` 对应目录结构
+
+- **配置文件**：
+  - 应用级配置：放在对应应用的 `config/` 目录
+  - 项目级配置：放在项目根目录
+  - 服务配置：放在对应服务目录（如 `nginx/`, `monitoring/`）
+
+- **文档文件**：
+  - API文档：`docs/api/`
+  - 开发文档：`docs/development/`
+  - 修复记录：`docs/fixes/`
+  - 其他文档：`docs/` 对应子目录
+
+- **脚本文件**：
+  - 后端脚本：`scripts/backend/`
+  - 数据库脚本：`scripts/database/`
+  - 部署脚本：`scripts/deployment/`
+  - 工具脚本：`scripts/tools/`
+
+#### 5.2 文件移动和重组标准
+- **移动前检查**：
+  - 检查文件引用关系
+  - 确认文件的实际用途
+  - 备份重要文件
+
+- **移动优先级**：
+  1. 优先移动而非删除相似文件
+  2. 保留有历史价值的调试文件
+  3. 合并功能相似的文件
+
+- **移动后验证**：
+  - 检查引用路径是否正确
+  - 运行相关测试确保功能正常
+  - 更新文档中的路径引用
+
+#### 5.3 文件维护规范
+- **定期清理**：
+  - 每月清理 `temp/` 目录过时文件
+  - 每季度检查 `data/cache/` 缓存文件
+  - 每半年归档历史备份文件
+
+- **版本控制**：
+  - 重要文件变更必须提交到Git
+  - 临时文件添加到 `.gitignore`
+  - 备份文件不提交到版本控制
+
+- **文档同步**：
+  - 文件结构变更后及时更新文档
+  - 保持 `README.md` 文件的准确性
+  - 更新相关的配置文件路径
+
+### 6. 文件组织合规性检查
+
+#### 6.1 自动化检查脚本
+创建以下检查脚本：
+- `scripts/tools/validate_file_structure.py` - 验证文件结构合规性
+- `scripts/tools/check_file_references.py` - 检查文件引用完整性
+- `scripts/tools/cleanup_temp_files.py` - 清理临时文件
+
+#### 6.2 合规性检查清单
+- [ ] 所有源代码文件在正确的目录结构中
+- [ ] 测试文件与源代码文件对应关系正确
+- [ ] 配置文件统一管理
+- [ ] 文档文件分类清晰
+- [ ] 临时文件定期清理
+- [ ] 备份文件有明确的保留策略
+
+#### 6.3 违规处理流程
+1. **发现违规**：通过自动化脚本或人工检查
+2. **评估影响**：确定违规的严重程度和影响范围
+3. **制定方案**：制定文件重组或移动方案
+4. **执行整改**：按照本规划执行文件移动
+5. **验证结果**：确保整改后符合规范
+6. **更新文档**：更新相关文档和配置
+
+### 7. 总结
+
+本文件存储位置规划为RAG-chat项目建立了完整的文件组织标准，包括：
+
+1. **清晰的目录层次结构**：7个主要目录，每个目录有明确的用途
+2. **详细的文件分类规则**：按功能、类型、用途进行分类
+3. **统一的命名规范**：支持Python、TypeScript等多种语言
+4. **具体的实施计划**：分阶段执行，优先级明确
+5. **完善的维护机制**：定期检查、自动化验证、合规性保证
+
+**执行原则**：
+- 所有新文件必须按照本规划创建
+- 现有文件逐步按计划重组
+- 保持向后兼容，谨慎处理历史文件
+- 定期维护，持续优化文件组织结构
+
+**下一步行动**：
+1. 立即执行根目录清理（移动测试和调试文件）
+2. 创建自动化检查脚本
+3. 逐步优化各子目录结构
+4. 建立定期维护机制
+
+---
 
 ## 技术范围与架构
 
@@ -169,7 +777,7 @@ RAG系统通过以下方式增强大型语言模型(LLM)：
 
 ### 第三阶段：API与界面（已完成 ✅）
 - [x] 完整API接口开发（24个端点）
-- [x] 前端界面开发（主应用 + 管理后台）
+- [x] 前端界面开发（主应用）
 - [x] 用户认证系统
 - [x] 文档集合管理
 

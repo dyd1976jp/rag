@@ -14,25 +14,34 @@ import os
 import logging
 import shutil
 import uuid
-from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List
 
-from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Form, Path, Query, Body
+from fastapi import APIRouter, Depends, File, UploadFile, Form, Path
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
 
-from app.api.deps import get_current_user
+from app.dependencies import (
+    get_current_user,
+    get_rag_service,
+    get_llm_service,
+    get_rag_pipeline,
+    get_parent_child_processor
+)
 from app.api.v1.utils import (
     SUPPORTED_EXTENSIONS,
     validate_file_type,
     save_uploaded_file,
     process_document_by_type,
     create_split_rule,
-    format_preview_response,
+    format_unified_response,
+    #format_enhanced_preview_response,
     cleanup_temp_file,
     log_document_info,
     log_split_statistics
 )
+from app.api.v1.utils.document_utils import (
+    format_enhanced_preview_response
+)
+
 from app.schemas.rag import (
     DocumentUploadResponse,
     DocumentSearchRequest,
@@ -43,195 +52,28 @@ from app.schemas.rag import (
     RAGChatResponse,
     RAGStatusResponse,
     DocumentResponse,
-    DocumentSlicePreviewRequest,
     DocumentSlicePreviewResponse
 )
+from app.rag.processor_factory import ProcessorType, ProcessorConfig
+from app.rag.index_processor import BaseIndexProcessor, ExtractSetting, ProcessRule, ParentMode, PreviewModeManager
 from app.services.rag_service import RAGService
 from app.services.llm_service import LLMService
+from app.rag.interfaces import IRagPipeline
 from app.models.user import User
 import app.rag as rag
 from app.rag.models import Document
-from app.rag.extractor.extract_processor import ExtractProcessor, ExtractMode
 from app.rag.document_splitter import ParentChildDocumentSplitter, Rule, SplitMode
 
 # 配置日志
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-llm_service = LLMService()
-rag_service = RAGService()
 
-# 定义文档切割预览请求模型（用于纯文本内容预览）
-class DocumentSplitRequest(BaseModel):
-    content: str = Field(..., description="要分割的文本内容", min_length=1)
-    parent_chunk_size: int = Field(1024, description="父块分段最大长度", gt=0)
-    parent_chunk_overlap: int = Field(200, description="父块重叠长度", ge=0)
-    parent_separator: str = Field("\n\n", description="父块分段标识符")
-    child_chunk_size: int = Field(512, description="子块分段最大长度", gt=0)
-    child_chunk_overlap: int = Field(50, description="子块重叠长度", ge=0)
-    child_separator: str = Field("\n", description="子块分段标识符")
+# 注意：DocumentSplitRequest 和 DocumentSplitPreviewResponse 模型已被删除
+# 请使用 /documents/upload 端点并设置 preview_only=true 进行文档预览
 
-# 定义文档切割预览响应模型
-class DocumentSplitPreviewResponse(BaseModel):
-    success: bool
-    message: Optional[str] = None
-    segments: Optional[List[Dict[str, Any]]] = None
-    total_segments: Optional[int] = None
-    parentContent: Optional[str] = None
-    childrenContent: Optional[List[str]] = None
-
-@router.post("/documents/preview-split", response_model=DocumentSplitPreviewResponse)
-async def preview_document_split(
-    request: DocumentSplitRequest,
-    current_user: User = Depends(get_current_user)
-):
-    """
-    预览纯文本内容的分割结果
-
-    此端点仅用于预览纯文本内容的分割效果。
-
-    **重要提示：**
-    - 如果需要上传文件并预览分割结果，请使用 `POST /documents/upload` 端点，并设置 `preview_only=true`
-    - 此端点只接受JSON格式的请求体，不支持文件上传
-    - 适用于已有文本内容的分割预览场景
-
-    Args:
-        request: 包含文本内容和分割参数的请求体
-        current_user: 当前用户信息
-
-    Returns:
-        DocumentSplitPreviewResponse: 分割预览结果
-    """
-    try:
-        logger.info(f"=== 开始纯文本分割预览 ===")
-        logger.info(f"用户: {current_user.email}")
-        logger.info(f"文本长度: {len(request.content)} 字符")
-        logger.info(f"分割参数: parent_size={request.parent_chunk_size}, child_size={request.child_chunk_size}")
-
-        # 验证文本内容
-        if not request.content.strip():
-            raise HTTPException(status_code=400, detail="文本内容不能为空")
-
-        # 创建文档对象
-        document = Document(
-            page_content=request.content,
-            metadata={
-                "source": "direct_input",
-                "doc_id": str(uuid.uuid4()),
-                "document_id": str(uuid.uuid4()),
-                "user_id": str(current_user.id)
-            }
-        )
-
-        logger.info(f"创建文档对象完成")
-
-        # 清洗文档内容
-        logger.info(f"清洗文档内容")
-        cleaned_document = rag.document_processor.clean_document(document)
-
-        # 创建分割器和规则
-        splitter = ParentChildDocumentSplitter()
-        rule = Rule(
-            mode=SplitMode.PARENT_CHILD,
-            max_tokens=request.parent_chunk_size,
-            chunk_overlap=request.parent_chunk_overlap,
-            fixed_separator=request.parent_separator,
-            subchunk_max_tokens=request.child_chunk_size,
-            subchunk_overlap=request.child_chunk_overlap,
-            subchunk_separator=request.child_separator,
-            clean_text=True,
-            keep_separator=True
-        )
-
-        logger.info(f"开始执行分割")
-        segments = splitter.split_documents([cleaned_document], rule)
-        logger.info(f"分割完成，生成 {len(segments) if segments else 0} 个段落")
-
-        if not segments:
-            return DocumentSplitPreviewResponse(
-                success=False,
-                message="文档分割后未产生有效内容"
-            )
-
-        # 格式化预览结果 - 使用与format_preview_response相同的逻辑确保父块ID连续
-        parent_segments = {}  # 存储父段落，按parent_id索引
-        child_segments = {}   # 存储子段落，按parent_id分组
-        children_content = []
-        parent_counter = 0    # 父块连续ID计数器
-
-        # 第一步：分类父子段落，为父块分配连续ID
-        for i, segment in enumerate(segments):
-            segment_type = segment.metadata.get("type", "unknown")
-            parent_id = segment.metadata.get("parent_id")
-
-            if segment_type == "parent":
-                # 父段落：分配连续的ID
-                segment_data = {
-                    "id": parent_counter,  # 使用连续的父块ID
-                    "content": segment.page_content,
-                    "start": segment.metadata.get("chunk_start", 0),
-                    "end": segment.metadata.get("chunk_end", len(segment.page_content)),
-                    "length": len(segment.page_content),
-                    "type": segment_type
-                }
-
-                # 使用原始的segment ID作为key来关联子块
-                segment_id = segment.metadata.get("id", str(i))
-                parent_segments[segment_id] = segment_data
-                parent_counter += 1  # 递增父块计数器
-
-            elif segment_type == "child" and parent_id:
-                # 子段落：保持原始索引作为ID
-                segment_data = {
-                    "id": i,  # 子块保持原始索引
-                    "content": segment.page_content,
-                    "start": segment.metadata.get("chunk_start", 0),
-                    "end": segment.metadata.get("chunk_end", len(segment.page_content)),
-                    "length": len(segment.page_content),
-                    "type": segment_type
-                }
-
-                if parent_id not in child_segments:
-                    child_segments[parent_id] = []
-                child_segments[parent_id].append(segment_data)
-                children_content.append(segment.page_content)
-
-        # 第二步：构建最终的段落列表（平铺结构，用于兼容现有API）
-        result_segments = []
-
-        # 添加所有父段落
-        for segment in parent_segments.values():
-            result_segments.append(segment)
-
-        # 添加所有子段落
-        for child_list in child_segments.values():
-            result_segments.extend(child_list)
-
-        # 按ID排序以保持正确顺序
-        result_segments.sort(key=lambda x: x["id"])
-
-        logger.info(f"预览结果格式化完成，返回 {len(result_segments)} 个段落（父块ID已修复为连续）")
-
-        return DocumentSplitPreviewResponse(
-            success=True,
-            message="文本分割预览成功",
-            segments=result_segments,
-            total_segments=len(result_segments),
-            parentContent=cleaned_document.page_content,
-            childrenContent=children_content
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"纯文本分割预览失败: {str(e)}")
-        import traceback
-        logger.error(f"详细错误: {traceback.format_exc()}")
-
-        return DocumentSplitPreviewResponse(
-            success=False,
-            message=f"文本分割预览失败: {str(e)}"
-        )
+# 注意：preview_document_split 端点已被删除
+# 请使用 /documents/upload 端点并设置 preview_only=true 进行文档预览
 
 def _decode_separator(separator: str) -> str:
     """
@@ -249,7 +91,216 @@ def _decode_separator(separator: str) -> str:
     separator = separator.replace('\\r', '\r')
     return separator
 
-@router.post("/documents/upload")
+
+async def _process_document_with_index_processor(
+    file_path: str,
+    file_name: str,
+    doc_id: str,
+    dataset_id: str,
+    metadata: dict,
+    processor_type: str,
+    parent_mode: str,
+    parent_chunk_size: int,
+    parent_chunk_overlap: int,
+    parent_separator: str,
+    child_chunk_size: int,
+    child_chunk_overlap: int,
+    child_separator: str,
+    preview_only: bool,
+    current_user,
+    index_processor: BaseIndexProcessor,
+    rag_service
+) -> dict:
+    """
+    使用IndexProcessor处理文档的新实现
+
+    Args:
+        file_path: 文件路径
+        file_name: 文件名
+        doc_id: 文档ID
+        dataset_id: 数据集ID
+        metadata: 元数据
+        processor_type: 处理器类型
+        parent_mode: 父文档模式
+        parent_chunk_size: 父块大小
+        parent_chunk_overlap: 父块重叠
+        parent_separator: 父块分隔符
+        child_chunk_size: 子块大小
+        child_chunk_overlap: 子块重叠
+        child_separator: 子块分隔符
+        preview_only: 是否仅预览
+        current_user: 当前用户
+        index_processor: 索引处理器实例
+        rag_service: RAG服务实例
+
+    Returns:
+        dict: 处理结果
+    """
+    try:
+        logger.info(f"开始使用IndexProcessor处理文档: {file_name}")
+
+        # 1. 文档提取阶段
+        logger.info("步骤1: 文档提取")
+        extract_setting = ExtractSetting(
+            file_path=file_path,
+            extract_mode="basic",
+            cache_key=f"{doc_id}_extract"
+        )
+
+        documents = index_processor.extract(extract_setting)
+        logger.info(f"文档提取完成，提取到 {len(documents)} 个文档")
+
+        if not documents:
+            return _create_error_response(
+                "文档提取失败，未能提取到有效内容",
+                status_code=400,
+                preview_mode=preview_only
+            )
+
+        # 2. 文档转换阶段（父子结构）
+        logger.info("步骤2: 文档转换为父子结构")
+
+        # 创建处理规则
+        parent_mode_enum = ParentMode.PARAGRAPH if parent_mode == "paragraph" else ParentMode.FULL_DOC
+        process_rule = ProcessRule(
+            mode="automatic",
+            parent_mode=parent_mode_enum,
+            rules={
+                "segmentation": {
+                    "separator": parent_separator,
+                    "max_tokens": parent_chunk_size,
+                    "chunk_overlap": parent_chunk_overlap
+                },
+                "subchunk_segmentation": {
+                    "separator": child_separator,
+                    "max_tokens": child_chunk_size,
+                    "chunk_overlap": child_chunk_overlap
+                }
+            }
+        )
+
+        transformed_documents = index_processor.transform(
+            documents,
+            process_rule=process_rule.__dict__,
+            preview=preview_only
+        )
+        logger.info(f"文档转换完成，生成 {len(transformed_documents)} 个段落")
+
+        # 3. 预览模式或存储模式
+        if preview_only:
+            logger.info("预览模式：返回切割结果")
+            # 清理临时文件
+            cleanup_temp_file(file_path)
+
+            # 使用增强的预览响应格式化函数
+            processing_stats = {
+                "processor_type": "IndexProcessor",
+                "processing_time": time.time() - start_time if 'start_time' in locals() else None,
+                "optimization_level": "enhanced"
+            }
+
+            response = format_enhanced_preview_response(
+                transformed_documents,
+                documents[0] if documents else None,
+                doc_id,
+                processing_stats
+            )
+            response["message"] = "文档切割预览生成成功（使用IndexProcessor增强模式）"
+            return response
+
+        else:
+            logger.info("存储模式：保存到向量数据库")
+
+            # 4. 文档加载阶段
+            index_processor.load(transformed_documents)
+            logger.info("文档已加载到向量存储")
+
+            # 5. 保存到MongoDB
+            result = await rag_service.save_processed_document(
+                doc_id=doc_id,
+                file_name=file_name,
+                user_id=str(current_user.id),
+                segments=transformed_documents,
+                dataset_id=dataset_id,
+                original_content=documents[0].page_content if documents else None
+            )
+
+            # 清理临时文件
+            cleanup_temp_file(file_path)
+
+            if not result["success"]:
+                return _create_error_response(
+                    result.get('message', '文档处理失败'),
+                    status_code=400,
+                    preview_mode=False
+                )
+
+            # 使用统一的响应格式化函数
+            response = format_unified_response(
+                transformed_documents,
+                documents[0] if documents else None,
+                doc_id,
+                preview_mode=False
+            )
+            response["doc_id"] = doc_id
+            response["message"] = "文档上传成功（使用IndexProcessor）"
+            return response
+
+    except Exception as e:
+        logger.error(f"IndexProcessor处理文档失败: {str(e)}")
+        import traceback
+        logger.error(f"详细错误: {traceback.format_exc()}")
+
+        # 确保临时文件被删除
+        try:
+            cleanup_temp_file(file_path)
+        except:
+            pass
+
+        return _create_error_response(
+            f"处理文档失败: {str(e)}",
+            status_code=500,
+            preview_mode=preview_only
+        )
+
+
+def _create_error_response(message: str, status_code: int = 400, preview_mode: bool = False) -> JSONResponse:
+    """
+    创建统一的错误响应格式
+
+    Args:
+        message: 错误消息
+        status_code: HTTP状态码
+        preview_mode: 是否为预览模式
+
+    Returns:
+        JSONResponse: 统一格式的错误响应
+    """
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "success": False,
+            "message": message,
+            "preview_mode": preview_mode,
+            "doc_id": None,
+            "total_segments": 0,
+            "parent_segments": 0,
+            "child_segments": 0,
+            "parentContent": "",
+            "childrenContent": [],
+            "segments": [],
+            "document_overview": {
+                "title": "错误",
+                "total_length": 0,
+                "total_segments": 0,
+                "parent_segments": 0,
+                "child_segments": 0
+            }
+        }
+    )
+
+
+@router.post("/documents/upload", response_model=DocumentUploadResponse)
 async def upload_document(
     file: UploadFile = File(...),
     parent_chunk_size: int = Form(1024),
@@ -259,11 +310,24 @@ async def upload_document(
     child_chunk_overlap: int = Form(50),
     child_separator: str = Form("\n"),
     preview_only: bool = Form(False),
-    current_user: User = Depends(get_current_user)
+    processor_type: str = Form("parent_child"),  # 新增：处理器类型选择
+    parent_mode: str = Form("paragraph"),        # 新增：父文档模式选择
+    use_new_processor: bool = Form(False),       # 修复：默认使用传统处理器确保一致性
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service),
+    index_processor: BaseIndexProcessor = Depends(get_parent_child_processor)
 ):
     """
-    上传文档进行RAG处理，支持PDF、TXT和Markdown文件
-    
+    统一的文档上传和预览API接口
+
+    此接口通过preview_only参数统一了文档预览切割和正式上传的功能：
+    - preview_only=True: 仅进行文档切割预览，返回切割结果但不存储到向量数据库
+    - preview_only=False: 执行完整的文档上传流程，包括切割、向量化和存储到数据库
+
+    两种模式使用相同的文档处理逻辑和切割参数，确保预览结果与实际上传结果一致。
+
+    支持的文件格式: PDF、TXT、Markdown
+
     参数:
         file: 要上传的文件
         parent_chunk_size: 父块分段最大长度，默认1024
@@ -273,34 +337,59 @@ async def upload_document(
         child_chunk_overlap: 子块重叠长度，默认50
         child_separator: 子块分段标识符，默认"\n"
         preview_only: 是否仅预览文档切割结果，不进行向量存储
+
+    返回:
+        统一格式的响应，包含文档切割详情和处理状态
     """
     logger.info(f"===== 文档上传请求开始 =====")
-    logger.info(f"上传参数: 文件名={file.filename}, parent_chunk_size={parent_chunk_size}, parent_chunk_overlap={parent_chunk_overlap}, "
-               f"parent_separator={repr(parent_separator)}, child_chunk_size={child_chunk_size}, child_chunk_overlap={child_chunk_overlap}, child_separator={repr(child_separator)}, preview_only={preview_only}")
-    logger.info(f"preview_only参数类型: {type(preview_only)}, 值: {preview_only}")
+    logger.info(f"用户信息: email={current_user.email}, id={current_user.id}")
+    logger.info(f"文件信息: 文件名={file.filename}, 大小={file.size}字节, 内容类型={file.content_type}")
+    logger.info(f"上传参数详情:")
+    logger.info(f"  - parent_chunk_size: {parent_chunk_size} (类型: {type(parent_chunk_size)})")
+    logger.info(f"  - parent_chunk_overlap: {parent_chunk_overlap} (类型: {type(parent_chunk_overlap)})")
+    logger.info(f"  - parent_separator: {repr(parent_separator)} (类型: {type(parent_separator)})")
+    logger.info(f"  - child_chunk_size: {child_chunk_size} (类型: {type(child_chunk_size)})")
+    logger.info(f"  - child_chunk_overlap: {child_chunk_overlap} (类型: {type(child_chunk_overlap)})")
+    logger.info(f"  - child_separator: {repr(child_separator)} (类型: {type(child_separator)})")
+    logger.info(f"  - preview_only: {preview_only} (类型: {type(preview_only)})")
+    logger.info(f"  - processor_type: {processor_type} (类型: {type(processor_type)})")
+    logger.info(f"  - parent_mode: {parent_mode} (类型: {type(parent_mode)})")
+    logger.info(f"  - use_new_processor: {use_new_processor} (类型: {type(use_new_processor)})")
+
+    # 记录请求来源信息（如果可用）
+    try:
+        from fastapi import Request
+        # 注意：这里需要在函数参数中添加request: Request参数才能获取
+        logger.info(f"请求来源信息: 暂时无法获取（需要添加Request参数）")
+    except Exception as e:
+        logger.debug(f"无法获取请求来源信息: {e}")
 
     # 解码分隔符参数
     parent_separator = _decode_separator(parent_separator)
     child_separator = _decode_separator(child_separator)
     logger.info(f"解码后分隔符: parent_separator={repr(parent_separator)}, child_separator={repr(child_separator)}")
-    
+
+    # 记录处理器选择和参数，用于一致性分析
+    logger.info(f"处理器配置: use_new_processor={use_new_processor}, processor_type={processor_type}, parent_mode={parent_mode}")
+    logger.info(f"分割参数: parent_size={parent_chunk_size}, parent_overlap={parent_chunk_overlap}, child_size={child_chunk_size}, child_overlap={child_chunk_overlap}")
+
     # 验证文件类型
     is_supported, file_ext = validate_file_type(file.filename)
     logger.info(f"文件扩展名: {file_ext}")
 
     if not is_supported:
         logger.warning(f"不支持的文件类型: {file_ext}")
-        return JSONResponse(
+        return _create_error_response(
+            f"不支持的文件类型: {file_ext}，支持的类型: {', '.join(SUPPORTED_EXTENSIONS)}",
             status_code=400,
-            content={
-                "success": False,
-                "message": f"不支持的文件类型: {file_ext}，支持的类型: {', '.join(SUPPORTED_EXTENSIONS)}"
-            }
+            preview_mode=preview_only
         )
 
     # 保存上传的文件
     try:
+        logger.info(f"开始保存上传文件: {file.filename}")
         file_path = save_uploaded_file(file)
+        logger.info(f"文件保存成功: {file_path}")
         logger.info(f"用户 {current_user.email} 上传文件 {file.filename}")
 
         # 生成文档ID和数据集ID
@@ -317,119 +406,152 @@ async def upload_document(
             "preview": preview_only,
             "created_by": str(current_user.id)
         }
-        
+        logger.info(f"元数据准备完成: {metadata}")
+
+        # 检查是否使用新的IndexProcessor
+        if use_new_processor:
+            logger.info("使用新的IndexProcessor处理文档")
+            return await _process_document_with_index_processor(
+                file_path=file_path,
+                file_name=file.filename,
+                doc_id=doc_id,
+                dataset_id=dataset_id,
+                metadata=metadata,
+                processor_type=processor_type,
+                parent_mode=parent_mode,
+                parent_chunk_size=parent_chunk_size,
+                parent_chunk_overlap=parent_chunk_overlap,
+                parent_separator=parent_separator,
+                child_chunk_size=child_chunk_size,
+                child_chunk_overlap=child_chunk_overlap,
+                child_separator=child_separator,
+                preview_only=preview_only,
+                current_user=current_user,
+                index_processor=index_processor,
+                rag_service=rag_service
+            )
+
+        # 使用原有的处理逻辑（向后兼容）
+        logger.info("使用原有的文档处理逻辑")
+
         # 根据文件类型处理文档
+        logger.info(f"开始处理文档，文件类型: {os.path.splitext(file.filename)[1].lower()}")
         document = process_document_by_type(file_path, file.filename, metadata)
-        
+        logger.info(f"文档处理完成，内容长度: {len(document.page_content)}字符")
+
         # 清洗文档
-        logger.info(f"清洗文档内容")
+        logger.info(f"开始清洗文档内容")
         cleaned_document = rag.document_processor.clean_document(document)
-        
+        logger.info(f"文档清洗完成，清洗后长度: {len(cleaned_document.page_content)}字符")
+
         # 创建父子文档分割器
+        logger.info(f"创建父子文档分割器，参数: parent_size={parent_chunk_size}, parent_overlap={parent_chunk_overlap}, child_size={child_chunk_size}, child_overlap={child_chunk_overlap}")
         splitter = ParentChildDocumentSplitter()
         
         # 创建分割规则
+        logger.info(f"创建分割规则，参数详情:")
+        logger.info(f"  - parent_separator: {repr(parent_separator)}")
+        logger.info(f"  - child_separator: {repr(child_separator)}")
         rule = create_split_rule(
             parent_chunk_size, parent_chunk_overlap, parent_separator,
             child_chunk_size, child_chunk_overlap, child_separator
         )
-        
+        logger.info(f"分割规则创建完成: {rule}")
+
         # 执行分割
+        logger.info(f"开始执行文档分割")
         segments = splitter.split_documents([cleaned_document], rule)
         logger.info(f"文档分割完成，生成了 {len(segments) if segments else 0} 个段落")
+
+        # 记录分割结果详情
+        if segments:
+            logger.info(f"分割结果详情:")
+            for i, segment in enumerate(segments[:3]):  # 只记录前3个段落的详情
+                logger.info(f"  段落 {i+1}: 长度={len(segment.page_content)}字符, 元数据={segment.metadata}")
+            if len(segments) > 3:
+                logger.info(f"  ... 还有 {len(segments) - 3} 个段落")
         
         # 记录文档信息
         log_document_info(doc_id, file.filename, cleaned_document)
 
-        # 如果是预览模式，存储到缓存并返回格式化的预览结果
+        # 准备切割参数（两种模式都需要）
+        split_params = {
+            "parent_chunk_size": parent_chunk_size,
+            "parent_chunk_overlap": parent_chunk_overlap,
+            "parent_separator": parent_separator,
+            "child_chunk_size": child_chunk_size,
+            "child_chunk_overlap": child_chunk_overlap,
+            "child_separator": child_separator
+        }
+
+        # 如果是预览模式，存储到缓存中用于后续的子块预览
         if preview_only:
             logger.info(f"预览模式处理完成")
-
             # 生成预览格式的doc_id
             preview_doc_id = f"preview_{doc_id}"
-
             # 将预览数据存储到缓存中，用于后续的子块预览
             from app.services.preview_cache_service import preview_cache_service
-            preview_cache_service.store_preview_data(preview_doc_id, segments, cleaned_document)
+            preview_cache_service.store_preview_data(preview_doc_id, segments, cleaned_document, split_params)
 
-            return format_preview_response(segments, cleaned_document, preview_doc_id)
+            # 使用统一的响应格式化函数，但标记为预览模式
+            response = format_unified_response(segments, cleaned_document, preview_doc_id, preview_mode=True)
+            logger.info(f"预览模式响应生成完成")
+            return response
 
-        # 正常处理模式：准备返回的段落数据
-        result_segments = []
-        logger.info(f"\n=== 段落分割结果 ===")
-
-        for i, segment in enumerate(segments):
-            # 确保每个段落都有正确的起始和结束位置
-            start_pos = segment.metadata.get("chunk_start")
-            if start_pos is None:
-                start_pos = 0
-
-            end_pos = segment.metadata.get("chunk_end")
-            if end_pos is None:
-                end_pos = start_pos + len(segment.page_content)
-
-            segment_data = {
-                "id": i,
-                "content": segment.page_content,
-                "start": start_pos,
-                "end": end_pos,
-                "length": len(segment.page_content)
-            }
-            result_segments.append(segment_data)
-
-            # 打印每个段落的详细信息
-            logger.info(f"\n段落 {i + 1}:")
-            logger.info(f"  内容: {segment.page_content}")
-            logger.info(f"  长度: {len(segment.page_content)} 字符")
-            logger.info(f"  起始位置: {start_pos}")
-            logger.info(f"  结束位置: {end_pos}")
-            logger.info(f"  元数据: {segment.metadata}")
-
-        # 记录分割统计信息
-        log_split_statistics(segments)
-        
         # 正常处理模式：保存到数据库和向量存储
-        logger.info(f"正常上传模式：开始保存文档")
+        logger.info(f"正常上传模式：开始保存文档到数据库和向量存储")
+        logger.info(f"保存参数: doc_id={doc_id}, file_name={file.filename}, user_id={current_user.id}, segments_count={len(segments)}, dataset_id={dataset_id}")
         result = await rag_service.save_processed_document(
             doc_id=doc_id,
             file_name=file.filename,
             user_id=str(current_user.id),
             segments=segments,
-            dataset_id=dataset_id
+            dataset_id=dataset_id,
+            original_content=cleaned_document.page_content if cleaned_document else None
         )
-        
+        logger.info(f"文档保存结果: success={result.get('success')}, message={result.get('message')}")
+
         # 清理临时文件
         cleanup_temp_file(file_path)
-        
+
         if not result["success"]:
             logger.error(f"文档处理失败: {result.get('message', '未知错误')}")
-            return JSONResponse(
+            return _create_error_response(
+                result.get('message', '文档处理失败'),
                 status_code=400,
-                content=result
+                preview_mode=False
             )
-            
+
         logger.info(f"文档处理成功，文档ID: {doc_id}")
-        return {
-            "success": True,
-            "message": "文档上传成功",
-            "doc_id": doc_id,
-            "segments_count": len(segments)
-        }
+
+        # 记录分割统计信息
+        log_split_statistics(segments)
+
+        # 使用统一的响应格式化函数，标记为保存模式
+        response = format_unified_response(segments, cleaned_document, doc_id, preview_mode=False)
+
+        # 添加保存模式特有的字段
+        response["doc_id"] = doc_id
+        response["message"] = "文档上传成功"
+
+        logger.info(f"保存模式响应生成完成")
+        return response
         
     except Exception as e:
         logger.error(f"处理文档失败: {str(e)}")
         import traceback
         logger.error(f"详细错误: {traceback.format_exc()}")
-        
+
         # 确保临时文件被删除
-        cleanup_temp_file(file_path)
-            
-        return JSONResponse(
+        try:
+            cleanup_temp_file(file_path)
+        except:
+            pass  # 忽略清理文件时的错误
+
+        return _create_error_response(
+            f"处理文档失败: {str(e)}",
             status_code=500,
-            content={
-                "success": False,
-                "message": f"处理文档失败: {str(e)}"
-            }
+            preview_mode=preview_only
         )
 
 @router.post("/documents/batch-upload", response_model=DocumentUploadResponse)
@@ -441,7 +563,8 @@ async def batch_upload_documents(
     child_chunk_size: int = Form(512),
     child_chunk_overlap: int = Form(50),
     child_separator: str = Form("\n"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service)
 ):
     """批量上传文档
     
@@ -629,10 +752,372 @@ async def batch_upload_documents(
             }
         )
 
+
+@router.post("/documents/upload-hierarchical", response_model=DocumentUploadResponse)
+async def upload_document_hierarchical(
+    file: UploadFile = File(...),
+    parent_mode: str = Form("paragraph"),
+    parent_chunk_size: int = Form(1000),
+    parent_chunk_overlap: int = Form(100),
+    child_chunk_size: int = Form(300),
+    child_chunk_overlap: int = Form(50),
+    parent_separators: str = Form(None),  # 新增：父块分隔符，用逗号分隔，如 "\\n\\n,\\n,。"
+    child_separators: str = Form(None),   # 新增：子块分隔符，用逗号分隔，如 "\\n,。,. "
+    index_child_chunks_only: bool = Form(True),
+    enable_parent_context: bool = Form(True),
+    content_type: str = Form(None),
+    preview_only: bool = Form(False),
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service)
+):
+    """
+    使用层次化架构上传和处理文档
+    
+    Args:
+        file: 上传的文件
+        parent_mode: 父段落模式 (paragraph/full_doc)
+        parent_chunk_size: 父段落大小
+        parent_chunk_overlap: 父段落重叠
+        child_chunk_size: 子块大小
+        child_chunk_overlap: 子块重叠
+        parent_separators: 父块分隔符（用逗号分隔），如 "\\n\\n,\\n,。"，为空时使用默认值
+        child_separators: 子块分隔符（用逗号分隔），如 "\\n,。,. "，为空时使用默认值
+        index_child_chunks_only: 是否仅索引子块
+        enable_parent_context: 是否启用父段落上下文
+        content_type: 内容类型 (academic/news/dialogue/code/legal)
+        preview_only: 是否仅预览
+        current_user: 当前用户
+        rag_service: RAG服务
+    """
+    
+    try:
+        logger.info(f"用户 {current_user.email} 开始层次化上传文档: {file.filename}")
+        
+        # 检查RAG服务是否启用层次化处理
+        if not rag_service.enable_hierarchical_processing:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "message": "层次化处理功能未启用，请联系管理员",
+                    "error_code": "HIERARCHICAL_DISABLED"
+                }
+            )
+        
+        # 验证文件类型
+        is_supported, file_ext = validate_file_type(file.filename)
+        if not is_supported:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "message": f"不支持的文件类型: {file_ext}。支持的类型: {', '.join(SUPPORTED_EXTENSIONS)}",
+                    "error_code": "UNSUPPORTED_FILE_TYPE"
+                }
+            )
+        
+        # 保存上传的文件
+        file_path = save_uploaded_file(file)
+        
+        try:
+            # 解析自定义分隔符
+            def parse_separators(separator_string: str) -> List[str]:
+                """解析分隔符字符串，处理转义字符"""
+                if not separator_string or separator_string.strip() == "":
+                    return None  # 返回None表示使用默认值
+                
+                # 按逗号分割
+                separators = [s.strip() for s in separator_string.split(',')]
+                
+                # 处理转义字符
+                processed_separators = []
+                for sep in separators:
+                    if sep:  # 忽略空字符串
+                        # 处理常见的转义字符
+                        sep = sep.replace('\\n', '\n')
+                        sep = sep.replace('\\t', '\t')
+                        sep = sep.replace('\\r', '\r')
+                        processed_separators.append(sep)
+                
+                return processed_separators if processed_separators else None
+            
+            # 解析父块和子块分隔符
+            parsed_parent_separators = parse_separators(parent_separators)
+            parsed_child_separators = parse_separators(child_separators)
+            
+            logger.info(f"自定义分隔符解析结果:")
+            logger.info(f"  parent_separators: {parent_separators} -> {parsed_parent_separators}")
+            logger.info(f"  child_separators: {child_separators} -> {parsed_child_separators}")
+            
+            # 创建层次化配置
+            from app.rag.models import HierarchicalSplittingConfig
+            
+            # 准备配置参数
+            config_params = {
+                "parent_mode": parent_mode,
+                "parent_chunk_size": parent_chunk_size,
+                "parent_chunk_overlap": parent_chunk_overlap,
+                "child_chunk_size": child_chunk_size,
+                "child_chunk_overlap": child_chunk_overlap,
+                "index_child_chunks_only": index_child_chunks_only,
+                "enable_parent_context": enable_parent_context,
+                "content_type": content_type if content_type != "None" else None
+            }
+            
+            # 添加自定义分隔符（如果提供）
+            if parsed_parent_separators is not None:
+                config_params["parent_separators"] = parsed_parent_separators
+            if parsed_child_separators is not None:
+                config_params["child_separators"] = parsed_child_separators
+            
+            hierarchical_config = HierarchicalSplittingConfig(**config_params)
+            
+            # 如果是预览模式
+            if preview_only:
+                # 处理文档并返回预览信息
+                from app.rag.hierarchical_processor import hierarchical_processor
+                from app.rag.document_processor import Document
+                import copy
+                
+                # 加载文档内容
+                if file.filename.lower().endswith('.pdf'):
+                    components = rag_service._get_rag_components()
+                    pdf_processor = components['pdf_processor']
+                    document = pdf_processor.process_pdf(file_path, {})
+                else:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    document = Document(page_content=content, metadata={})
+                
+                # 创建临时处理器进行预览
+                temp_processor = copy.deepcopy(hierarchical_processor)
+                temp_processor.update_config(hierarchical_config)
+                
+                # 生成预览
+                if hierarchical_config.parent_mode == "full_doc":
+                    parent_segments = temp_processor._create_full_doc_segment(
+                        document, "preview", "preview"
+                    )
+                else:
+                    parent_segments = temp_processor._create_parent_segments(
+                        document, "preview", "preview"
+                    )
+                
+                # 为每个父段落生成子块预览
+                preview_data = {
+                    "document_id": "preview",
+                    "file_name": file.filename,
+                    "config": hierarchical_config.dict(),
+                    "parent_segments": [],
+                    "total_parent_segments": len(parent_segments),
+                    "total_child_chunks": 0
+                }
+                
+                for i, segment in enumerate(parent_segments[:10]):  # 预览前10个父段落
+                    child_chunks = temp_processor._create_child_chunks(segment)
+                    preview_data["total_child_chunks"] += len(child_chunks)
+                    
+                    segment_preview = {
+                        "position": segment.position,
+                        "content": segment.content[:500] + "..." if len(segment.content) > 500 else segment.content,
+                        "word_count": segment.word_count,
+                        "child_chunks": [
+                            {
+                                "position": chunk.position,
+                                "content": chunk.content[:200] + "..." if len(chunk.content) > 200 else chunk.content,
+                                "word_count": chunk.word_count
+                            }
+                            for j, chunk in enumerate(child_chunks[:3])  # 每个父段落只预览前3个子块
+                        ],
+                        "child_count": len(child_chunks)
+                    }
+                    preview_data["parent_segments"].append(segment_preview)
+                
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "success": True,
+                        "message": "层次化文档预览生成成功",
+                        "preview_only": True,
+                        "data": preview_data
+                    }
+                )
+            
+            # 实际处理文档
+            result = await rag_service.process_document_hierarchical(
+                file_path=file_path,
+                file_name=file.filename,
+                user_id=current_user.id,
+                config=hierarchical_config
+            )
+            
+            if result["success"]:
+                logger.info(f"层次化文档处理成功: {result}")
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        "success": True,
+                        "message": result["message"],
+                        "data": {
+                            "doc_id": result["doc_id"],
+                            "parent_segments_count": result["parent_segments_count"],
+                            "child_chunks_count": result["child_chunks_count"],
+                            "processing_time": result["processing_time"],
+                            "hierarchical_config": hierarchical_config.dict()
+                        }
+                    }
+                )
+            else:
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "success": False,
+                        "message": result["message"],
+                        "error_code": "HIERARCHICAL_PROCESSING_FAILED"
+                    }
+                )
+        
+        finally:
+            # 清理临时文件
+            cleanup_temp_file(file_path)
+    
+    except Exception as e:
+        logger.error(f"层次化上传文档失败: {str(e)}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"层次化上传文档失败: {str(e)}",
+                "error_code": "HIERARCHICAL_UPLOAD_ERROR"
+            }
+        )
+
+
+@router.post("/documents/search-hierarchical", response_model=DocumentSearchResponse)
+async def search_documents_hierarchical(
+    request: DocumentSearchRequest,
+    score_threshold: float = 0.0,
+    enable_parent_context: bool = True,
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service)
+):
+    """
+    使用层次化架构搜索文档
+    
+    Args:
+        request: 搜索请求
+        score_threshold: 分数阈值
+        enable_parent_context: 是否启用父段落上下文
+        current_user: 当前用户
+        rag_service: RAG服务
+    """
+    try:
+        logger.info(f"用户 {current_user.email} 进行层次化搜索: {request.query}")
+        
+        # 检查RAG服务是否启用层次化处理
+        if not rag_service.enable_hierarchical_processing:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "message": "层次化搜索功能未启用，请联系管理员",
+                    "results": []
+                }
+            )
+        
+        # 执行层次化搜索
+        search_result = await rag_service.search_documents_hierarchical(
+            query=request.query,
+            user_id=current_user.id,
+            top_k=request.top_k,
+            search_all=request.search_all,
+            score_threshold=score_threshold,
+            enable_parent_context=enable_parent_context
+        )
+        
+        if search_result["success"]:
+            return JSONResponse(
+                status_code=200,
+                content=search_result
+            )
+        else:
+            return JSONResponse(
+                status_code=500,
+                content=search_result
+            )
+    
+    except Exception as e:
+        logger.error(f"层次化搜索失败: {str(e)}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"层次化搜索失败: {str(e)}",
+                "results": []
+            }
+        )
+
+
+@router.get("/documents/{doc_id}/hierarchy")
+async def get_document_hierarchy(
+    doc_id: str = Path(..., description="文档ID"),
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service)
+):
+    """
+    获取文档的层次结构信息
+    """
+    try:
+        logger.info(f"用户 {current_user.email} 获取文档层次结构: {doc_id}")
+        
+        # 检查文档是否存在且属于当前用户
+        doc_info = await rag_service.get_document_by_id(doc_id, current_user.id)
+        if not doc_info:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "message": "文档不存在或无权访问"
+                }
+            )
+        
+        # 获取层次结构
+        from app.rag.hierarchical_processor import hierarchical_processor
+        hierarchy = await hierarchical_processor.get_document_hierarchy(doc_id)
+        
+        if hierarchy:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "success": True,
+                    "data": hierarchy
+                }
+            )
+        else:
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "success": False,
+                    "message": "未找到文档的层次结构，可能该文档未使用层次化处理"
+                }
+            )
+    
+    except Exception as e:
+        logger.error(f"获取文档层次结构失败: {str(e)}", exc_info=True)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "message": f"获取文档层次结构失败: {str(e)}"
+            }
+        )
+
+
 @router.post("/documents/search", response_model=DocumentSearchResponse)
 async def search_documents(
     request: DocumentSearchRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service)
 ):
     """
     搜索用户的文档
@@ -656,7 +1141,8 @@ async def search_documents(
 
 @router.get("/documents", response_model=DocumentListResponse)
 async def get_documents(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service)
 ):
     """
     获取用户的所有文档
@@ -671,7 +1157,8 @@ async def get_documents(
 @router.delete("/documents/{doc_id}", response_model=DeleteDocumentResponse)
 async def delete_document(
     doc_id: str = Path(...),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service)
 ):
     """
     删除文档
@@ -719,7 +1206,9 @@ async def delete_document(
 @router.post("/chat", response_model=RAGChatResponse)
 async def rag_chat(
     request: RAGChatRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service),
+    llm_service: LLMService = Depends(get_llm_service)
 ):
     """
     RAG聊天
@@ -851,21 +1340,30 @@ async def rag_chat(
         )
 
 @router.get("/status", response_model=RAGStatusResponse)
-async def check_rag_status(current_user: User = Depends(get_current_user)):
+async def check_rag_status(
+    current_user: User = Depends(get_current_user),
+    rag_pipeline: IRagPipeline = Depends(get_rag_pipeline)
+):
     """
     检查RAG服务状态
     """
     try:
+        # 使用新的组件化架构检查状态
+        health_status = await rag_pipeline.health_check()
+
         # 检查各组件状态
         status = {
-            "vector_store_available": rag.vector_store is not None,
-            "embedding_model_available": rag.embedding_model is not None,
-            "retrieval_service_available": rag_service is not None
+            "vector_store_available": health_status.get("retriever", False),
+            "embedding_model_available": health_status.get("embedder", False),
+            "retrieval_service_available": health_status.get("retriever", False),
+            "document_loader_available": health_status.get("loader", False),
+            "text_splitter_available": health_status.get("splitter", False),
+            "generator_available": health_status.get("generator", False)
         }
-        
+
         # 整体可用性判断
         available = all(status.values())
-        
+
         # 构建详细信息
         details = []
         if not status["vector_store_available"]:
@@ -874,18 +1372,21 @@ async def check_rag_status(current_user: User = Depends(get_current_user)):
             details.append("嵌入模型不可用")
         if not status["retrieval_service_available"]:
             details.append("检索服务不可用")
-            
+        if not status["generator_available"]:
+            details.append("答案生成器不可用")
+
         # 构建响应消息
         message = "RAG服务正常" if available else "RAG服务不可用: " + ", ".join(details)
-        
+
+        # 获取流程统计信息
+        pipeline_stats = rag_pipeline.get_pipeline_stats()
+
         # 构建服务器信息
-        server_info = {}
-        if rag.vector_store:
-            server_info["milvus"] = {
-                "host": rag.vector_store.host,
-                "port": rag.vector_store.port
-            }
-        
+        server_info = {
+            "pipeline_stats": pipeline_stats,
+            "component_health": health_status
+        }
+
         return {
             "available": available,
             "message": message,
@@ -900,7 +1401,10 @@ async def check_rag_status(current_user: User = Depends(get_current_user)):
             "status": {
                 "vector_store_available": False,
                 "embedding_model_available": False,
-                "retrieval_service_available": False
+                "retrieval_service_available": False,
+                "document_loader_available": False,
+                "text_splitter_available": False,
+                "generator_available": False
             },
             "server_info": {}
         }
@@ -908,7 +1412,8 @@ async def check_rag_status(current_user: User = Depends(get_current_user)):
 @router.get("/documents/{doc_id}", response_model=DocumentResponse)
 async def get_document(
     doc_id: str = Path(..., description="文档ID"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service)
 ):
     """获取单个文档信息"""
     try:
@@ -939,7 +1444,8 @@ async def get_document(
 async def preview_document_slice(
     document_id: str = Path(..., description="文档ID"),
     slice_index: int = Path(..., description="切割索引位置"),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    rag_service: RAGService = Depends(get_rag_service)
 ):
     """
     获取文档切片的预览内容，包括父级内容和子切片内容
@@ -998,20 +1504,30 @@ async def preview_document_slice(
                 segments.append(seg_doc)
 
         else:
-            # 正常模式：从数据库获取
+            # 正常模式：从向量存储获取真实段落
             logger.info(f"成功获取文档信息:")
-            logger.info(f"- 文件名: {document.metadata.get('file_name', '未知')}")
-            logger.info(f"- 文档内容长度: {len(document.page_content)} 字符")
-            logger.info(f"- 文档内容预览: {document.page_content[:200]}...")
+            logger.info(f"- 文件名: {document.get('file_name', '未知')}")
+            logger.info(f"- 文档ID: {document.get('id', '未知')}")
+            logger.info(f"- 段落数量: {document.get('segments_count', 0)}")
 
-            # 获取文档的所有切片
+            # 从向量存储中获取文档的真实段落
             segments = await rag_service.get_document_segments(document_id)
+
             if not segments:
-                logger.error(f"文档没有切片: {document_id}")
-                return DocumentSlicePreviewResponse(
-                    success=False,
-                    message="文档没有切片"
-                )
+                # 如果向量存储中没有数据，生成提示信息
+                from langchain.schema import Document
+                segments = [Document(
+                    page_content=f"文档 '{document.get('file_name', '未知文件')}' 的段落数据未找到。可能原因：1) 文档正在处理中 2) 向量存储服务异常 3) 文档未正确上传",
+                    metadata={
+                        "doc_id": document_id,
+                        "segment_index": 0,
+                        "file_name": document.get("file_name", "未知文件"),
+                        "error": "no_segments_found"
+                    }
+                )]
+                logger.warning(f"文档 {document_id} 在向量存储中未找到段落数据")
+            else:
+                logger.info(f"从向量存储获取了 {len(segments)} 个真实段落")
         
         if slice_index >= len(segments):
             logger.error(f"切片索引无效: {slice_index}, 总切片数: {len(segments)}")
@@ -1054,36 +1570,42 @@ async def preview_document_slice(
 
         else:
             # 正常模式：从数据库获取
-            parent_content = document.page_content
-            logger.info(f"\n=== 父级内容信息 ===")
-            logger.info(f"- 内容长度: {len(parent_content)} 字符")
-            logger.info(f"- 内容预览: {parent_content[:200]}...")
+            # 对于正常模式，我们需要从segments中获取内容
+            if slice_index < len(segments):
+                current_segment = segments[slice_index]
+                parent_content = current_segment.page_content
+                logger.info(f"\n=== 父级内容信息 ===")
+                logger.info(f"- 内容长度: {len(parent_content)} 字符")
+                logger.info(f"- 内容预览: {parent_content[:200]}...")
 
-            # 获取子切片内容（当前切片的子切片）
-            children_content = []
-            if current_segment:
-                # 如果当前切片存在，获取其子切片
-                child_segments = await rag_service.get_segment_children(current_segment.metadata.get("doc_id"))
-                if child_segments:
-                    children_content = [segment.page_content for segment in child_segments]
+                # 获取子切片内容（当前切片的子切片）
+                children_content = []
+                if current_segment:
+                    # 对于正常模式，我们简化处理，直接使用当前段落作为子内容
+                    # 这是因为从向量存储获取的段落已经是处理后的最终段落
+                    children_content = [current_segment.page_content]
                     logger.info(f"\n=== 子切片信息 ===")
                     logger.info(f"- 子切片数量: {len(children_content)}")
-                    for i, content in enumerate(children_content):
-                        logger.info(f"\n子切片 {i + 1}:")
-                        logger.info(f"- 内容长度: {len(content)} 字符")
-                        logger.info(f"- 内容预览: {content[:200]}...")
-                else:
-                    logger.info("没有找到子切片")
+                    logger.info(f"- 内容长度: {len(children_content[0])} 字符")
+                    logger.info(f"- 内容预览: {children_content[0][:200]}...")
+            else:
+                parent_content = ""
+                children_content = []
         
         # 准备返回结果
         result_segments = []
         for i, segment in enumerate(segments):
+            # 从元数据中获取段落类型，如果没有则根据是否有子段落来判断
+            segment_type = segment.metadata.get("type", "parent")  # 默认为parent类型
+
             result_segments.append({
                 "id": i,
                 "content": segment.page_content,
                 "start": segment.metadata.get("chunk_start", 0),
                 "end": segment.metadata.get("chunk_end", len(segment.page_content)),
-                "length": len(segment.page_content)
+                "length": len(segment.page_content),
+                "type": segment_type,
+                "children": []  # 添加children字段以符合SegmentInfo模型
             })
         
         logger.info(f"\n=== 返回结果统计 ===")

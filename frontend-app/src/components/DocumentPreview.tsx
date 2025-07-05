@@ -1,7 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   getDocumentSlicePreview,
-  getDocumentSplitterParams
+  getDocumentSplitterParams,
+  getDocumentCompletePreview,
+  CompleteDocumentPreviewResponse,
+  ParentSegment
 } from '../api/documentCollections';
 
 /**
@@ -37,6 +40,10 @@ interface DocumentPreviewProps {
   documentId: string;
   onClose: () => void;
   initialSegmentId?: number; // 初始选中的段落ID
+  chunkSize?: number;        // 添加：允许传入切割参数
+  chunkOverlap?: number;     // 添加：允许传入切割参数
+  parentSeparator?: string;  // 添加：允许传入分隔符参数
+  showHierarchical?: boolean; // 添加：是否显示层级结构
 }
 
 interface PreviewData {
@@ -54,14 +61,23 @@ interface PreviewState {
 const MAX_RETRY_COUNT = 3;
 const RETRY_DELAY = 1000; // 1秒
 
-const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId, onClose, initialSegmentId }) => {
-  // 添加切割参数状态
+const DocumentPreview: React.FC<DocumentPreviewProps> = ({ 
+  segments, 
+  documentId, 
+  onClose, 
+  initialSegmentId,
+  chunkSize = 512,
+  chunkOverlap = 50,
+  parentSeparator = String.fromCharCode(92, 110, 92, 110), // 默认使用修复后的分隔符
+  showHierarchical = false // 默认不显示层级结构
+}) => {
+  // 添加切割参数状态，使用传入的参数作为默认值
   const [splitterParams, setSplitterParams] = useState<SplitterParams>({
-    chunkSize: 512,
-    chunkOverlap: 50,
+    chunkSize: chunkSize,
+    chunkOverlap: chunkOverlap,
     minChunkSize: 50,
     splitByParagraph: true,
-    paragraphSeparator: "\\n\\n",
+    paragraphSeparator: parentSeparator,
     splitBySentence: true
   });
 
@@ -74,13 +90,13 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
         // 检查是否为预览模式的文档
         if (documentId.startsWith('preview_')) {
           console.log('检测到预览模式文档，使用默认切割参数');
-          // 对于预览模式的文档，使用默认参数，避免不必要的API调用
+          // 对于预览模式的文档，使用传入的参数
           setSplitterParams({
-            chunkSize: 512,
-            chunkOverlap: 50,
+            chunkSize: chunkSize,
+            chunkOverlap: chunkOverlap,
             minChunkSize: 50,
             splitByParagraph: true,
-            paragraphSeparator: "\\n\\n",
+            paragraphSeparator: parentSeparator, // 使用传入的分隔符参数
             splitBySentence: true
           });
           return;
@@ -114,6 +130,43 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
     error: null,
     retryCount: 0
   });
+
+  // 添加层级结构数据状态
+  const [hierarchicalData, setHierarchicalData] = useState<ParentSegment[]>([]);
+  const [isLoadingHierarchical, setIsLoadingHierarchical] = useState(false);
+  const [hierarchicalError, setHierarchicalError] = useState<string | null>(null);
+
+  // 加载层级结构数据
+  const loadHierarchicalData = useCallback(async () => {
+    if (!showHierarchical || !documentId) return;
+
+    setIsLoadingHierarchical(true);
+    setHierarchicalError(null);
+
+    try {
+      console.log('加载层级结构数据:', documentId);
+      const response = await getDocumentCompletePreview(documentId);
+      console.log('层级结构数据:', response);
+      
+      if (response.success && response.segments) {
+        setHierarchicalData(response.segments);
+      } else {
+        throw new Error(response.message || '获取层级结构数据失败');
+      }
+    } catch (error: any) {
+      console.error('加载层级结构数据失败:', error);
+      setHierarchicalError(error.message || '加载层级结构数据失败');
+    } finally {
+      setIsLoadingHierarchical(false);
+    }
+  }, [showHierarchical, documentId]);
+
+  // 当需要显示层级结构时，加载数据
+  useEffect(() => {
+    if (showHierarchical && documentId) {
+      loadHierarchicalData();
+    }
+  }, [showHierarchical, documentId, loadHierarchicalData]);
 
   const loadPreviewWithRetry = useCallback(async (segmentId: number, retryAttempt = 0) => {
     // 在开始加载之前验证documentId
@@ -286,39 +339,131 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
           </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-4 p-4">
-          {/* 左侧段落列表 */}
-          <div className="col-span-2 border-r pr-4 max-h-[600px] overflow-y-auto">
-            <div className="space-y-2">
-              {segments.map((segment) => (
-                <div
-                  key={segment.id}
-                  className={`p-3 border rounded-lg cursor-pointer transition-colors
-                    ${selectedSegment === segment.id
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'hover:bg-gray-50'
-                    }`}
-                  onClick={() => handleSegmentClick(segment.id)}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-500">
-                      段落 {segment.id + 1}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      {segment.length} 字符
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-700 line-clamp-2">
-                    {segment.content}
-                  </p>
+        {showHierarchical ? (
+          /* 层级结构显示 */
+          <div className="p-4">
+            {isLoadingHierarchical ? (
+              <div className="flex flex-col items-center justify-center h-[400px]">
+                <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-500 border-t-transparent mb-4" />
+                <p className="text-sm text-gray-500">加载层级结构中...</p>
+              </div>
+            ) : hierarchicalError ? (
+              <div className="flex flex-col items-center justify-center h-[400px]">
+                <div className="text-red-500 mb-4 text-center max-w-md">
+                  <svg className="w-12 h-12 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div className="text-base mb-2">{hierarchicalError}</div>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={loadHierarchicalData}
+                    className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  >
+                    重新加载
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                  >
+                    关闭预览
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                {hierarchicalData.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    <p>暂无层级结构数据</p>
+                  </div>
+                ) : (
+                  hierarchicalData.map((parentSegment, parentIndex) => (
+                    <div key={parentSegment.id || parentIndex} className="border rounded-lg p-4 bg-white shadow-sm">
+                      {/* 父块内容 */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-lg font-medium text-blue-600">
+                            父块 {parentIndex + 1}
+                          </h3>
+                          <span className="text-sm text-gray-500">
+                            {parentSegment.content.length} 字符
+                          </span>
+                        </div>
+                        <div className="bg-blue-50 rounded-lg p-3 border-l-4 border-blue-400">
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                            {parentSegment.content}
+                          </p>
+                        </div>
+                      </div>
 
-          {/* 右侧预览内容 */}
-          <div className="col-span-3 pl-4">
-            <div className="bg-white rounded-lg border p-4 max-h-[600px] overflow-y-auto">
+                      {/* 子块内容 */}
+                      {parentSegment.children && parentSegment.children.length > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-md font-medium text-green-600">
+                              子块 ({parentSegment.children.length} 个)
+                            </h4>
+                          </div>
+                          <div className="space-y-3 ml-4">
+                            {parentSegment.children.map((childSegment, childIndex) => (
+                              <div key={childSegment.id || childIndex} className="bg-green-50 rounded-lg p-3 border-l-4 border-green-400">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-sm font-medium text-green-700">
+                                    子块 {childIndex + 1}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {childSegment.content.length} 字符
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                                  {childSegment.content}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          /* 原有的分段预览模式 */
+          <div className="grid grid-cols-5 gap-4 p-4">
+            {/* 左侧段落列表 */}
+            <div className="col-span-2 border-r pr-4 max-h-[600px] overflow-y-auto">
+              <div className="space-y-2">
+                {segments.map((segment) => (
+                  <div
+                    key={segment.id}
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors
+                      ${selectedSegment === segment.id
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'hover:bg-gray-50'
+                      }`}
+                    onClick={() => handleSegmentClick(segment.id)}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium text-gray-500">
+                        段落 {segment.id + 1}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {segment.length} 字符
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700 line-clamp-2">
+                      {segment.content}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 右侧预览内容 */}
+            <div className="col-span-3 pl-4">
+              <div className="bg-white rounded-lg border p-4 max-h-[600px] overflow-y-auto">
               {previewState.isLoading ? (
                 <div className="flex flex-col items-center justify-center h-[400px]">
                   <div className="animate-spin rounded-full h-10 w-10 border-3 border-blue-500 border-t-transparent mb-4" />
@@ -411,9 +556,10 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({ segments, documentId,
                   )}
                 </div>
               )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

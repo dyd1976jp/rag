@@ -1,0 +1,127 @@
+# Prometheus告警规则
+groups:
+  - name: rag-backend-alerts
+    rules:
+      # 应用健康检查
+      - alert: RAGBackendDown
+        expr: up{job="rag-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "RAG后端服务不可用"
+          description: "RAG后端服务已经停止响应超过1分钟"
+
+      # 高错误率
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "高错误率检测"
+          description: "5xx错误率超过10%，持续5分钟"
+
+      # 响应时间过长
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "响应时间过长"
+          description: "95%的请求响应时间超过2秒"
+
+      # 内存使用率过高
+      - alert: HighMemoryUsage
+        expr: (process_resident_memory_bytes / 1024 / 1024) > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "内存使用率过高"
+          description: "应用内存使用超过1GB"
+
+  - name: infrastructure-alerts
+    rules:
+      # MongoDB连接
+      - alert: MongoDBDown
+        expr: up{job="mongodb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MongoDB服务不可用"
+          description: "MongoDB服务已经停止响应"
+
+      # Milvus连接
+      - alert: MilvusDown
+        expr: up{job="milvus"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Milvus服务不可用"
+          description: "Milvus向量数据库服务已经停止响应"
+
+      # Redis连接
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis服务不可用"
+          description: "Redis缓存服务已经停止响应"
+
+      # 磁盘空间不足
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "磁盘空间不足"
+          description: "磁盘可用空间少于10%"
+
+      # CPU使用率过高
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU使用率过高"
+          description: "CPU使用率超过80%，持续10分钟"
+
+  - name: business-alerts
+    rules:
+      # 文档处理失败率
+      - alert: HighDocumentProcessingFailureRate
+        expr: rate(document_processing_failures_total[5m]) / rate(document_processing_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "文档处理失败率过高"
+          description: "文档处理失败率超过10%"
+
+      # RAG查询失败率
+      - alert: HighRAGQueryFailureRate
+        expr: rate(rag_query_failures_total[5m]) / rate(rag_query_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAG查询失败率过高"
+          description: "RAG查询失败率超过5%"
+
+      # 向量检索延迟
+      - alert: HighVectorRetrievalLatency
+        expr: histogram_quantile(0.95, rate(vector_retrieval_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "向量检索延迟过高"
+          description: "95%的向量检索请求延迟超过5秒"

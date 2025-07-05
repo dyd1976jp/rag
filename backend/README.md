@@ -45,9 +45,33 @@ pip install -r requirements-dev.txt
 
 ### 启动服务
 
+#### 方法1: 使用启动脚本（推荐）
+
 ```bash
-# 开发模式
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# 从backend目录启动（推荐）
+cd backend
+../start_backend.sh
+
+# 从项目根目录启动
+./start_backend.sh --from-root
+
+# 指定端口
+cd backend
+../start_backend.sh --port 8080
+
+# 查看帮助
+./start_backend.sh --help
+```
+
+#### 方法2: 直接使用uvicorn
+
+```bash
+# 从backend目录启动（推荐）
+cd backend
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 从项目根目录启动
+PYTHONPATH=backend python -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 
 # 生产模式
 uvicorn app.main:app --host 0.0.0.0 --port 8000

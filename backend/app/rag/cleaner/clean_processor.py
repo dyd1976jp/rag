@@ -64,16 +64,17 @@ class CleanProcessor:
         # 移除HTML标记
         text = re.sub(r"<\|", "<", text)
         text = re.sub(r"\|>", ">", text)
-        
+
         # 移除控制字符
         text = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F\xEF\xBF\xBE]", "", text)
-        
+
         # 移除特殊Unicode字符
         text = re.sub("\ufffe", "", text)  # Unicode U+FFFE
-        
-        # 移除其他特殊字符，保留中文、英文、数字和基本标点
-        text = re.sub(r'[^\w\s\u4e00-\u9fff.,?!，。？！:：;；""''()（）\-]', '', text)
-        
+
+        # 修复：保留更多特殊字符，包括货币符号、版权符号等
+        # 保留中文、英文、数字、基本标点和常见特殊字符
+        text = re.sub(r'[^\w\s\u4e00-\u9fff.,?!，。？！:：;；""''()（）\-©®™€£¥§¶†‡•…‰′″‹›«»¡¿]', '', text)
+
         return text
     
     @classmethod

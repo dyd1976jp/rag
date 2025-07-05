@@ -1,0 +1,411 @@
+[
+  {
+    "success": true,
+    "method": "curl",
+    "response": {
+      "success": true,
+      "message": "文档上传成功",
+      "preview_mode": false,
+      "doc_id": "bca57037-f4d6-438b-9252-9f895f8a2c92",
+      "total_segments": 17,
+      "parent_segments": 6,
+      "child_segments": 11,
+      "parentContent": "这是一个包含中文字符的测试文档。\n\n它用于测试UTF-8编码问题的修复。\n\n第一段：介绍内容\n这里包含一些中文字符：你好世界！\n\n第二段：详细说明\n测试各种特殊字符：©®™€£¥\n\n第三段：总结内容\n这个文件名包含中文字符，用于测试文件上传时的编码处理。\n\n测试内容足够长，以确保分割功能正常工作。\n这里添加更多内容来测试分割算法。\n每个段落都应该被正确处理。",
+      "childrenContent": [
+        "这是一个包含中文字符的测试文档",
+        "它用于测试UTF-8编码问题的修复",
+        "第一段：介绍内容",
+        "这里包含一些中文字符：你好世界！",
+        "第二段：详细说明",
+        "测试各种特殊字符：©®™€£¥",
+        "第三段：总结内容",
+        "这个文件名包含中文字符，用于测试文件上传时的编码处理。",
+        "测试内容足够长，以确保分割功能正常工作。",
+        "这里添加更多内容来测试分割算法。",
+        "每个段落都应该被正确处理。"
+      ],
+      "segments": [
+        {
+          "id": 0,
+          "content": "这是一个包含中文字符的测试文档。",
+          "start": 0,
+          "end": 16,
+          "length": 16,
+          "type": "parent",
+          "children": [
+            {
+              "id": 0,
+              "content": "这是一个包含中文字符的测试文档",
+              "start": 0,
+              "end": 15,
+              "length": 15,
+              "type": "child",
+              "parent_id": "b1f5316c-e9f5-4343-8b33-9665b7fc30b4"
+            }
+          ]
+        },
+        {
+          "id": 1,
+          "content": "它用于测试UTF-8编码问题的修复。",
+          "start": 0,
+          "end": 18,
+          "length": 18,
+          "type": "parent",
+          "children": [
+            {
+              "id": 1,
+              "content": "它用于测试UTF-8编码问题的修复",
+              "start": 0,
+              "end": 17,
+              "length": 17,
+              "type": "child",
+              "parent_id": "47863ae3-55f5-4f3c-b38c-7fbe8bad04f7"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "content": "第一段：介绍内容\n这里包含一些中文字符：你好世界！",
+          "start": 0,
+          "end": 25,
+          "length": 25,
+          "type": "parent",
+          "children": [
+            {
+              "id": 2,
+              "content": "第一段：介绍内容",
+              "start": 0,
+              "end": 8,
+              "length": 8,
+              "type": "child",
+              "parent_id": "7061210a-370d-40aa-8a32-29f988d23cad"
+            },
+            {
+              "id": 3,
+              "content": "这里包含一些中文字符：你好世界！",
+              "start": 0,
+              "end": 16,
+              "length": 16,
+              "type": "child",
+              "parent_id": "7061210a-370d-40aa-8a32-29f988d23cad"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "content": "第二段：详细说明\n测试各种特殊字符：©®™€£¥",
+          "start": 0,
+          "end": 24,
+          "length": 24,
+          "type": "parent",
+          "children": [
+            {
+              "id": 4,
+              "content": "第二段：详细说明",
+              "start": 0,
+              "end": 8,
+              "length": 8,
+              "type": "child",
+              "parent_id": "7b95eba5-1e4d-4e7c-ba0f-d20e61f5e2a7"
+            },
+            {
+              "id": 5,
+              "content": "测试各种特殊字符：©®™€£¥",
+              "start": 0,
+              "end": 15,
+              "length": 15,
+              "type": "child",
+              "parent_id": "7b95eba5-1e4d-4e7c-ba0f-d20e61f5e2a7"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "content": "第三段：总结内容\n这个文件名包含中文字符，用于测试文件上传时的编码处理。",
+          "start": 0,
+          "end": 36,
+          "length": 36,
+          "type": "parent",
+          "children": [
+            {
+              "id": 6,
+              "content": "第三段：总结内容",
+              "start": 0,
+              "end": 8,
+              "length": 8,
+              "type": "child",
+              "parent_id": "67baa554-dcda-4c14-bb20-330214ed3c23"
+            },
+            {
+              "id": 7,
+              "content": "这个文件名包含中文字符，用于测试文件上传时的编码处理。",
+              "start": 0,
+              "end": 27,
+              "length": 27,
+              "type": "child",
+              "parent_id": "67baa554-dcda-4c14-bb20-330214ed3c23"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "content": "测试内容足够长，以确保分割功能正常工作。\n这里添加更多内容来测试分割算法。\n每个段落都应该被正确处理。",
+          "start": 0,
+          "end": 51,
+          "length": 51,
+          "type": "parent",
+          "children": [
+            {
+              "id": 8,
+              "content": "测试内容足够长，以确保分割功能正常工作。",
+              "start": 0,
+              "end": 20,
+              "length": 20,
+              "type": "child",
+              "parent_id": "90e3208a-490e-441c-a1ec-b7ee5dfe0019"
+            },
+            {
+              "id": 9,
+              "content": "这里添加更多内容来测试分割算法。",
+              "start": 0,
+              "end": 16,
+              "length": 16,
+              "type": "child",
+              "parent_id": "90e3208a-490e-441c-a1ec-b7ee5dfe0019"
+            },
+            {
+              "id": 10,
+              "content": "每个段落都应该被正确处理。",
+              "start": 0,
+              "end": 13,
+              "length": 13,
+              "type": "child",
+              "parent_id": "90e3208a-490e-441c-a1ec-b7ee5dfe0019"
+            }
+          ]
+        }
+      ],
+      "document_overview": {
+        "title": "未命名文档",
+        "total_length": 180,
+        "total_segments": 17,
+        "parent_segments": 6,
+        "child_segments": 11
+      },
+      "processing_time": null
+    },
+    "database_check": {
+      "success": false,
+      "error": "Document not found in MongoDB"
+    }
+  },
+  {
+    "success": true,
+    "method": "frontend",
+    "response": {
+      "success": true,
+      "message": "文档上传成功",
+      "preview_mode": false,
+      "doc_id": "5dcbcd04-7f7f-4684-bebe-e296468de0cc",
+      "total_segments": 17,
+      "parent_segments": 6,
+      "child_segments": 11,
+      "parentContent": "这是一个包含中文字符的测试文档。\n\n它用于测试UTF-8编码问题的修复。\n\n第一段：介绍内容\n这里包含一些中文字符：你好世界！\n\n第二段：详细说明\n测试各种特殊字符：©®™€£¥\n\n第三段：总结内容\n这个文件名包含中文字符，用于测试文件上传时的编码处理。\n\n测试内容足够长，以确保分割功能正常工作。\n这里添加更多内容来测试分割算法。\n每个段落都应该被正确处理。",
+      "childrenContent": [
+        "这是一个包含中文字符的测试文档",
+        "它用于测试UTF-8编码问题的修复",
+        "第一段：介绍内容",
+        "这里包含一些中文字符：你好世界！",
+        "第二段：详细说明",
+        "测试各种特殊字符：©®™€£¥",
+        "第三段：总结内容",
+        "这个文件名包含中文字符，用于测试文件上传时的编码处理。",
+        "测试内容足够长，以确保分割功能正常工作。",
+        "这里添加更多内容来测试分割算法。",
+        "每个段落都应该被正确处理。"
+      ],
+      "segments": [
+        {
+          "id": 0,
+          "content": "这是一个包含中文字符的测试文档。",
+          "start": 0,
+          "end": 16,
+          "length": 16,
+          "type": "parent",
+          "children": [
+            {
+              "id": 0,
+              "content": "这是一个包含中文字符的测试文档",
+              "start": 0,
+              "end": 15,
+              "length": 15,
+              "type": "child",
+              "parent_id": "d821432c-6863-43d4-bf54-470919d8e4b5"
+            }
+          ]
+        },
+        {
+          "id": 1,
+          "content": "它用于测试UTF-8编码问题的修复。",
+          "start": 0,
+          "end": 18,
+          "length": 18,
+          "type": "parent",
+          "children": [
+            {
+              "id": 1,
+              "content": "它用于测试UTF-8编码问题的修复",
+              "start": 0,
+              "end": 17,
+              "length": 17,
+              "type": "child",
+              "parent_id": "997f5209-0bbe-4f63-b17c-a38f1c65bded"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "content": "第一段：介绍内容\n这里包含一些中文字符：你好世界！",
+          "start": 0,
+          "end": 25,
+          "length": 25,
+          "type": "parent",
+          "children": [
+            {
+              "id": 2,
+              "content": "第一段：介绍内容",
+              "start": 0,
+              "end": 8,
+              "length": 8,
+              "type": "child",
+              "parent_id": "4f673697-db74-48b4-8bd8-f5112f359a15"
+            },
+            {
+              "id": 3,
+              "content": "这里包含一些中文字符：你好世界！",
+              "start": 0,
+              "end": 16,
+              "length": 16,
+              "type": "child",
+              "parent_id": "4f673697-db74-48b4-8bd8-f5112f359a15"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "content": "第二段：详细说明\n测试各种特殊字符：©®™€£¥",
+          "start": 0,
+          "end": 24,
+          "length": 24,
+          "type": "parent",
+          "children": [
+            {
+              "id": 4,
+              "content": "第二段：详细说明",
+              "start": 0,
+              "end": 8,
+              "length": 8,
+              "type": "child",
+              "parent_id": "7cb6d848-a170-4ca3-9d38-f23335b7d2c3"
+            },
+            {
+              "id": 5,
+              "content": "测试各种特殊字符：©®™€£¥",
+              "start": 0,
+              "end": 15,
+              "length": 15,
+              "type": "child",
+              "parent_id": "7cb6d848-a170-4ca3-9d38-f23335b7d2c3"
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "content": "第三段：总结内容\n这个文件名包含中文字符，用于测试文件上传时的编码处理。",
+          "start": 0,
+          "end": 36,
+          "length": 36,
+          "type": "parent",
+          "children": [
+            {
+              "id": 6,
+              "content": "第三段：总结内容",
+              "start": 0,
+              "end": 8,
+              "length": 8,
+              "type": "child",
+              "parent_id": "b188253a-bd73-4c42-9db5-8f8fe1513fa3"
+            },
+            {
+              "id": 7,
+              "content": "这个文件名包含中文字符，用于测试文件上传时的编码处理。",
+              "start": 0,
+              "end": 27,
+              "length": 27,
+              "type": "child",
+              "parent_id": "b188253a-bd73-4c42-9db5-8f8fe1513fa3"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "content": "测试内容足够长，以确保分割功能正常工作。\n这里添加更多内容来测试分割算法。\n每个段落都应该被正确处理。",
+          "start": 0,
+          "end": 51,
+          "length": 51,
+          "type": "parent",
+          "children": [
+            {
+              "id": 8,
+              "content": "测试内容足够长，以确保分割功能正常工作。",
+              "start": 0,
+              "end": 20,
+              "length": 20,
+              "type": "child",
+              "parent_id": "fbb3239d-e649-4081-ac9f-302c5a3929d0"
+            },
+            {
+              "id": 9,
+              "content": "这里添加更多内容来测试分割算法。",
+              "start": 0,
+              "end": 16,
+              "length": 16,
+              "type": "child",
+              "parent_id": "fbb3239d-e649-4081-ac9f-302c5a3929d0"
+            },
+            {
+              "id": 10,
+              "content": "每个段落都应该被正确处理。",
+              "start": 0,
+              "end": 13,
+              "length": 13,
+              "type": "child",
+              "parent_id": "fbb3239d-e649-4081-ac9f-302c5a3929d0"
+            }
+          ]
+        }
+      ],
+      "document_overview": {
+        "title": "未命名文档",
+        "total_length": 180,
+        "total_segments": 17,
+        "parent_segments": 6,
+        "child_segments": 11
+      },
+      "processing_time": null
+    },
+    "params": {
+      "parent_chunk_size": "512",
+      "parent_chunk_overlap": "50",
+      "parent_separator": "\n\n",
+      "child_chunk_size": "256",
+      "child_chunk_overlap": "25",
+      "child_separator": "\n",
+      "preview_only": "false"
+    },
+    "database_check": {
+      "success": false,
+      "error": "Document not found in MongoDB"
+    }
+  }
+]

@@ -6,8 +6,8 @@
 
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, HTTPException, Depends, Query, Body, status
-from app.services.llm_service import llm_service
-from app.api.deps import get_current_user
+from app.services.llm_service import LLMService
+from app.dependencies import get_current_user, get_llm_service
 from app.schemas.llm import LLMCreate, LLMResponse
 import logging
 
@@ -20,7 +20,8 @@ router = APIRouter()
 async def discover_models(
     provider: str = Query(..., description="提供商名称，如lmstudio或ollama"),
     url: str = Query(..., description="API URL，例如http://0.0.0.0:1234"),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    llm_service: LLMService = Depends(get_llm_service)
 ):
     """
     发现本地服务（如LM Studio或Ollama）中的模型

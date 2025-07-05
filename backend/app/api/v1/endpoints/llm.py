@@ -1,8 +1,8 @@
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, HTTPException, Depends, Query, Path, Body, status
 from app.schemas.llm import LLMCreate, LLMResponse, LLMUpdate, LLMTest
-from app.services.llm_service import llm_service
-from app.api.deps import get_current_user
+from app.services.llm_service import LLMService
+from app.dependencies import get_current_user, get_llm_service
 import logging
 
 # 配置日志
@@ -11,13 +11,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/", response_model=LLMResponse, status_code=201)
-async def create_llm(llm: LLMCreate, current_user = Depends(get_current_user)):
+async def create_llm(
+    llm: LLMCreate,
+    current_user = Depends(get_current_user),
+    llm_service: LLMService = Depends(get_llm_service)
+):
     """
     创建新的LLM模型配置
     """
     if not current_user.is_superuser:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="权限不足")
-    
+
     result = await llm_service.create_llm(llm)
     return result
 
@@ -25,7 +29,8 @@ async def create_llm(llm: LLMCreate, current_user = Depends(get_current_user)):
 async def get_llms(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    llm_service: LLMService = Depends(get_llm_service)
 ):
     """
     获取所有LLM模型配置
@@ -33,7 +38,7 @@ async def get_llms(
     return await llm_service.get_llms(skip, limit)
 
 @router.get("/default", response_model=LLMResponse)
-async def get_default_llm():
+async def get_default_llm(llm_service: LLMService = Depends(get_llm_service)):
     """
     获取默认LLM模型配置
     """
@@ -44,7 +49,8 @@ async def get_default_llm():
 
 @router.get("/providers/list", response_model=List[str])
 async def list_providers(
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    llm_service: LLMService = Depends(get_llm_service)
 ):
     """
     获取所有可用的LLM提供商
@@ -66,7 +72,8 @@ async def list_models_by_provider(
 async def get_discover_models(
     provider: str = Query(..., description="提供商名称，如lmstudio或ollama"),
     url: str = Query(..., description="API URL，例如http://0.0.0.0:1234"),
-    current_user = Depends(get_current_user)
+    current_user = Depends(get_current_user),
+    llm_service: LLMService = Depends(get_llm_service)
 ):
     """
     发现本地服务中的模型

@@ -9,6 +9,7 @@ import {
   DocumentCollectionCreate
 } from '../types/documentCollection';
 import * as documentCollectionApi from '../api/documentCollections';
+import { createUploadFormDataForUpload } from '../utils/documentUploadConfig';
 
 const Documents: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -133,19 +134,13 @@ const Documents: React.FC = () => {
     setIsUploading(true);
     setUploadProgress(0);
     setErrorMessage('');
-    
-    const formData = new FormData();
-    if (selectedFile) {
-      formData.append('file', selectedFile);
-    }
-    formData.append('parent_chunk_size', chunkSize.toString());
-    formData.append('parent_chunk_overlap', chunkOverlap.toString());
-    formData.append('parent_separator', '\n\n');
-    formData.append('child_chunk_size', Math.floor(chunkSize / 2).toString());
-    formData.append('child_chunk_overlap', Math.floor(chunkOverlap / 4).toString());
-    formData.append('child_separator', '\n');
-    
+    setSuccessMessage(''); // 清除之前的成功消息
+
+    // 使用新的配置系统创建上传用的 FormData
+    const formData = createUploadFormDataForUpload(selectedFile);
+
     try {
+      console.log('开始上传文件:', selectedFile.name);
       const response = await axios.post('/api/v1/rag/documents/upload', formData, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -154,26 +149,50 @@ const Documents: React.FC = () => {
           if (progressEvent.total) {
             const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
             setUploadProgress(percent);
+            console.log('上传进度:', percent + '%');
           }
         }
       });
-      
+
+      console.log('上传响应:', response.data);
+
       if (response.data && response.data.success) {
-        fetchDocuments();
+        console.log('上传成功，刷新文档列表');
+        await fetchDocuments(); // 等待文档列表刷新完成
         setSelectedFile(null);
         setShowPreview(false);
-        setSuccessMessage('上传成功');
-        
+        setSuccessMessage(`文件 "${selectedFile.name}" 上传成功！`);
+
         const fileInput = document.getElementById('file-upload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
+
+        // 3秒后自动清除成功消息
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
       } else {
-        setErrorMessage(response.data.message || '上传失败');
+        const errorMsg = response.data?.message || '上传失败，请重试';
+        console.error('上传失败:', errorMsg);
+        setErrorMessage(errorMsg);
       }
     } catch (error: any) {
       console.error('上传失败:', error);
-      setErrorMessage(error.response?.data?.message || '上传失败');
+      let errorMsg = '上传失败';
+
+      if (error.response?.status === 401) {
+        errorMsg = '认证失败，请重新登录';
+      } else if (error.response?.status === 413) {
+        errorMsg = '文件过大，请选择较小的文件';
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+
+      setErrorMessage(errorMsg);
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -298,25 +317,68 @@ const Documents: React.FC = () => {
     });
   };
 
+  // 新增：层级预览功能
+  const handleHierarchicalPreview = async (docId: string, fileName: string) => {
+    setPreviewDocumentId(docId);
+    setPreviewSegments([]); // 层级模式不需要segments
+    setShowSegmentPreview(true);
+    setSelectedDocumentName(fileName);
+    
+    console.log('开始层级预览模式:', { docId, fileName });
+  };
+
   const handlePreviewSplit = async (docId: string, fileName: string) => {
     setSelectedDocumentId(docId);
     setSelectedDocumentName(fileName);
     setPreviewDialogVisible(true);
     setPreviewLoading(true);
-    
+
     try {
-      const response = await axios.get(`/api/v1/rag/documents/${docId}`, {
+      console.log('开始获取文档切割预览:', { docId, fileName });
+
+      // 首先获取文档基本信息
+      const docResponse = await axios.get(`/api/v1/rag/documents/${docId}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
-      if (response.data && response.data.document) {
-        setDocumentSegments(response.data.document.segments || []);
+
+      console.log('文档基本信息:', docResponse.data);
+
+      if (!docResponse.data || !docResponse.data.success) {
+        throw new Error('获取文档信息失败');
       }
-    } catch (error) {
+
+      // 获取文档的段落信息 - 使用切片预览API获取所有段落
+      const segmentsResponse = await axios.get(`/api/v1/rag/collections/documents/${docId}/slices/0/preview`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      console.log('文档段落信息:', segmentsResponse.data);
+
+      if (segmentsResponse.data && segmentsResponse.data.success && segmentsResponse.data.segments) {
+        // 将段落数据转换为前端期望的格式
+        const segments = segmentsResponse.data.segments.map((segment: any, index: number) => ({
+          id: index,
+          content: segment.content,
+          start: segment.start || 0,
+          end: segment.end || segment.content.length,
+          length: segment.length || segment.content.length
+        }));
+
+        console.log('格式化后的段落数据:', segments);
+        setDocumentSegments(segments);
+      } else {
+        console.warn('未获取到有效的段落数据');
+        setDocumentSegments([]);
+      }
+    } catch (error: any) {
       console.error('获取文档切割预览失败:', error);
-      setErrorMessage('获取文档切割预览失败');
+      const errorMessage = error.response?.data?.message || error.message || '获取文档切割预览失败';
+      setErrorMessage(errorMessage);
+      setDocumentSegments([]);
     } finally {
       setPreviewLoading(false);
     }
@@ -557,9 +619,25 @@ const Documents: React.FC = () => {
                           : 'bg-indigo-600 hover:bg-indigo-700'
                       }`}
                     >
-                      {isUploading ? '上传中...' : '开始上传'}
+                      {isUploading ? `上传中... ${uploadProgress}%` : '开始上传'}
                     </button>
                   </div>
+
+                  {/* 上传进度条 */}
+                  {isUploading && (
+                    <div className="mt-4">
+                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>上传进度</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full transition-all duration-300 ease-out"
+                          style={{ width: `${uploadProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -602,13 +680,17 @@ const Documents: React.FC = () => {
               )}
 
               {/* 段落详细预览 */}
-              {showSegmentPreview && previewDocumentId && previewSegmentId !== null && (
+              {showSegmentPreview && previewDocumentId && (previewSegmentId !== null || previewSegments.length === 0) && (
                 <div className="border-t mt-6 pt-6">
                   <h3 className="text-sm font-medium text-gray-700 mb-4">段落详细预览</h3>
                   <DocumentPreview
                     segments={previewSegments}
                     documentId={previewDocumentId}
                     initialSegmentId={previewSegmentId}
+                    chunkSize={chunkSize}
+                    chunkOverlap={chunkOverlap}
+                    parentSeparator={String.fromCharCode(92, 110, 92, 110)} // 传入修复后的分隔符
+                    showHierarchical={previewSegments.length === 0} // 如果没有segments则显示层级结构
                     onClose={() => {
                       setShowSegmentPreview(false);
                       setPreviewSegmentId(null);
@@ -701,6 +783,12 @@ const Documents: React.FC = () => {
                                 className="text-blue-600 hover:text-blue-900"
                               >
                                 查看切割
+                              </button>
+                              <button
+                                onClick={() => handleHierarchicalPreview(doc.id, doc.file_name)}
+                                className="text-green-600 hover:text-green-900"
+                              >
+                                层级预览
                               </button>
                               <button
                                 onClick={() => deleteDocument(doc.id)}

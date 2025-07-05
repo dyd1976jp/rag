@@ -2,12 +2,46 @@ from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+class DocumentOverview(BaseModel):
+    """文档概览信息"""
+    title: str = Field(default="未命名文档", description="文档标题")
+    total_length: int = Field(..., description="文档总长度")
+    total_segments: int = Field(..., description="总段落数")
+    parent_segments: int = Field(..., description="父段落数")
+    child_segments: int = Field(..., description="子段落数")
+
+class SegmentInfo(BaseModel):
+    """段落信息"""
+    id: int = Field(..., description="段落ID")
+    content: str = Field(..., description="段落内容")
+    start: int = Field(..., description="开始位置")
+    end: int = Field(..., description="结束位置")
+    length: int = Field(..., description="段落长度")
+    type: str = Field(..., description="段落类型(parent/child)")
+    children: List[Dict[str, Any]] = Field(default_factory=list, description="子段落列表")
+
 class DocumentUploadResponse(BaseModel):
-    success: bool
-    message: str
-    doc_id: Optional[str] = None
-    segments_count: Optional[int] = None
-    processing_time: Optional[float] = None
+    """统一的文档上传响应格式，支持预览模式和正式上传模式"""
+    success: bool = Field(..., description="操作是否成功")
+    message: str = Field(..., description="响应消息")
+    preview_mode: bool = Field(..., description="是否为预览模式")
+    doc_id: str = Field(..., description="文档ID")
+
+    # 统计信息
+    total_segments: int = Field(..., description="总段落数")
+    parent_segments: int = Field(..., description="父段落数")
+    child_segments: int = Field(..., description="子段落数")
+
+    # 详细内容
+    parentContent: str = Field(..., description="完整文档内容")
+    childrenContent: List[str] = Field(default_factory=list, description="所有子块内容列表")
+    segments: List[SegmentInfo] = Field(default_factory=list, description="层级结构的段落数组")
+
+    # 文档概览
+    document_overview: DocumentOverview = Field(..., description="文档概览信息")
+
+    # 可选字段（仅在正式上传模式下使用）
+    processing_time: Optional[float] = Field(None, description="处理时间（秒）")
 
 class DocumentSearchRequest(BaseModel):
     query: str = Field(..., description="搜索查询文本")
@@ -92,3 +126,5 @@ class DocumentSlicePreviewResponse(BaseModel):
     message: str
     parentContent: Optional[str] = Field(None, description="父切割内容")
     childrenContent: List[str] = Field(default_factory=list, description="子切割列表内容")
+    segments: List[SegmentInfo] = Field(default_factory=list, description="所有段落信息")
+    total_segments: int = Field(0, description="总段落数")

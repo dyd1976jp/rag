@@ -43,15 +43,16 @@ class PreviewCacheService:
         created_at = datetime.fromisoformat(cache_data["created_at"])
         return datetime.now() - created_at > timedelta(seconds=self.ttl_seconds)
     
-    def store_preview_data(self, doc_id: str, segments: List, cleaned_document: Any) -> bool:
+    def store_preview_data(self, doc_id: str, segments: List, cleaned_document: Any, split_params: Dict = None) -> bool:
         """
         存储预览数据到缓存
-        
+
         Args:
             doc_id: 文档ID
             segments: 分割后的段落列表
             cleaned_document: 清洗后的文档
-            
+            split_params: 切割参数字典
+
         Returns:
             bool: 是否存储成功
         """
@@ -64,7 +65,8 @@ class PreviewCacheService:
                     "page_content": cleaned_document.page_content,
                     "metadata": cleaned_document.metadata
                 },
-                "segments": []
+                "segments": [],
+                "split_params": split_params or {}  # 存储切割参数
             }
             
             # 处理段落数据，分离父块和子块
@@ -153,7 +155,22 @@ class PreviewCacheService:
         if cache_data:
             return cache_data.get("segments", [])
         return None
-    
+
+    def get_preview_split_params(self, doc_id: str) -> Optional[Dict]:
+        """
+        获取预览文档的切割参数
+
+        Args:
+            doc_id: 文档ID
+
+        Returns:
+            Dict: 切割参数，如果不存在则返回None
+        """
+        cache_data = self.get_preview_data(doc_id)
+        if cache_data:
+            return cache_data.get("split_params", {})
+        return None
+
     def get_preview_segment(self, doc_id: str, segment_id: int) -> Optional[Dict]:
         """
         获取预览文档的特定段落

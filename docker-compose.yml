@@ -1,0 +1,162 @@
+# Docker Compose配置 - 开发环境
+version: '3.8'
+
+services:
+  # RAG应用后端
+  rag-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: rag-backend-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_ENV=development
+      - MONGODB_URL=mongodb://mongodb:27017/rag_chat_dev
+      - MILVUS_HOST=milvus
+      - MILVUS_PORT=19530
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE:-https://api.openai.com/v1}
+    volumes:
+      - ./backend:/app/backend
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./scripts:/app/scripts
+    depends_on:
+      - mongodb
+      - milvus
+      - redis
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  # MongoDB数据库
+  mongodb:
+    image: mongo:5.0
+    container_name: rag-mongodb-dev
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=rag_chat_dev
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  # Milvus向量数据库
+  milvus:
+    image: milvusdb/milvus:v2.3.0
+    container_name: rag-milvus-dev
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    environment:
+      - ETCD_ENDPOINTS=etcd:2379
+      - MINIO_ADDRESS=minio:9000
+    volumes:
+      - milvus_data:/var/lib/milvus
+    depends_on:
+      - etcd
+      - minio
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  # Etcd (Milvus依赖)
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.0
+    container_name: rag-etcd-dev
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - etcd_data:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  # MinIO (Milvus依赖)
+  minio:
+    image: minio/minio:RELEASE.2023-03-20T20-16-18Z
+    container_name: rag-minio-dev
+    environment:
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    command: minio server /data --console-address ":9001"
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: rag-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+  # 前端应用
+  frontend-app:
+    build:
+      context: ./frontend-app
+      dockerfile: Dockerfile
+    container_name: rag-frontend-app-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    volumes:
+      - ./frontend-app:/app
+      - /app/node_modules
+    depends_on:
+      - rag-backend
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: rag-nginx-dev
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - rag-backend
+      - frontend-app
+    networks:
+      - rag-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+  milvus_data:
+  etcd_data:
+  minio_data:
+  redis_data:
+
+networks:
+  rag-network:
+    driver: bridge

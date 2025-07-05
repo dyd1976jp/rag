@@ -528,7 +528,7 @@ class MilvusVectorStore(BaseVectorStore):
         if not self.collection:
             logger.error("集合未初始化，无法执行查询")
             raise QueryError("Collection not initialized")
-        
+
         if not doc_ids:
             return []
 
@@ -537,9 +537,9 @@ class MilvusVectorStore(BaseVectorStore):
         try:
             ids_str = ", ".join([f'"{doc_id}"' for doc_id in doc_ids])
             expr = f'{Field.PRIMARY_KEY.value} in [{ids_str}]'
-            
+
             output_fields = [Field.CONTENT_KEY.value, Field.METADATA_KEY.value]
-            
+
             results = self.collection.query(
                 expr=expr,
                 output_fields=output_fields
@@ -556,6 +556,54 @@ class MilvusVectorStore(BaseVectorStore):
         except Exception as e:
             logger.error(f"通过ID列表查询文档失败: {e}")
             raise QueryError(f"Failed to query documents by IDs: {e}")
+
+    def get_documents_by_doc_id(self, doc_id: str) -> List[Document]:
+        """根据文档ID获取所有相关的段落"""
+        if not self.collection:
+            logger.error("集合未初始化，无法执行查询")
+            raise ValueError("Collection not initialized")
+
+        self._ensure_collection_loaded(self.collection)
+
+        try:
+            # 尝试多种查询表达式，因为元数据结构可能不同
+            query_expressions = [
+                f'metadata["doc_id"] == "{doc_id}"',
+                f'metadata["document_id"] == "{doc_id}"',
+                f'metadata["original_doc_id"] == "{doc_id}"'
+            ]
+
+            output_fields = [Field.CONTENT_KEY.value, Field.METADATA_KEY.value]
+            documents = []
+
+            for expr in query_expressions:
+                try:
+                    logger.info(f"尝试查询表达式: {expr}")
+                    results = self.collection.query(
+                        expr=expr,
+                        output_fields=output_fields,
+                        limit=1000  # 设置一个合理的上限
+                    )
+
+                    for res in results:
+                        page_content = res.get(Field.CONTENT_KEY.value, "")
+                        metadata = res.get(Field.METADATA_KEY.value, {})
+                        doc = Document(page_content=page_content, metadata=metadata)
+                        documents.append(doc)
+
+                    if documents:
+                        logger.info(f"使用表达式 '{expr}' 找到 {len(documents)} 个段落")
+                        break
+
+                except Exception as query_error:
+                    logger.warning(f"查询表达式 '{expr}' 失败: {query_error}")
+                    continue
+
+            logger.info(f"根据文档ID {doc_id} 总共找到 {len(documents)} 个段落")
+            return documents
+        except Exception as e:
+            logger.error(f"根据文档ID查询段落失败: {e}")
+            return []
             
     def search(self, query_embedding: List[float], top_k: int = 2) -> List[Document]:
         """搜索相似向量"""

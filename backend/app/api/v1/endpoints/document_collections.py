@@ -1,5 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import logging
+import time
 from fastapi import APIRouter, Depends, HTTPException
 
 logger = logging.getLogger(__name__)
@@ -7,6 +8,8 @@ from pydantic import BaseModel
 
 from ....rag.models import Document
 from ....rag.parent_child_processor import ParentChildIndexProcessor, ProcessingRule, Segmentation
+from ....rag.document_splitter import ParentChildDocumentSplitter, Rule, SplitMode
+from ....rag.document_processor import DocumentProcessor
 from ....services.document_collection_service import DocumentCollectionService
 from ....models.document_collection import (
     DocumentCollection,
@@ -26,12 +29,14 @@ class CollectionResponse(BaseModel):
     message: str
     data: Optional[dict] = None
 
-class DocumentPreviewResponse(BaseModel):
-    """文档预览响应"""
+class DocumentSegmentPreviewResponse(BaseModel):
+    """文档段落预览响应 - 用于查看特定段落的父子关系"""
     success: bool
     message: str
-    parentContent: str
-    childrenContent: List[str]
+    segment_info: Dict[str, Any]  # 段落基本信息
+    parent_content: str           # 父段落内容
+    children_content: List[str]   # 子段落内容列表
+    metadata: Optional[Dict[str, Any]] = None  # 额外的元数据信息
 
 class SplitterParamsResponse(BaseModel):
     """切割参数响应"""
@@ -41,6 +46,17 @@ class SplitterParamsResponse(BaseModel):
     split_by_paragraph: bool = True
     paragraph_separator: str = "\\n\\n"
     split_by_sentence: bool = True
+
+class CompleteDocumentPreviewResponse(BaseModel):
+    """完整文档预览响应 - 显示所有父子块的层级结构"""
+    success: bool
+    message: str
+    preview_mode: bool
+    doc_id: str
+    total_segments: int
+    parent_segments: int
+    child_segments: int
+    segments: List[Dict[str, Any]]  # 父子层级结构的段落数组
 
 @router.get("/", response_model=CollectionResponse)
 async def get_collections(
@@ -84,13 +100,13 @@ async def create_collection(
         logger.error(f"创建文档集失败: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{document_id}/preview/{segment_id}", response_model=DocumentPreviewResponse)
-async def get_document_preview(
+@router.get("/{document_id}/preview/{segment_id}", response_model=DocumentSegmentPreviewResponse)
+async def get_document_segment_preview(
     document_id: str,
     segment_id: int,
     current_user: User = Depends(get_current_user),
     collection_service: DocumentCollectionService = Depends()
-) -> DocumentPreviewResponse:
+) -> DocumentSegmentPreviewResponse:
     """获取文档切片预览"""
     try:
         logger.info(f"开始处理文档预览请求 - document_id: {document_id}, segment_id: {segment_id}")
@@ -109,55 +125,33 @@ async def get_document_preview(
 
             # 获取预览缓存中的段落数据
             segments = preview_data.get("segments", [])
-            if not segments or segment_id >= len(segments):
-                logger.warning(f"未找到指定的文档片段 - segment_id: {segment_id}, 总段落数: {len(segments)}")
-                raise HTTPException(status_code=404, detail="Segment not found")
 
-            # 获取指定的段落
-            target_segment = segments[segment_id]
+            # 分离父块和子块
+            parent_segments = [seg for seg in segments if seg.get("type") == "parent"]
+            child_segments = [seg for seg in segments if seg.get("type") == "child"]
 
-            # 构建父文档内容和子文档内容
-            parent_content = ""
+            logger.info(f"预览缓存数据统计: 总段落={len(segments)}, 父块={len(parent_segments)}, 子块={len(child_segments)}")
+
+            # segment_id 应该对应父块的索引
+            if not parent_segments or segment_id >= len(parent_segments):
+                logger.warning(f"未找到指定的父块 - segment_id: {segment_id}, 父块总数: {len(parent_segments)}")
+                raise HTTPException(status_code=404, detail="Parent segment not found")
+
+            # 获取指定的父块
+            target_parent = parent_segments[segment_id]
+            parent_content = target_parent.get("page_content", "")
+            parent_id = target_parent.get("metadata", {}).get("id", str(segment_id))
+
+            logger.info(f"目标父块: segment_id={segment_id}, parent_id={parent_id}, 内容长度={len(parent_content)}")
+
+            # 构建子文档内容列表
             children_content = []
+            if parent_id:
+                for segment in child_segments:
+                    if segment.get("metadata", {}).get("parent_id") == parent_id:
+                        children_content.append(segment.get("page_content", ""))
 
-            # 检查当前段落是否为父块
-            if target_segment.get("type") == "parent":
-                # 当前段落是父块，显示父块内容和其子块
-                parent_content = target_segment.get("page_content", "")
-                parent_doc_id = target_segment.get("metadata", {}).get("id")
-
-                if parent_doc_id:
-                    for segment in segments:
-                        if (segment.get("type") == "child" and
-                            segment.get("metadata", {}).get("parent_id") == parent_doc_id):
-                            children_content.append(segment.get("page_content", ""))
-            else:
-                # 当前段落是子块，找到其父块并显示父块内容和所有子块
-                current_parent_id = target_segment.get("metadata", {}).get("parent_id")
-
-                if current_parent_id:
-                    # 找到父块
-                    parent_segment = None
-                    for segment in segments:
-                        if (segment.get("type") == "parent" and
-                            segment.get("metadata", {}).get("id") == current_parent_id):
-                            parent_segment = segment
-                            break
-
-                    if parent_segment:
-                        parent_content = parent_segment.get("page_content", "")
-
-                        # 找到所有属于这个父块的子块
-                        for segment in segments:
-                            if (segment.get("type") == "child" and
-                                segment.get("metadata", {}).get("parent_id") == current_parent_id):
-                                children_content.append(segment.get("page_content", ""))
-                    else:
-                        # 如果找不到父块，就显示当前子块的内容
-                        parent_content = target_segment.get("page_content", "")
-                else:
-                    # 如果没有父块关系，就显示当前段落的内容
-                    parent_content = target_segment.get("page_content", "")
+            logger.info(f"找到 {len(children_content)} 个子块")
 
             logger.info(f"成功从预览缓存获取段落: segment_id={segment_id}, 父块内容长度={len(parent_content)}, 子块数量={len(children_content)}")
 
@@ -175,50 +169,90 @@ async def get_document_preview(
             )
             logger.info(f"成功从数据库获取文档: {document_id}")
 
-            # 初始化处理器
-            processor = ParentChildIndexProcessor()
+            # 使用与预览相同的切割器和参数
+            # 使用默认参数（与预览模式保持一致）
+            parent_chunk_size = 512
+            parent_chunk_overlap = 50
+            parent_separator = "\n\n"
+            child_chunk_size = 256
+            child_chunk_overlap = 25
+            child_separator = "\n"
 
-            # 设置处理规则
-            rule = ProcessingRule(
-                segmentation=Segmentation(
-                    max_tokens=512,  # 父文档块大小
-                    chunk_overlap=50,
-                    separator="\n\n"
-                ),
-                subchunk_segmentation=Segmentation(
-                    max_tokens=256,  # 子文档块大小
-                    chunk_overlap=25,
-                    separator="\n"
-                )
+            # 清洗文档内容
+            document_processor = DocumentProcessor()
+            cleaned_document = document_processor.clean_document(document)
+
+            # 创建分割器和规则（与预览模式相同）
+            splitter = ParentChildDocumentSplitter()
+            rule = Rule(
+                mode=SplitMode.PARENT_CHILD,
+                max_tokens=parent_chunk_size,
+                chunk_overlap=parent_chunk_overlap,
+                fixed_separator=parent_separator,
+                subchunk_max_tokens=child_chunk_size,
+                subchunk_overlap=child_chunk_overlap,
+                subchunk_separator=child_separator,
+                clean_text=True,
+                keep_separator=True
             )
-            logger.info("初始化处理器和规则完成")
 
-            # 处理文档
-            logger.info("开始处理文档...")
-            processed_docs = processor.transform([document], rule=rule)
-            logger.info(f"文档处理完成，生成了 {len(processed_docs)} 个文档片段")
+            logger.info("初始化分割器和规则完成")
 
-            if not processed_docs or segment_id >= len(processed_docs):
-                logger.warning(f"未找到指定的文档片段 - segment_id: {segment_id}")
-                raise HTTPException(status_code=404, detail="Segment not found")
+            # 执行分割
+            logger.info("开始分割文档...")
+            processed_docs = splitter.split_documents([cleaned_document], rule)
+            logger.info(f"文档分割完成，生成了 {len(processed_docs)} 个段落")
 
-            # 获取父文档和子文档
-            parent_doc = processed_docs[segment_id]
-            child_docs = [
-                doc for doc in processed_docs
-                if doc.metadata.get("parent_id") == parent_doc.metadata.get("doc_id")
-            ]
+            # 分离父块和子块（与预览模式相同的逻辑）
+            parent_segments = []
+            child_segments = {}
 
-            parent_content = parent_doc.page_content
-            children_content = [doc.page_content for doc in child_docs]
+            for segment in processed_docs:
+                segment_type = segment.metadata.get("type", "unknown")
+                parent_id = segment.metadata.get("parent_id")
 
-            logger.info(f"成功获取父文档和 {len(child_docs)} 个子文档")
+                if segment_type == "parent":
+                    parent_segments.append(segment)
+                elif segment_type == "child" and parent_id:
+                    if parent_id not in child_segments:
+                        child_segments[parent_id] = []
+                    child_segments[parent_id].append(segment)
 
-        return DocumentPreviewResponse(
+            logger.info(f"分离结果: 父块={len(parent_segments)}, 子块组={len(child_segments)}")
+
+            # 检查segment_id是否有效
+            if not parent_segments or segment_id >= len(parent_segments):
+                logger.warning(f"未找到指定的父块 - segment_id: {segment_id}, 父块总数: {len(parent_segments)}")
+                raise HTTPException(status_code=404, detail="Parent segment not found")
+
+            # 获取指定的父块
+            parent_segment = parent_segments[segment_id]
+            parent_content = parent_segment.page_content
+
+            # 获取对应的子块
+            parent_id = parent_segment.metadata.get("id", str(segment_id))
+            children_content = []
+            if parent_id in child_segments:
+                children_content = [child.page_content for child in child_segments[parent_id]]
+
+            logger.info(f"成功获取父块和 {len(children_content)} 个子块")
+
+        return DocumentSegmentPreviewResponse(
             success=True,
-            message="文档预览获取成功",
-            parentContent=parent_content,
-            childrenContent=children_content
+            message="文档段落预览获取成功",
+            segment_info={
+                "segment_id": segment_id,
+                "parent_id": parent_id,
+                "segment_type": "parent",
+                "children_count": len(children_content)
+            },
+            parent_content=parent_content,
+            children_content=children_content,
+            metadata={
+                "document_id": document_id,
+                "is_preview_mode": document_id.startswith("preview_"),
+                "processing_timestamp": time.time()
+            }
         )
 
     except HTTPException:
@@ -239,7 +273,7 @@ async def get_document_splitter_params(
         if document_id.startswith("preview_"):
             logger.info(f"处理预览模式文档的切割参数请求: {document_id}")
 
-            # 从预览缓存获取数据
+            # 从预览缓存获取数据和切割参数
             from app.services.preview_cache_service import preview_cache_service
             preview_data = preview_cache_service.get_preview_data(document_id)
 
@@ -247,15 +281,16 @@ async def get_document_splitter_params(
                 logger.error(f"预览文档不存在或已过期: {document_id}")
                 raise HTTPException(status_code=404, detail="Preview document not found or expired")
 
-            # 对于预览文档，返回默认的切割参数
-            # 这些参数主要用于前端显示，实际的切割已经在预览时完成
-            logger.info(f"返回预览文档的默认切割参数: {document_id}")
+            # 从缓存中获取实际使用的切割参数
+            split_params = preview_data.get("split_params", {})
+            logger.info(f"从缓存获取到切割参数: {split_params}")
+
             return SplitterParamsResponse(
-                chunk_size=512,
-                chunk_overlap=50,
+                chunk_size=split_params.get("parent_chunk_size", 512),
+                chunk_overlap=split_params.get("parent_chunk_overlap", 50),
                 min_chunk_size=50,
                 split_by_paragraph=True,
-                paragraph_separator="\\n\\n",
+                paragraph_separator=split_params.get("parent_separator", "\\n\\n"),
                 split_by_sentence=True
             )
 
@@ -398,6 +433,186 @@ async def remove_document_from_collection(
         logger.error(f"从文档集中移除文档失败: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/{document_id}/complete-preview", response_model=CompleteDocumentPreviewResponse)
+async def get_complete_document_preview(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    collection_service: DocumentCollectionService = Depends()
+) -> CompleteDocumentPreviewResponse:
+    """获取完整文档预览 - 显示所有父子块的层级结构"""
+    try:
+        logger.info(f"开始处理完整文档预览请求 - document_id: {document_id}")
+
+        # 检查是否为预览模式的文档ID
+        if document_id.startswith("preview_"):
+            logger.info(f"处理预览模式文档: {document_id}")
+
+            # 从预览缓存获取数据
+            from app.services.preview_cache_service import preview_cache_service
+            preview_data = preview_cache_service.get_preview_data(document_id)
+
+            if not preview_data:
+                logger.error(f"预览文档不存在或已过期: {document_id}")
+                raise HTTPException(status_code=404, detail="Preview document not found or expired")
+
+            # 获取预览缓存中的段落数据
+            segments = preview_data.get("segments", [])
+            
+            # 分离父块和子块
+            parent_segments = [seg for seg in segments if seg.get("type") == "parent"]
+            child_segments = [seg for seg in segments if seg.get("type") == "child"]
+
+            logger.info(f"预览缓存数据统计: 总段落={len(segments)}, 父块={len(parent_segments)}, 子块={len(child_segments)}")
+
+            # 构建层级结构
+            hierarchical_segments = []
+            child_segments_by_parent = {}
+            
+            # 按父块ID分组子块
+            for child in child_segments:
+                parent_id = child.get("metadata", {}).get("parent_id")
+                if parent_id:
+                    if parent_id not in child_segments_by_parent:
+                        child_segments_by_parent[parent_id] = []
+                    child_segments_by_parent[parent_id].append(child)
+
+            # 构建层级结构
+            for parent in parent_segments:
+                parent_id = parent.get("metadata", {}).get("id", str(len(hierarchical_segments)))
+                
+                parent_segment = {
+                    "type": "parent",
+                    "id": parent_id,
+                    "content": parent.get("page_content", ""),
+                    "metadata": parent.get("metadata", {}),
+                    "children": []
+                }
+                
+                # 添加子块
+                if parent_id in child_segments_by_parent:
+                    for child in child_segments_by_parent[parent_id]:
+                        child_segment = {
+                            "type": "child",
+                            "id": child.get("metadata", {}).get("id", ""),
+                            "content": child.get("page_content", ""),
+                            "metadata": child.get("metadata", {}),
+                            "parent_id": parent_id
+                        }
+                        parent_segment["children"].append(child_segment)
+                
+                hierarchical_segments.append(parent_segment)
+
+            logger.info(f"构建层级结构完成: {len(hierarchical_segments)} 个父块")
+
+        else:
+            # 从数据库获取文档
+            document_dict = await collection_service.get_document(document_id)
+            if not document_dict:
+                logger.warning(f"文档未找到 - document_id: {document_id}")
+                raise HTTPException(status_code=404, detail="Document not found")
+
+            # 从字典构建Document对象
+            document = Document(
+                page_content=document_dict.get("content", ""),
+                metadata=document_dict.get("metadata", {})
+            )
+            logger.info(f"成功从数据库获取文档: {document_id}")
+
+            # 使用与预览相同的切割器和参数
+            parent_chunk_size = 512
+            parent_chunk_overlap = 50
+            parent_separator = "\\n\\n"
+            child_chunk_size = 256
+            child_chunk_overlap = 25
+            child_separator = "\\n"
+
+            # 清洗文档内容
+            document_processor = DocumentProcessor()
+            cleaned_document = document_processor.clean_document(document)
+
+            # 创建分割器和规则
+            splitter = ParentChildDocumentSplitter()
+            rule = Rule(
+                mode=SplitMode.PARENT_CHILD,
+                max_tokens=parent_chunk_size,
+                chunk_overlap=parent_chunk_overlap,
+                fixed_separator=parent_separator,
+                subchunk_max_tokens=child_chunk_size,
+                subchunk_overlap=child_chunk_overlap,
+                subchunk_separator=child_separator,
+                clean_text=True,
+                keep_separator=True
+            )
+
+            logger.info("开始分割文档...")
+            processed_docs = splitter.split_documents([cleaned_document], rule)
+            logger.info(f"文档分割完成，生成了 {len(processed_docs)} 个段落")
+
+            # 构建层级结构
+            parent_segments = []
+            child_segments_by_parent = {}
+
+            for segment in processed_docs:
+                segment_type = segment.metadata.get("type", "unknown")
+                parent_id = segment.metadata.get("parent_id")
+
+                if segment_type == "parent":
+                    parent_segments.append(segment)
+                elif segment_type == "child" and parent_id:
+                    if parent_id not in child_segments_by_parent:
+                        child_segments_by_parent[parent_id] = []
+                    child_segments_by_parent[parent_id].append(segment)
+
+            hierarchical_segments = []
+            for parent in parent_segments:
+                parent_id = parent.metadata.get("id", str(len(hierarchical_segments)))
+                
+                parent_segment = {
+                    "type": "parent",
+                    "id": parent_id,
+                    "content": parent.page_content,
+                    "metadata": parent.metadata,
+                    "children": []
+                }
+                
+                # 添加子块
+                if parent_id in child_segments_by_parent:
+                    for child in child_segments_by_parent[parent_id]:
+                        child_segment = {
+                            "type": "child",
+                            "id": child.metadata.get("id", ""),
+                            "content": child.page_content,
+                            "metadata": child.metadata,
+                            "parent_id": parent_id
+                        }
+                        parent_segment["children"].append(child_segment)
+                
+                hierarchical_segments.append(parent_segment)
+
+            logger.info(f"构建层级结构完成: {len(hierarchical_segments)} 个父块")
+
+        # 计算统计信息
+        total_segments = len(hierarchical_segments)
+        parent_segments_count = len(hierarchical_segments)
+        child_segments_count = sum(len(parent["children"]) for parent in hierarchical_segments)
+
+        return CompleteDocumentPreviewResponse(
+            success=True,
+            message="获取完整文档预览成功",
+            preview_mode=document_id.startswith("preview_"),
+            doc_id=document_id,
+            total_segments=total_segments + child_segments_count,
+            parent_segments=parent_segments_count,
+            child_segments=child_segments_count,
+            segments=hierarchical_segments
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"获取完整文档预览失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{collection_id}/documents", response_model=CollectionResponse)
 async def get_collection_documents(
     collection_id: str,
@@ -415,3 +630,30 @@ async def get_collection_documents(
     except Exception as e:
         logger.error(f"获取文档集文档列表失败: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# @router.get("/{document_id}/chunks", response_model=CollectionResponse)
+# async def get_document_chunks(
+#     document_id: str,
+#     current_user: User = Depends(get_current_user),
+#     collection_service: DocumentCollectionService = Depends()
+# ):
+#     """获取单个文档的所有分块信息"""
+#     try:
+#         # 假设 collection_service 有一个方法可以获取文档的所有分块
+#         # 这个方法需要去向量数据库中查询
+#         chunks = await collection_service.get_document_chunks(document_id, str(current_user.id))
+        
+#         if chunks is None:
+#             raise HTTPException(status_code=404, detail="Document or chunks not found")
+
+#  结构
+#         return CollectionResponse(
+#             success=True,
+#             message="获取文档分块成功",
+#             data={"segments": chunks}
+#         )
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"获取文档分块失败: {str(e)}")
+#         raise HTTPException(status_code=500, detail=str(e))
