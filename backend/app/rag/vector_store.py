@@ -363,7 +363,8 @@ class MilvusVectorStore(BaseVectorStore):
         query_vector: List[float],
         top_k: int = 2,
         score_threshold: float = 0.0,
-        dataset_id: Optional[str] = None
+        dataset_id: Optional[str] = None,
+        filter_expr: Optional[str] = None
     ) -> List[Document]:
         """搜索相似向量"""
         if not self.collection:
@@ -379,11 +380,14 @@ class MilvusVectorStore(BaseVectorStore):
                 "params": {"nprobe": min(50, max(10, top_k * 2))}  # 动态调整nprobe
             }
             
-            # 添加过滤条件（如果指定了数据集ID）
+            # 添加过滤条件
             expr = None
-            if dataset_id:
+            if filter_expr:
+                expr = filter_expr
+                logger.info(f"使用自定义过滤条件: {expr}")
+            elif dataset_id:
                 expr = f'metadata["dataset_id"] == "{dataset_id}"'
-                logger.info(f"添加过滤条件: {expr}")
+                logger.info(f"添加数据集过滤条件: {expr}")
             
             logger.info(f"正在集合 {self.collection.name} 中执行搜索, top_k={top_k}")
             start_time = time.time()

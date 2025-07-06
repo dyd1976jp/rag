@@ -146,13 +146,13 @@ class HierarchicalRetrievalService:
             query_vector = self.embedding_model.embed_query(query)
             
             # 构建过滤条件（仅搜索子块）
-            filter_expr = 'metadata["chunk_type"] == "child"'
+            filter_expr = 'metadata["type"] == "child"'
             if dataset_id:
                 filter_expr += f' && metadata["dataset_id"] == "{dataset_id}"'
             
             # 执行向量搜索
             search_results = self.vector_store.search_by_vector(
-                vector=query_vector,
+                query_vector=query_vector,
                 top_k=top_k,
                 filter_expr=filter_expr
             )
@@ -160,16 +160,20 @@ class HierarchicalRetrievalService:
             # 转换搜索结果
             child_chunks_with_scores = []
             for result in search_results:
+                # result是Document对象，不是字典
+                metadata = result.metadata if hasattr(result, 'metadata') else {}
+                content = result.page_content if hasattr(result, 'page_content') else ""
+                
                 chunk_info = {
-                    "id": result.get("metadata", {}).get("id"),
-                    "segment_id": result.get("metadata", {}).get("segment_id"),
-                    "document_id": result.get("metadata", {}).get("document_id"),
-                    "dataset_id": result.get("metadata", {}).get("dataset_id"),
-                    "content": result.get("content", ""),
-                    "position": result.get("metadata", {}).get("position", 0),
-                    "word_count": result.get("metadata", {}).get("word_count", 0)
+                    "id": metadata.get("id"),
+                    "segment_id": metadata.get("parent_id"),  # 使用parent_id作为segment_id
+                    "document_id": metadata.get("document_id"),
+                    "dataset_id": metadata.get("dataset_id"),
+                    "content": content,
+                    "position": metadata.get("position", 0),
+                    "word_count": metadata.get("word_count", len(content))
                 }
-                score = result.get("score", 0.0)
+                score = metadata.get("score", 0.0)
                 child_chunks_with_scores.append((chunk_info, score))
             
             logger.debug(f"向量搜索返回 {len(child_chunks_with_scores)} 个子块结果")
@@ -202,14 +206,23 @@ class HierarchicalRetrievalService:
                 logger.warning("未找到有效的segment_id")
                 return []
             
-            # 批量获取父段落信息
-            segments_cursor = mongodb.db["document_segments"].find(
-                {"id": {"$in": segment_ids}}
-            )
-            
+            # 批量获取父段落信息（从Milvus获取，因为MongoDB为空）
             segments_dict = {}
-            async for seg_doc in segments_cursor:
-                segments_dict[seg_doc["id"]] = seg_doc
+            if self.vector_store and hasattr(self.vector_store, 'get_by_ids'):
+                try:
+                    # 从Milvus获取父文档
+                    parent_docs = self.vector_store.get_by_ids(segment_ids)
+                    for doc in parent_docs:
+                        if doc.metadata.get("type") == "parent":
+                            segments_dict[doc.metadata.get("id")] = {
+                                "id": doc.metadata.get("id"),
+                                "content": doc.page_content,
+                                "position": doc.metadata.get("index", 0),
+                                "word_count": len(doc.page_content),
+                                "child_count": 0  # 暂时设为0，实际可以计算
+                            }
+                except Exception as e:
+                    logger.warning(f"从Milvus获取父文档失败: {e}")
             
             logger.debug(f"获取到 {len(segments_dict)} 个父段落信息")
             
@@ -312,13 +325,9 @@ class HierarchicalRetrievalService:
         Args:
             segment_id: 父段落ID
         """
-        try:
-            await mongodb.db["document_segments"].update_one(
-                {"id": segment_id},
-                {"$inc": {"hit_count": 1}}
-            )
-        except Exception as e:
-            logger.warning(f"更新父段落命中次数失败: {str(e)}")
+        # MongoDB为空，跳过命中次数更新
+        # 如果需要统计，可以考虑在内存中或其他方式记录
+        pass
     
     async def get_segment_children(
         self,
