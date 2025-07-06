@@ -44,12 +44,13 @@ class HierarchicalDocumentProcessor:
             keep_separator=True
         )
         
-        # 初始化子块分割器
+        # 初始化子块分割器 - 启用强制分割模式确保按分隔符分割
         self.child_splitter = FixedRecursiveCharacterTextSplitter(
             chunk_size=self.config.child_chunk_size,
             chunk_overlap=self.config.child_chunk_overlap,
             separators=self.config.child_separators,
-            keep_separator=True
+            keep_separator=True,
+            force_split_on_separator=True  # 强制按分隔符分割
         )
         
         logger.info(f"层次化文档处理器初始化完成，配置: {self.config.dict()}")
@@ -70,12 +71,13 @@ class HierarchicalDocumentProcessor:
             keep_separator=True
         )
         
-        # 重新初始化子块分割器
+        # 重新初始化子块分割器 - 启用强制分割模式确保按分隔符分割
         self.child_splitter = FixedRecursiveCharacterTextSplitter(
             chunk_size=self.config.child_chunk_size,
             chunk_overlap=self.config.child_chunk_overlap,
             separators=self.config.child_separators,
-            keep_separator=True
+            keep_separator=True,
+            force_split_on_separator=True  # 强制按分隔符分割
         )
         
         logger.info(f"层次化文档处理器配置已更新: {self.config.dict()}")
@@ -183,7 +185,7 @@ class HierarchicalDocumentProcessor:
         document_id: str, 
         dataset_id: str
     ) -> List[HierarchicalDocumentSegment]:
-        """创建全文档作为单一父段落
+        """创建全文档作为单一父段落 - 应用Dify的 10,000 token 限制
         
         Args:
             document: 源文档
@@ -193,17 +195,48 @@ class HierarchicalDocumentProcessor:
         Returns:
             List[HierarchicalDocumentSegment]: 包含单个父段落的列表
         """
-        logger.debug("使用全文档模式创建父段落")
+        logger.debug("使用全文档模式创建父段落（应用Dify 10,000 token限制）")
+        
+        # 应用Dify的 10,000 token 限制
+        content = document.page_content
+        max_tokens = 10000
+        
+        # 简单的token估算（中文字符数 + 英文单词数）
+        chinese_chars = len([c for c in content if '\u4e00' <= c <= '\u9fff'])
+        english_words = len(content.replace('中文', ' ').split())
+        estimated_tokens = chinese_chars + english_words
+        
+        if estimated_tokens > max_tokens:
+            logger.warning(f"文档内容超过{max_tokens} tokens（估算{estimated_tokens}），将截断到前{max_tokens} tokens")
+            # 简单截断策略：按比例截断
+            truncate_ratio = max_tokens / estimated_tokens
+            truncate_length = int(len(content) * truncate_ratio)
+            content = content[:truncate_length]
+            # 在句子边界处截断
+            if not content.endswith(('。', '.', '!', '?', '！', '？')):
+                last_sentence_end = max(
+                    content.rfind('。'),
+                    content.rfind('.'),
+                    content.rfind('!'),
+                    content.rfind('?'),
+                    content.rfind('！'),
+                    content.rfind('？')
+                )
+                if last_sentence_end > 0:
+                    content = content[:last_sentence_end + 1]
         
         segment = HierarchicalDocumentSegment(
             document_id=document_id,
             dataset_id=dataset_id,
-            content=document.page_content,
+            content=content,
             position=0,
             metadata={
                 **document.metadata,
                 "segment_type": "full_doc",
-                "original_doc_id": document.doc_id
+                "original_doc_id": document.doc_id,
+                "is_truncated": estimated_tokens > max_tokens,
+                "original_tokens": estimated_tokens,
+                "final_tokens": max_tokens if estimated_tokens > max_tokens else estimated_tokens
             }
         )
         

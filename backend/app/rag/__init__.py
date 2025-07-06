@@ -93,25 +93,30 @@ async def initialize_rag():
         logger.info("缓存服务已在配置中禁用")
         cache_service = None
 
-    # 创建全局检索服务实例
+    # 创建全局检索服务实例 - 延迟初始化以确保MongoDB连接可用
     if embedding_model is not None and vector_store is not None:
         try:
-            from app.db.mongodb import mongodb
+            from app.db.connections.mongodb import mongodb_manager
             from app.rag.retrieval_service import RetrievalService
             from app.rag.constants import RETRIEVAL_CONFIG
 
-            # 延迟导入DocumentStore以避免循环导入
-            from app.db.document_store import DocumentStore
-            document_store = DocumentStore(mongodb.db)
+            # 检查MongoDB连接是否可用
+            if mongodb_manager._async_db is not None:
+                # 延迟导入DocumentStore以避免循环导入
+                from app.db.document_store import DocumentStore
+                document_store = DocumentStore(mongodb_manager._async_db)
 
-            retrieval_service = RetrievalService(
-                vector_store=vector_store,
-                document_store=document_store,
-                embedding_model=embedding_model,
-                retrieval_config=RETRIEVAL_CONFIG,
-                cache_service=cache_service
-            )
-            logger.info("检索服务初始化成功")
+                retrieval_service = RetrievalService(
+                    vector_store=vector_store,
+                    document_store=document_store,
+                    embedding_model=embedding_model,
+                    retrieval_config=RETRIEVAL_CONFIG,
+                    cache_service=cache_service
+                )
+                logger.info("检索服务初始化成功")
+            else:
+                logger.warning("MongoDB连接尚未建立，检索服务将延迟初始化")
+                retrieval_service = None
         except Exception as e:
             logger.error(f"检索服务初始化失败: {str(e)}")
             import traceback

@@ -248,6 +248,7 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
     - 语义边界保持
     - 质量控制和优化
     - 多级分隔符策略
+    - 支持强制分割模式
     """
 
     def __init__(
@@ -265,7 +266,9 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         min_chunk_size: int = 50,
         max_chunk_size_ratio: float = 1.5,
         quality_threshold: float = 0.8,
-        enable_content_analysis: bool = True
+        enable_content_analysis: bool = True,
+        # 新增：强制分割参数
+        force_split_on_separator: bool = False  # 是否强制按分隔符分割，不考虑chunk_size
     ):
         """初始化增强分割器
 
@@ -301,6 +304,9 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         self._max_chunk_size = int(chunk_size * max_chunk_size_ratio)
         self._quality_threshold = quality_threshold
         self._enable_content_analysis = enable_content_analysis
+        
+        # 强制分割配置
+        self._force_split_on_separator = force_split_on_separator
 
         # 内容分析缓存
         self._content_analysis_cache = {}
@@ -535,6 +541,11 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         if len(chunks) <= 1:
             return []
 
+        # 如果启用了强制分割，直接返回分割结果
+        if self._force_split_on_separator:
+            logger.debug(f"强制分割模式：直接返回{len(chunks)}个分割结果")
+            return chunks
+
         # 检查是否有过大的块需要进一步分割
         final_chunks = []
         for chunk in chunks:
@@ -610,6 +621,7 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         max_chunk_size_ratio: float = 1.5,
         quality_threshold: float = 0.8,
         enable_content_analysis: bool = True,
+        force_split_on_separator: bool = False,
         **kwargs: Any
     ):
         """从编码器创建增强的固定分隔符分割器
@@ -647,6 +659,7 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
             max_chunk_size_ratio=max_chunk_size_ratio,
             quality_threshold=quality_threshold,
             enable_content_analysis=enable_content_analysis,
+            force_split_on_separator=force_split_on_separator,
             **kwargs
         )
         
@@ -679,6 +692,13 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         Returns:
             List[str]: 分割后的文本块
         """
+        # 如果启用了强制分割模式，优先使用第一个存在的分隔符进行强制分割
+        if self._force_split_on_separator:
+            for separator in self._separators:
+                if separator in text:
+                    logger.debug(f"强制分割模式：使用分隔符 '{separator}'")
+                    return self._force_split_by_separator(text, separator)
+        
         # 1. 内容分析
         if not self._content_type:
             detected_type = self._detect_content_type(text)
@@ -739,6 +759,11 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
 
             logger.debug(f"清理后得到 {len(cleaned_chunks)} 个有效块")
 
+            # 如果启用强制分割，直接返回清理后的块
+            if self._force_split_on_separator and len(cleaned_chunks) > 1:
+                logger.debug(f"强制分割模式：直接返回 {len(cleaned_chunks)} 个块")
+                return cleaned_chunks
+
             # 如果分割成功且有多个块，返回分割结果
             if len(cleaned_chunks) > 1:
                 final_chunks = []
@@ -762,3 +787,27 @@ class FixedRecursiveCharacterTextSplitter(EnhanceRecursiveCharacterTextSplitter)
         # 使用递归分割作为后备方案
         logger.debug("使用递归分割")
         return self._split_text(text, self._separators)
+        
+    def _force_split_by_separator(self, text: str, separator: str) -> List[str]:
+        """强制按分隔符分割，不考虑chunk_size限制
+        
+        Args:
+            text: 待分割文本
+            separator: 分隔符
+            
+        Returns:
+            List[str]: 分割后的文本块
+        """
+        if separator not in text:
+            return [text]
+            
+        chunks = text.split(separator)
+        # 清理空块，但保留所有非空块
+        cleaned_chunks = []
+        for chunk in chunks:
+            chunk = chunk.strip()
+            if chunk:
+                cleaned_chunks.append(chunk)
+        
+        logger.debug(f"强制分割模式：按 '{separator}' 分割得到 {len(cleaned_chunks)} 个块")
+        return cleaned_chunks if cleaned_chunks else [text]

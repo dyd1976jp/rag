@@ -756,13 +756,13 @@ async def batch_upload_documents(
 @router.post("/documents/upload-hierarchical", response_model=DocumentUploadResponse)
 async def upload_document_hierarchical(
     file: UploadFile = File(...),
-    parent_mode: str = Form("paragraph"),
-    parent_chunk_size: int = Form(1000),
-    parent_chunk_overlap: int = Form(100),
-    child_chunk_size: int = Form(300),
-    child_chunk_overlap: int = Form(50),
-    parent_separators: str = Form(None),  # 新增：父块分隔符，用逗号分隔，如 "\\n\\n,\\n,。"
-    child_separators: str = Form(None),   # 新增：子块分隔符，用逗号分隔，如 "\\n,。,. "
+    parent_mode: str = Form("paragraph"),  # paragraph or full_doc
+    parent_chunk_size: int = Form(500),    # Aligned with Dify defaults
+    parent_chunk_overlap: int = Form(50),  # Reduced overlap for better chunking
+    child_chunk_size: int = Form(200),     # Aligned with Dify defaults
+    child_chunk_overlap: int = Form(20),   # Reduced overlap for child chunks
+    parent_separators: str = Form(None),   # 父块分隔符，用逗号分隔，如 "\\n\\n,\\n,。"
+    child_separators: str = Form(None),    # 子块分隔符，用逗号分隔，如 "\\n,。,. "
     index_child_chunks_only: bool = Form(True),
     enable_parent_context: bool = Form(True),
     content_type: str = Form(None),
@@ -771,27 +771,42 @@ async def upload_document_hierarchical(
     rag_service: RAGService = Depends(get_rag_service)
 ):
     """
-    使用层次化架构上传和处理文档
+    使用层次化架构上传和处理文档 - 基于Dify的父子分块实现
+    
+    该端点实现了Dify风格的父子分块策略，在RAG检索时提供精确匹配和丰富上下文的平衡：
+    - 子块用于精确检索和匹配查询关键词
+    - 父块提供完整的上下文背景信息
     
     Args:
         file: 上传的文件
-        parent_mode: 父段落模式 (paragraph/full_doc)
-        parent_chunk_size: 父段落大小
-        parent_chunk_overlap: 父段落重叠
-        child_chunk_size: 子块大小
-        child_chunk_overlap: 子块重叠
-        parent_separators: 父块分隔符（用逗号分隔），如 "\\n\\n,\\n,。"，为空时使用默认值
-        child_separators: 子块分隔符（用逗号分隔），如 "\\n,。,. "，为空时使用默认值
-        index_child_chunks_only: 是否仅索引子块
-        enable_parent_context: 是否启用父段落上下文
-        content_type: 内容类型 (academic/news/dialogue/code/legal)
-        preview_only: 是否仅预览
-        current_user: 当前用户
-        rag_service: RAG服务
+        parent_mode: 父段落模式 
+            - "paragraph": 按段落分割文档作为父块（适合大文档）
+            - "full_doc": 整个文档作为父块（适合小文档，限制10000 tokens）
+        parent_chunk_size: 父段落最大长度（tokens），默认500
+        parent_chunk_overlap: 父段落重叠长度，默认50
+        child_chunk_size: 子块最大长度（tokens），默认200
+        child_chunk_overlap: 子块重叠长度，默认20
+        parent_separators: 父块分隔符（逗号分隔），如 "\\n\\n,\\n,。"
+        child_separators: 子块分隔符（逗号分隔），如 "\\n,。,. "
+        index_child_chunks_only: 是否仅索引子块到向量数据库（推荐True）
+        enable_parent_context: 检索时是否返回父块上下文（推荐True）
+        content_type: 内容类型优化 (academic/news/dialogue/code/legal)
+        preview_only: 是否仅预览分块结果，不实际存储
     """
     
     try:
         logger.info(f"用户 {current_user.email} 开始层次化上传文档: {file.filename}")
+        
+        # 验证参数
+        if parent_mode not in ["paragraph", "full_doc"]:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "message": "parent_mode 必须是 'paragraph' 或 'full_doc'",
+                    "error_code": "INVALID_PARENT_MODE"
+                }
+            )
         
         # 检查RAG服务是否启用层次化处理
         if not rag_service.enable_hierarchical_processing:
@@ -820,11 +835,17 @@ async def upload_document_hierarchical(
         file_path = save_uploaded_file(file)
         
         try:
-            # 解析自定义分隔符
-            def parse_separators(separator_string: str) -> List[str]:
-                """解析分隔符字符串，处理转义字符"""
+            # 解析自定义分隔符 - 基于Dify的分隔符处理逻辑
+            def parse_separators(separator_string: str, is_child: bool = False) -> List[str]:
+                """解析分隔符字符串，处理转义字符，提供Dify风格的默认值"""
                 if not separator_string or separator_string.strip() == "":
-                    return None  # 返回None表示使用默认值
+                    # 使用Dify风格的默认分隔符
+                    if is_child:
+                        # 子块默认按句子分割
+                        return ["\n", "。", "!", "?", "；", "; ", ". ", "! ", "? ", " "]
+                    else:
+                        # 父块默认按段落分割
+                        return ["\n\n", "\n", "。", ". "]
                 
                 # 按逗号分割
                 separators = [s.strip() for s in separator_string.split(',')]
@@ -842,33 +863,37 @@ async def upload_document_hierarchical(
                 return processed_separators if processed_separators else None
             
             # 解析父块和子块分隔符
-            parsed_parent_separators = parse_separators(parent_separators)
-            parsed_child_separators = parse_separators(child_separators)
+            parsed_parent_separators = parse_separators(parent_separators, is_child=False)
+            parsed_child_separators = parse_separators(child_separators, is_child=True)
             
             logger.info(f"自定义分隔符解析结果:")
             logger.info(f"  parent_separators: {parent_separators} -> {parsed_parent_separators}")
             logger.info(f"  child_separators: {child_separators} -> {parsed_child_separators}")
             
-            # 创建层次化配置
+            # 创建层次化配置 - 应用Dify的配置逻辑
             from app.rag.models import HierarchicalSplittingConfig
             
-            # 准备配置参数
+            # 准备配置参数，应用Dify的默认值和限制
             config_params = {
                 "parent_mode": parent_mode,
-                "parent_chunk_size": parent_chunk_size,
+                "parent_chunk_size": min(parent_chunk_size, 4000),  # Dify限制
                 "parent_chunk_overlap": parent_chunk_overlap,
-                "child_chunk_size": child_chunk_size,
+                "child_chunk_size": min(child_chunk_size, 4000),   # Dify限制
                 "child_chunk_overlap": child_chunk_overlap,
                 "index_child_chunks_only": index_child_chunks_only,
                 "enable_parent_context": enable_parent_context,
-                "content_type": content_type if content_type != "None" else None
+                "content_type": content_type if content_type and content_type != "None" else None
             }
             
-            # 添加自定义分隔符（如果提供）
+            # 添加分隔符配置
             if parsed_parent_separators is not None:
                 config_params["parent_separators"] = parsed_parent_separators
             if parsed_child_separators is not None:
                 config_params["child_separators"] = parsed_child_separators
+            
+            # 对于full_doc模式，限制为10000 tokens（按Dify标准）
+            if parent_mode == "full_doc":
+                config_params["parent_chunk_size"] = min(config_params["parent_chunk_size"], 10000)
             
             hierarchical_config = HierarchicalSplittingConfig(**config_params)
             
@@ -903,35 +928,64 @@ async def upload_document_hierarchical(
                         document, "preview", "preview"
                     )
                 
-                # 为每个父段落生成子块预览
+                # 生成Dify风格的预览数据
                 preview_data = {
+                    "success": True,
+                    "preview_only": True,
                     "document_id": "preview",
                     "file_name": file.filename,
-                    "config": hierarchical_config.dict(),
-                    "parent_segments": [],
-                    "total_parent_segments": len(parent_segments),
-                    "total_child_chunks": 0
+                    "processing_rule": {
+                        "mode": "parent_child",
+                        "rules": {
+                            "parent_mode": hierarchical_config.parent_mode,
+                            "parent_segmentation": {
+                                "chunk_size": hierarchical_config.parent_chunk_size,
+                                "chunk_overlap": hierarchical_config.parent_chunk_overlap,
+                                "separators": hierarchical_config.parent_separators
+                            },
+                            "child_segmentation": {
+                                "chunk_size": hierarchical_config.child_chunk_size,
+                                "chunk_overlap": hierarchical_config.child_chunk_overlap,
+                                "separators": hierarchical_config.child_separators
+                            }
+                        }
+                    },
+                    "chunks": [],
+                    "total_segments": len(parent_segments),
+                    "total_chunks": 0
                 }
                 
-                for i, segment in enumerate(parent_segments[:10]):  # 预览前10个父段落
+                # 限制预览数量，避免响应过大
+                max_preview_segments = 20  # 增加预览段落限制，确保不会丢失重要内容
+                for i, segment in enumerate(parent_segments[:max_preview_segments]):
                     child_chunks = temp_processor._create_child_chunks(segment)
-                    preview_data["total_child_chunks"] += len(child_chunks)
+                    preview_data["total_chunks"] += len(child_chunks)
                     
-                    segment_preview = {
+                    # Dify风格的段落结构
+                    segment_data = {
+                        "content": segment.content[:800] + "..." if len(segment.content) > 800 else segment.content,
+                        "word_count": len(segment.content.split()),
                         "position": segment.position,
-                        "content": segment.content[:500] + "..." if len(segment.content) > 500 else segment.content,
-                        "word_count": segment.word_count,
-                        "child_chunks": [
+                        "enabled": True,  # Dify的分片启用状态
+                        "children": [
                             {
+                                "content": chunk.content[:300] + "..." if len(chunk.content) > 300 else chunk.content,
+                                "word_count": len(chunk.content.split()),
                                 "position": chunk.position,
-                                "content": chunk.content[:200] + "..." if len(chunk.content) > 200 else chunk.content,
-                                "word_count": chunk.word_count
+                                "enabled": True
                             }
-                            for j, chunk in enumerate(child_chunks[:3])  # 每个父段落只预览前3个子块
+                            for chunk in child_chunks[:5]  # 每个父段落最多预览5个子块
                         ],
                         "child_count": len(child_chunks)
                     }
-                    preview_data["parent_segments"].append(segment_preview)
+                    preview_data["chunks"].append(segment_data)
+                
+                # 添加统计信息
+                if len(parent_segments) > max_preview_segments:
+                    preview_data["preview_note"] = f"显示前{max_preview_segments}个父段落，共{len(parent_segments)}个段落"
+                
+                # 清理临时文件
+                cleanup_temp_file(file_path)
                 
                 return JSONResponse(
                     status_code=200,
@@ -939,7 +993,19 @@ async def upload_document_hierarchical(
                         "success": True,
                         "message": "层次化文档预览生成成功",
                         "preview_only": True,
-                        "data": preview_data
+                        "doc_id": "preview",
+                        "total_segments": preview_data["total_segments"],
+                        "total_chunks": preview_data["total_chunks"],
+                        "parentContent": document.page_content[:1000] + "..." if len(document.page_content) > 1000 else document.page_content,
+                        "childrenContent": [chunk["content"] for segment in preview_data["chunks"] for chunk in segment["children"]],
+                        "segments": preview_data["chunks"],
+                        "processing_rule": preview_data["processing_rule"],
+                        "document_overview": {
+                            "title": file.filename,
+                            "total_length": len(document.page_content),
+                            "total_segments": preview_data["total_segments"],
+                            "total_chunks": preview_data["total_chunks"]
+                        }
                     }
                 )
             
@@ -957,23 +1023,38 @@ async def upload_document_hierarchical(
                     status_code=200,
                     content={
                         "success": True,
-                        "message": result["message"],
-                        "data": {
+                        "message": "层次化文档上传成功",
+                        "preview_only": False,
+                        "doc_id": result["doc_id"],
+                        "total_segments": result.get("parent_segments_count", 0),
+                        "total_chunks": result.get("child_chunks_count", 0),
+                        "processing_time": result.get("processing_time", 0),
+                        "document_overview": {
+                            "title": file.filename,
                             "doc_id": result["doc_id"],
-                            "parent_segments_count": result["parent_segments_count"],
-                            "child_chunks_count": result["child_chunks_count"],
-                            "processing_time": result["processing_time"],
-                            "hierarchical_config": hierarchical_config.dict()
-                        }
+                            "parent_segments_count": result.get("parent_segments_count", 0),
+                            "child_chunks_count": result.get("child_chunks_count", 0),
+                            "processing_method": "hierarchical",
+                            "index_child_chunks_only": index_child_chunks_only,
+                            "enable_parent_context": enable_parent_context
+                        },
+                        "hierarchical_config": hierarchical_config.dict()
                     }
                 )
             else:
+                error_msg = result.get("message", "层次化处理失败")
+                logger.error(f"层次化文档处理失败: {error_msg}")
                 return JSONResponse(
                     status_code=500,
                     content={
                         "success": False,
-                        "message": result["message"],
-                        "error_code": "HIERARCHICAL_PROCESSING_FAILED"
+                        "message": error_msg,
+                        "preview_only": False,
+                        "doc_id": None,
+                        "total_segments": 0,
+                        "total_chunks": 0,
+                        "error_code": "HIERARCHICAL_PROCESSING_FAILED",
+                        "error_details": result.get("error", "")
                     }
                 )
         
@@ -983,12 +1064,25 @@ async def upload_document_hierarchical(
     
     except Exception as e:
         logger.error(f"层次化上传文档失败: {str(e)}", exc_info=True)
+        
+        # 确保临时文件被清理
+        try:
+            if 'file_path' in locals():
+                cleanup_temp_file(file_path)
+        except:
+            pass
+        
         return JSONResponse(
             status_code=500,
             content={
                 "success": False,
                 "message": f"层次化上传文档失败: {str(e)}",
-                "error_code": "HIERARCHICAL_UPLOAD_ERROR"
+                "preview_only": False,
+                "doc_id": None,
+                "total_segments": 0,
+                "total_chunks": 0,
+                "error_code": "HIERARCHICAL_UPLOAD_ERROR",
+                "error_details": str(e)
             }
         )
 

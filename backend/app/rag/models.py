@@ -1050,28 +1050,30 @@ class HierarchicalChildChunk(BaseModel):
 
 
 class HierarchicalSplittingConfig(BaseModel):
-    """层次化分割配置
+    """层次化分割配置 - 基于Dify的父子分块实现
     
-    支持不同的父子分割策略和参数配置
+    实现Dify风格的父子分块策略：
+    - 父块：提供上下文背景（段落或全文档）
+    - 子块：用于精确检索（通常是句子）
     """
     parent_mode: Literal["paragraph", "full_doc"] = "paragraph"
     
-    # 父段落配置
-    parent_chunk_size: int = 1000
-    parent_chunk_overlap: int = 100
-    parent_separators: List[str] = PydanticField(default_factory=lambda: ["\n\n\n", "\n\n", "。", ". "])
+    # 父段落配置 - 对齐Dify默认值
+    parent_chunk_size: int = 500        # Dify默认500 tokens
+    parent_chunk_overlap: int = 50      # 减少重叠
+    parent_separators: List[str] = PydanticField(default_factory=lambda: ["\n\n", "\n", "。", ". "])
     
-    # 子块配置  
-    child_chunk_size: int = 300
-    child_chunk_overlap: int = 50
-    child_separators: List[str] = PydanticField(default_factory=lambda: ["\n\n", "\n", "。", ". ", " "])
+    # 子块配置 - 对齐Dify默认值 
+    child_chunk_size: int = 200         # Dify默认200 tokens
+    child_chunk_overlap: int = 20       # 减少重叠
+    child_separators: List[str] = PydanticField(default_factory=lambda: ["\n", "。", "!", "?", "；", "; ", ". ", "! ", "? ", " "])
     
     # 索引配置
     index_child_chunks_only: bool = True  # 仅索引子块到向量数据库
     enable_parent_context: bool = True    # 启用父段落上下文
     
     # 质量控制
-    min_child_chunk_size: int = 50
+    min_child_chunk_size: int = 1  # 对标Dify，几乎不过滤，主要由chunk_size控制
     max_children_per_parent: int = 20
     min_parent_chunk_size: int = 200
     

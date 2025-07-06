@@ -1306,6 +1306,46 @@ class RAGService:
                 "error_code": "UNKNOWN_ERROR"
             }
     
+    def _try_init_retrieval_service(self) -> bool:
+        """尝试延迟初始化检索服务"""
+        try:
+            import app.rag as rag_module
+            from app.db.connections.mongodb import mongodb_manager
+            from app.rag.retrieval_service import RetrievalService
+            from app.rag.constants import RETRIEVAL_CONFIG
+            from app.db.document_store import DocumentStore
+            
+            # 检查MongoDB连接是否可用
+            if mongodb_manager._async_db is not None:
+                vector_store = rag_module.vector_store
+                embedding_model = rag_module.embedding_model
+                cache_service = rag_module.cache_service
+                
+                if vector_store is not None and embedding_model is not None:
+                    document_store = DocumentStore(mongodb_manager._async_db)
+                    
+                    retrieval_service = RetrievalService(
+                        vector_store=vector_store,
+                        document_store=document_store,
+                        embedding_model=embedding_model,
+                        retrieval_config=RETRIEVAL_CONFIG,
+                        cache_service=cache_service
+                    )
+                    
+                    # 更新全局变量
+                    rag_module.retrieval_service = retrieval_service
+                    logger.info("延迟初始化检索服务成功")
+                    return True
+                else:
+                    logger.error("向量存储或嵌入模型不可用，无法初始化检索服务")
+                    return False
+            else:
+                logger.error("MongoDB连接不可用，无法初始化检索服务")
+                return False
+        except Exception as e:
+            logger.error(f"延迟初始化检索服务失败: {str(e)}")
+            return False
+
     def _check_rag_available(self) -> bool:
         """检查RAG服务是否可用"""
         # 动态获取RAG组件，确保获取最新的初始化状态
@@ -1314,6 +1354,14 @@ class RAGService:
         document_processor = components['document_processor']
         document_splitter = components['document_splitter']
         embedding_model = components['embedding_model']
+
+        # 如果检索服务不可用，尝试延迟初始化
+        if retrieval_service is None:
+            logger.info("检索服务不可用，尝试延迟初始化...")
+            if self._try_init_retrieval_service():
+                # 重新获取组件状态
+                components = self._get_rag_components()
+                retrieval_service = components['retrieval_service']
 
         # 调试信息
         logger.info(f"RAG组件状态检查:")
